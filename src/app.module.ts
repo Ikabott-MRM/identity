@@ -5,10 +5,13 @@ import { MembersModule } from './members/members.module';
 import { KnexModule } from './db/knex.module';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
+import { SsiService } from './ssi/ssi.service';
+import { SsiModule } from './ssi/ssi.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
-  imports: [MembersModule, KnexModule],
+  imports: [MembersModule, KnexModule, SsiModule, EventsModule],
   controllers: [AppController, MembersController],
-  providers: [AppService, MembersService],
+  providers: [AppService, MembersService, SsiService],
 })
 export class AppModule {}
