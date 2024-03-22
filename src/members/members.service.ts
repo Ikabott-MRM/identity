@@ -12,17 +12,24 @@ export class MembersService {
 
   async sendVerificationCode(email: string) {
     const code = v4();
-    return this.knex('verification_codes').insert({ email, code });
+    console.log('Sending code', code, 'to', email);
+    return this.knex('verification_code').insert({ email, code });
   }
 
   async isCodeValid(email: string, code: string) {
     // check if exists
-    const verificationCode = await this.knex('verification_codes')
+    const verificationCode = await this.knex('verification_code')
       .where({ email, code })
       .first();
     if (!verificationCode) {
       return false;
     }
     return true;
+  }
+
+  async createMember(email: string, name: string) {
+    const dbResponse = await this.knex('member').insert({ email, name });
+    const id = dbResponse[0];
+    return { id, email, name };
   }
 }

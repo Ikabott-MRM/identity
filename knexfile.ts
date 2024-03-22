@@ -7,6 +7,7 @@ const config: { [key: string]: Knex.Config } = {
     connection: {
       filename: './dev.sqlite3',
     },
+    useNullAsDefault: true,
   },
 
   staging: {
