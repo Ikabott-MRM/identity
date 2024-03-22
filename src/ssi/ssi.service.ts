@@ -1,19 +1,54 @@
 import { Injectable } from '@nestjs/common';
 
+interface MemberCredentialSubject {
+  name: string;
+  lastname: string;
+  position: string;
+}
+
+interface MemberCredential {
+  allowedIssuers: string[];
+  credentialSubject: MemberCredentialSubject;
+  context: string;
+  type: string;
+}
+
+interface ZeroKnowledgeProofRequest {
+  ID: number;
+  CircuitID: string;
+  Query: MemberCredential;
+}
+
+interface DIDMetadata {
+  method: string;
+  blockchain: string;
+  network: string;
+  type: string;
+}
+
+interface CreateVerifiableClaimRequest {
+  credentialSchema: string;
+  type: string;
+  credentialSubject: MemberCredentialSubject;
+  expiration: number;
+}
+
 @Injectable()
 export class SsiService {
-  // create verifiable claim
-  async createVerifiableClaim(): Promise<void> {
+  async createVerifiableClaim(
+    req: CreateVerifiableClaimRequest,
+  ): Promise<void> {
     return null;
   }
 
-  // create did
-  async createDid(): Promise<void> {
+  // Select method, blockchain, network, type based on .env
+  async createIdentity(metadata: DIDMetadata): Promise<void> {
+    // Create identity and append metadata
     return null;
   }
 
-  // verify verifiable claim
-  async verifyClaim(): Promise<void> {
+  async verifyClaim(req: ZeroKnowledgeProofRequest): Promise<void> {
+    // Verify ZK proof
     return null;
   }
 }
