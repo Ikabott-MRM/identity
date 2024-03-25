@@ -33,6 +33,10 @@ interface CreateVerifiableClaimRequest {
   expiration: number;
 }
 
+interface VCProofRequest {
+  didDocumentPath: string;
+}
+
 @Injectable()
 export class SsiService {
   async createVerifiableClaim(
@@ -41,14 +45,15 @@ export class SsiService {
     return null;
   }
 
-  // Select method, blockchain, network, type based on .env
   async createIdentity(metadata: DIDMetadata): Promise<void> {
-    // Create identity and append metadata
     return null;
   }
 
-  async verifyClaim(req: ZeroKnowledgeProofRequest): Promise<void> {
-    // Verify ZK proof
+  async izZKClaimValid(req: ZeroKnowledgeProofRequest): Promise<boolean> {
+    return null;
+  }
+
+  async isClaimValid(req: VCProofRequest): Promise<boolean> {
     return null;
   }
 }
