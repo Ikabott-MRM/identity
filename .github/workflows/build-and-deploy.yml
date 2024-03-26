@@ -26,6 +26,6 @@ jobs:
               
     - name: Build and push Docker image
       run: |
-        az acr login --identity --name identitycace
+        az acr login --name identitycace
         docker build . -t identitycace.azurecr.io/backend:${{ github.sha }}
         docker push identitycace.azurecr.io/backend:${{ github.sha }}
