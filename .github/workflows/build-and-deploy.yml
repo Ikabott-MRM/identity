@@ -26,8 +26,17 @@ jobs:
 
     - name: 'Build and push image'
       uses: azure/docker-login@v1
+      with:
+        login-server: identitycace.azurecr.io
+        username: ${{ secrets.AZURE_CLIENT_ID }}
+        password: ${{ secrets.AZURE_CLIENT_SECRET }}
     - run: |
         docker build . -t identitycace.azurecr.io/backend:${{ github.sha }}
         docker push identitycace.azurecr.io/backend:${{ github.sha }}
 
-        
+              
+    - name: Build and push Docker image
+      run: |
+        az acr login --identity --name identitycace
+        docker build . -t identitycace.azurecr.io/backend:${{ github.sha }}
+        docker push identitycace.azurecr.io/backend:${{ github.sha }}
