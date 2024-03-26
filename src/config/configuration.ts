@@ -10,11 +10,12 @@ export default () => ({
     ttl: parseInt(process.env.RL_TTL) || 60,
     limit: parseInt(process.env.RL_LIMIT) || 10,
   },
-  ssiService: {
-    ssiServiceEndpoint: process.env.SSI_SERVICE_URL,
+  ssi: {
+    ssiServiceEndpoint:
+      process.env.SSI_SERVICE_URL || 'http://localhost:8080/v1',
     //TODO definir si se va a tener uno no propio por default
     dwn: process.env.DWN_URL,
     ssiProjectName: process.env.SSI_PROJECT_NAME || 'TBD',
+    didMethodName: process.env.DID_METHOD || 'key',
   },
-  database: {},
 });
