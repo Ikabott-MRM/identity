@@ -1,23 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
-interface MemberCredentialSubject {
-  name: string;
-  lastname: string;
-  position: string;
-}
 
-interface MemberCredential {
-  allowedIssuers: string[];
-  credentialSubject: MemberCredentialSubject;
-  context: string;
-  type: string;
-}
-
-interface ZeroKnowledgeProofRequest {
-  ID: number;
-  CircuitID: string;
-  Query: MemberCredential;
-}
+// interface ZeroKnowledgeProofRequest {
+//   ID: number;
+//   CircuitID: string;
+//   Query: MemberCredential;
+// }
 
 interface DIDMetadata {
   method: string;
@@ -26,12 +14,12 @@ interface DIDMetadata {
   type: string;
 }
 
-interface CreateVerifiableClaimRequest {
-  credentialSchema: string;
-  type: string;
-  credentialSubject: MemberCredentialSubject;
-  expiration: number;
-}
+// interface CreateVerifiableClaimRequest {
+//   credentialSchema: string;
+//   type: string;
+//   credentialSubject: MemberCredentialSubject;
+//   expiration: number;
+// }
 
 interface VCProofRequest {
   didDocumentPath: string;
@@ -39,21 +27,22 @@ interface VCProofRequest {
 
 @Injectable()
 export class SsiService {
-  async createVerifiableClaim(
-    req: CreateVerifiableClaimRequest,
-  ): Promise<void> {
-    return null;
-  }
+
+  // async createVerifiableClaim(
+  //   req: CreateVerifiableClaimRequest,
+  // ): Promise<void> {
+  //   return null;
+  // }
 
   async createIdentity(metadata: DIDMetadata): Promise<void> {
     return null;
   }
 
-  async izZKClaimValid(req: ZeroKnowledgeProofRequest): Promise<boolean> {
-    return null;
-  }
+  // async izZKClaimValid(req: ZeroKnowledgeProofRequest): Promise<boolean> {
+  //   return null;
+  // }
 
-  async isClaimValid(req: VCProofRequest): Promise<boolean> {
-    return null;
-  }
+  // async isClaimValid(req: VCProofRequest): Promise<boolean> {
+  //   return null;
+  // }
 }
