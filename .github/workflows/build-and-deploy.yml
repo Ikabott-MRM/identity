@@ -42,4 +42,4 @@ jobs:
 
     - name: Update Azure Container App
       run: |
-          az containerapp update --name aci-identity --resource-group identity-backend-resources --image identitycace.azurecr.io/backend:${{ github.sha }}
+          az containerapp update --name aci-identity --resource-group identity-backend-resources --image identitycace.azurecr.io/backend:${{ github.sha }} --registry-identity ${{ secrets.AZURE_CLIENT_ID }} --registry-server identitycace.azurecr.io
