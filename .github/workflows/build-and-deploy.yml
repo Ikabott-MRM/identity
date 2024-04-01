@@ -37,7 +37,7 @@ jobs:
         username: "root"
         key: ${{ secrets.DEV_VM_SSH }}
         source: "."
-        target: "/cace-identity"
+        target: "/"
 
     - name: Execute commands on the server
       uses: appleboy/ssh-action@master
