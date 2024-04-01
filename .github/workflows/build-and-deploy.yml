@@ -41,5 +41,6 @@ jobs:
         key: ${{ secrets.DEV_VM_SSH }}
         envs: ACR_REGISTRY,IMAGE_TAG
         script: |
-          chmod +x hub-backend/dev-deploy.sh
-          ./hub-backend/dev-deploy.sh develop $ACR_REGISTRY backend $IMAGE_TAG
+          pwd
+          chmod +x dev-deploy.sh
+          ./dev-deploy.sh develop $ACR_REGISTRY backend $IMAGE_TAG
