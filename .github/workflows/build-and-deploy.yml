@@ -40,12 +40,6 @@ jobs:
         source: "."
         target: "/home/azureuser"
 
-    - name: Build and deploy Container App
-      uses: 'azure/container-apps-deploy-action@v1'
-      with:
-        acrName: identitycace        
-        containerAppName: aci-identity
-        acrUsername: ${{ secrets.AZURE_CLIENT_ID }}
-        acrPassword: ${{ secrets.AZURE_CLIENT_SECRET }}
-        resourceGroup: identity-backend-resources
-        imageToDeploy: identitycace.azurecr.io/backend:${{ github.sha }}
+    - name: Update Azure Container App
+      run: |
+          az containerapp update --name aci-identity --resource-group identity-backend-resources --image identitycace.azurecr.io/backend:${{ github.sha }}
