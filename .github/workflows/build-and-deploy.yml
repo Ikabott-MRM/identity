@@ -30,25 +30,16 @@ jobs:
         docker build . -t identitycace.azurecr.io/backend:${{ github.run_number }}
         docker push identitycace.azurecr.io/backend:${{ github.run_number }}
 
-    - name: Copy files via ssh
-      uses: appleboy/scp-action@master
+    - name: Stop and remove the old container and run the recently pushed image
+      uses: appleboy/ssh-action@v0.1.7
+      env:
+        ACR_REGISTRY: identitycace.azurecr.io
+        IMAGE_TAG: ${{ github.run_number }}
       with:
         host: ${{ secrets.DEV_VM_HOST }}
         username: "root"
         key: ${{ secrets.DEV_VM_SSH }}
-        source: "."
-        target: "/"
-
-    - name: Execute commands on the server
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.DEV_VM_HOST }}
-        username: "azureuser"
-        key: ${{ secrets.DEV_VM_SSH }}
+        envs: ACR_REGISTRY,IMAGE_TAG
         script: |
-          cd /cace-identity
-          # Ensure Node.js and npm are installed
-          sudo apt-get update
-          sudo apt-get install -y nodejs npm
-          npm install
-          npm run start
+          chmod +x hub-backend/dev-deploy.sh
+          ./hub-backend/dev-deploy.sh develop $ACR_REGISTRY backend $IMAGE_TAG
