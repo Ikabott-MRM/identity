@@ -43,7 +43,9 @@ jobs:
     - name: Build and deploy Container App
       uses: 'azure/container-apps-deploy-action@v1'
       with:
-        acrName: identitycace
+        acrName: identitycace        
         containerAppName: aci-identity
+        acrUsername: ${{ secrets.AZURE_CLIENT_ID }}
+        acrPassword: ${{ secrets.AZURE_CLIENT_SECRET }}
         resourceGroup: identity-backend-resources
         imageToDeploy: identitycace.azurecr.io/backend:${{ github.sha }}
