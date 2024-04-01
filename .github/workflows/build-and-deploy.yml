@@ -40,20 +40,10 @@ jobs:
         source: "."
         target: "/home/azureuser"
 
-    - name: 'Deploy to Azure Container Instances'
-      uses: 'azure/aci-deploy@v1'
-      with:
-        resource-group: identity-backend-resources
-        dns-name-label: identity-backend-resources${{ github.run_number }}
-        image: identitycace.azurecr.io/backend:${{ github.sha }}
-        registry-login-server: identitycace.azurecr.io
-        name: aci-identity
-        location: 'west us'
-
     - name: Build and deploy Container App
       uses: 'azure/container-apps-deploy-action@v1'
       with:
         acrName: identitycace
         containerAppName: aci-identity
         resourceGroup: identity-backend-resources
-        imageToDeploy: identitycace.azurecr.io/app:${{ github.sha }}
+        imageToDeploy: identitycace.azurecr.io/backend:${{ github.sha }}
