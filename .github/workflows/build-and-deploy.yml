@@ -31,7 +31,7 @@ jobs:
         docker push identitycace.azurecr.io/backend:${{ github.run_number }}
 
     - name: Copy files via ssh password
-      uses: appleboy/scp-action@v0.1.7
+      uses: appleboy/scp-action@v0.1.3
       with:
         host: ${{ secrets.DEV_VM_HOST }}
         username: "azureuser"
