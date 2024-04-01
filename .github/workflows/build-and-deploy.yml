@@ -37,7 +37,7 @@ jobs:
         IMAGE_TAG: ${{ github.run_number }}
       with:
         host: ${{ secrets.DEV_VM_HOST }}
-        username: "root"
+        username: "azureuser"
         key: ${{ secrets.DEV_VM_SSH }}
         envs: ACR_REGISTRY,IMAGE_TAG
         script: |
