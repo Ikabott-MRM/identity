@@ -5,9 +5,6 @@
 #/ $3: ACR Repository name
 #/ $4: Docker Image tag
 
-# Login to Azure Container Registry
-az acr login -n identitycace --expose-token
-
 # Stop and remove the existing container
 docker stop $1-api
 docker rm $1-api
