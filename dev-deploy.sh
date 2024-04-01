@@ -4,6 +4,7 @@
 #/ $2: ACR Registry
 #/ $3: ACR Repository name
 #/ $4: Docker Image tag
+az acr login --name $(echo $2 | cut -d'.' -f1) 
 
 # Stop and remove the existing container
 docker stop $1-api
