@@ -34,10 +34,9 @@ jobs:
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.DEV_VM_HOST }}
-        username: "azureuser"
+        username: "root"
         key: ${{ secrets.DEV_VM_SSH }}
         source: "."
-        debug: true
         target: "/cace-identity"
 
     - name: Execute commands on the server
