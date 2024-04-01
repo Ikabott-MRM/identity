@@ -40,6 +40,19 @@ jobs:
         source: "."
         target: "/home/azureuser"
 
+
+    - name: Check if Azure Container App exists
+      id: check-app
+      run: |
+          az containerapp show --resource-group identity-backend-resources --name identity-dev || echo "exists=false" >> $GITHUB_OUTPUT
+
+    - name: Pull image - Create Azure Container App
+      if: steps.check-app.outputs.exists == 'false'
+      env:
+        SHORT_SHA: ${{ steps.get_short_sha.outputs.short_sha }}
+      run: |
+          az containerapp create --name identity-dev --resource-group identity-backend-resources --container-name identity-dev --environment identity-bs --image identitycace.azurecr.io/backend:${{ github.run_number }} --ingress external --target-port 3500 --min-replicas 1 --user-assigned ${{ secrets.AZURE_CLIENT_ID }} --registry-identity ${{ secrets.AZURE_CLIENT_ID }} --registry-server identitycace.azurecr.io
+
     - name: Update Azure Container App
       run: |
-          az containerapp update --name aci-identity --resource-group identity-backend-resources --image identitycace.azurecr.io/backend:${{ github.sha }} --registry-identity ${{ secrets.AZURE_CLIENT_ID }} --registry-server identitycace.azurecr.io
+          az containerapp update --name identity-dev --resource-group identity-backend-resources --image identitycace.azurecr.io/backend:${{ github.sha }} 
