@@ -13,9 +13,9 @@ jobs:
     name: Deploy Infra
     runs-on: ubuntu-latest
     environment: dev
-
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
     - name: Log into Azure
       uses: azure/login@v1
@@ -23,15 +23,12 @@ jobs:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-              
+
     - name: Build and push Docker image
       run: |
         az acr login --name identitycace
-        docker build . -t identitycace.azurecr.io/backend:${{ github.sha }}
-        docker push identitycace.azurecr.io/backend:${{ github.sha }}
-
-    - name: Checkout code
-      uses: actions/checkout@v2
+        docker build . -t identitycace.azurecr.io/backend:${{ github.run_number }}
+        docker push identitycace.azurecr.io/backend:${{ github.run_number }}
 
     - name: Copy files via ssh
       uses: appleboy/scp-action@master
@@ -50,5 +47,8 @@ jobs:
         key: ${{ secrets.DEV_VM_SSH }}
         script: |
           cd /cace-identity
+          # Ensure Node.js and npm are installed
+          sudo apt-get update
+          sudo apt-get install -y nodejs npm
           npm install
           npm run start
