@@ -43,8 +43,8 @@ jobs:
     - name: 'Deploy to Azure Container Instances'
       uses: 'azure/aci-deploy@v1'
       with:
-        resource-group: ${{ secrets.RESOURCE_GROUP }}
-        dns-name-label: ${{ secrets.RESOURCE_GROUP }}${{ github.run_number }}
+        resource-group: identity-backend-resources
+        dns-name-label: identity-backend-resources${{ github.run_number }}
         image: identitycace.azurecr.io/backend:${{ github.sha }}
         registry-login-server: identitycace.azurecr.io
         name: aci-identity-backend
