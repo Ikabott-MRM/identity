@@ -29,3 +29,26 @@ jobs:
         az acr login --name identitycace
         docker build . -t identitycace.azurecr.io/backend:${{ github.sha }}
         docker push identitycace.azurecr.io/backend:${{ github.sha }}
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Copy files via ssh
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.DEV_VM_HOST }}
+        username: "azureuser"
+        key: ${{ secrets.DEV_VM_SSH }}
+        source: "."
+        target: "/cace-identity"
+
+    - name: Execute commands on the server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.DEV_VM_HOST }}
+        username: "azureuser"
+        key: ${{ secrets.DEV_VM_SSH }}
+        script: |
+          cd /cace-identity
+          npm install
+          npm run start
