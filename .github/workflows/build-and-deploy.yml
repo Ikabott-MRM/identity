@@ -43,4 +43,4 @@ jobs:
         script: |
           pwd
           chmod +x dev-deploy.sh
-          ./dev-deploy.sh develop $ACR_REGISTRY backend $IMAGE_TAG
+          ./dev-deploy.sh dev $ACR_REGISTRY backend $IMAGE_TAG
