@@ -37,6 +37,7 @@ jobs:
         username: "azureuser"
         key: ${{ secrets.DEV_VM_SSH }}
         source: "."
+        debug: true
         target: "/cace-identity"
 
     - name: Execute commands on the server
