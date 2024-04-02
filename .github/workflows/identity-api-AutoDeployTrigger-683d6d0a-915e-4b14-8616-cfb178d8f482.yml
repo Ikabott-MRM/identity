@@ -1,0 +1,47 @@
+name: Trigger auto deployment for identity-api
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ dev ]
+    paths:
+    - '**'
+    - '.github/workflows/identity-api-AutoDeployTrigger-683d6d0a-915e-4b14-8616-cfb178d8f482.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.IDENTITYAPI_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.IDENTITYAPI_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.IDENTITYAPI_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }} 
+          registryUrl: identitycace.azurecr.io
+          registryUsername: ${{ secrets.IDENTITYAPI_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.IDENTITYAPI_REGISTRY_PASSWORD }}
+          containerAppName: identity-api
+          resourceGroup: identity-backend-resources
+          imageToBuild: identitycace.azurecr.io/identity-api:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
