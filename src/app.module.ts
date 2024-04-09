@@ -8,9 +8,18 @@ import { MembersService } from './members/members.service';
 import { SsiService } from './ssi/ssi.service';
 import { SsiModule } from './ssi/ssi.module';
 import { EventsModule } from './events/events.module';
+import { EventbriteModule } from './eventbrite/eventbrite.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [MembersModule, KnexModule, SsiModule, EventsModule],
+  imports: [
+    MembersModule,
+    KnexModule,
+    SsiModule,
+    EventsModule,
+    EventbriteModule,
+    ConfigModule.forRoot(),
+  ],
   controllers: [AppController, MembersController],
   providers: [AppService, MembersService, SsiService],
 })

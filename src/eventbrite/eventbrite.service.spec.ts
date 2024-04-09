@@ -1,0 +1,96 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { EventbriteService } from './eventbrite.service';
+import { EventsService } from '../events/events.service';
+
+describe('EventbriteService', () => {
+  let service: EventbriteService;
+  let eventsService: EventsService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EventbriteService,
+        {
+          provide: ConfigService,
+          useValue: {
+            getOrThrow: jest.fn().mockReturnValue('test-token'),
+          },
+        },
+        {
+          provide: EventsService,
+          useValue: {
+            createOrUpdateEvent: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<EventbriteService>(EventbriteService);
+    eventsService = module.get<EventsService>(EventsService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('syncEvents', () => {
+    it('should sync events', async () => {
+      const apiUrl = 'https://example.com/api';
+      const event = {
+        id: 'event-id',
+        name: 'Test Event',
+        description: 'Test description',
+        startDate: '2023-06-01T00:00:00Z',
+        endDate: '2023-06-01T02:00:00Z',
+        url: 'https://example.com/event',
+      };
+
+      jest.spyOn(service, 'getEvent').mockResolvedValue(event);
+      jest
+        .spyOn(eventsService, 'createOrUpdateEvent')
+        .mockResolvedValue(undefined);
+
+      const result = await service.syncEvents(apiUrl);
+
+      expect(result).toEqual(event);
+      expect(service.getEvent).toHaveBeenCalledWith(apiUrl);
+      expect(eventsService.createOrUpdateEvent).toHaveBeenCalledWith(event);
+    });
+  });
+
+  describe('getEvent', () => {
+    it('should get event', async () => {
+      const apiUrl = 'https://example.com/api';
+      const eventbriteEvent = {
+        id: 'event-id',
+        name: 'Test Event',
+        description: { text: 'Test description' },
+        start: { utc: '2023-06-01T00:00:00Z' },
+        end: { utc: '2023-06-01T02:00:00Z' },
+        url: 'https://example.com/event',
+      };
+
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        json: jest.fn().mockResolvedValue(eventbriteEvent),
+      } as any);
+
+      const result = await service.getEvent(apiUrl);
+
+      expect(result).toEqual({
+        id: 'event-id',
+        name: 'Test Event',
+        description: 'Test description',
+        startDate: '2023-06-01T00:00:00Z',
+        endDate: '2023-06-01T02:00:00Z',
+        url: 'https://example.com/event',
+      });
+
+      expect(fetch).toHaveBeenCalledWith(apiUrl, {
+        headers: {
+          Authorization: 'Bearer test-token',
+        },
+      });
+    });
+  });
+});

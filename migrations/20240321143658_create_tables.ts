@@ -9,12 +9,12 @@ export async function up(knex: Knex): Promise<void> {
   });
 
   await knex.schema.createTable('event', (table) => {
-    table.increments('id').primary();
+    table.string('id').primary();
     table.string('name').notNullable();
     table.text('description');
     table.dateTime('startDate');
     table.dateTime('endDate');
-    table.enum('requireCredential', ['member', 'invitation']).notNullable();
+    table.string('url');
   });
 
   await knex.schema.createTable('event_assistance', (table) => {

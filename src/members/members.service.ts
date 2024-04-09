@@ -12,18 +12,18 @@ export class MembersService {
 
   async sendVerificationCode(email: string) {
     const code = v4();
-    console.log('Sending code', code, 'to', email);
     return this.knex('verification_code').insert({ email, code });
   }
 
   async isCodeValid(email: string, code: string) {
-    // check if exists
     const verificationCode = await this.knex('verification_code')
       .where({ email, code })
       .first();
+
     if (!verificationCode) {
       return false;
     }
+
     return true;
   }
 
