@@ -16,6 +16,8 @@ export class EventsService {
   constructor(@Inject('KnexConnection') private readonly knex: Knex) {}
 
   async createEvent(event: Event): Promise<void> {
+    console.log('Creating event', event);
+    console.log('Knex', this.knex);
     await this.knex('event').insert({
       id: event.id,
       name: event.name,
