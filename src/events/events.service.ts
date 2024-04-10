@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Knex } from 'knex';
 
 export class Event {
@@ -11,13 +10,18 @@ export class Event {
   url: string;
 }
 
+export class Invitee {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 @Injectable()
 export class EventsService {
   constructor(@Inject('KnexConnection') private readonly knex: Knex) {}
 
   async createEvent(event: Event): Promise<void> {
-    console.log('Creating event', event);
-    console.log('Knex', this.knex);
     await this.knex('event').insert({
       id: event.id,
       name: event.name,
@@ -51,5 +55,30 @@ export class EventsService {
         url: event.url,
       });
     }
+  }
+
+  async createOrUpdateInvitee(invitee: Invitee): Promise<void> {
+    const existingInvitee = await this.knex('invitee')
+      .where('id', invitee.id)
+      .first();
+
+    if (existingInvitee) {
+      await this.knex('invitee').where('id', invitee.id).update({
+        firstName: invitee.firstName,
+        lastName: invitee.lastName,
+        email: invitee.email,
+      });
+    } else {
+      await this.knex('invitee').insert({
+        id: invitee.id,
+        firstName: invitee.firstName,
+        lastName: invitee.lastName,
+        email: invitee.email,
+      });
+    }
+  }
+
+  async getInviteeById(id: string): Promise<Invitee> {
+    return this.knex('invitee').where('id', id).first();
   }
 }

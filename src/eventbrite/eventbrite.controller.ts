@@ -21,7 +21,7 @@ export class WebhookDTO {
   config: WebhookConfigDTO;
 }
 
-export class EventWebhookResponse {
+export class WebhookResponse {
   @IsString()
   action: string;
   @IsString()
@@ -36,20 +36,30 @@ export class EventWebhookResponse {
 
 @Controller('eventbrite')
 export class EventbriteController {
-  constructor(
-    private configService: ConfigService,
-    private eventbriteService: EventbriteService,
-  ) {
-    console.log('Eventbrite controller created');
-  }
+  constructor(private eventbriteService: EventbriteService) {}
 
   @Post('/attendee-webhook')
-  async handleAttendeeWebhook(@Body() dto: WebhookDTO): Promise<void> {}
+  async handleAttendeeWebhook(
+    @Body() dto: WebhookDTO,
+  ): Promise<WebhookResponse> {
+    console.log('Attendee update', dto);
+
+    if (dto.config.action === 'attendee.updated') {
+      const attendee = await this.eventbriteService.syncAttendee(dto.api_url);
+      return {
+        action: dto.config.action,
+        api_url: dto.api_url,
+        endpoint_url: dto.config.endpoint_url,
+        webhook_id: dto.config.webhook_id,
+        changes: attendee,
+      };
+    }
+  }
 
   @Post('/event-webhook')
   async handleEventWebhook(
     @Body() webhookDto: WebhookDTO,
-  ): Promise<EventWebhookResponse> {
+  ): Promise<WebhookResponse> {
     if (
       webhookDto.config.action === 'event.created' ||
       webhookDto.config.action === 'event.updated'

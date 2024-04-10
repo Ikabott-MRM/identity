@@ -21,6 +21,7 @@ describe('EventbriteService', () => {
           provide: EventsService,
           useValue: {
             createOrUpdateEvent: jest.fn(),
+            createOrUpdateInvitee: jest.fn(),
           },
         },
       ],
@@ -86,6 +87,61 @@ describe('EventbriteService', () => {
         url: 'https://example.com/event',
       });
 
+      expect(fetch).toHaveBeenCalledWith(apiUrl, {
+        headers: {
+          Authorization: 'Bearer test-token',
+        },
+      });
+    });
+  });
+
+  describe('syncAttendee', () => {
+    it('should sync attendee', async () => {
+      const apiUrl = 'https://example.com/api';
+      const attendee = {
+        id: 'attendee-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+      };
+      jest.spyOn(service, 'getAttendee').mockResolvedValue(attendee);
+      jest
+        .spyOn(eventsService, 'createOrUpdateInvitee')
+        .mockResolvedValue(undefined);
+
+      const result = await service.syncAttendee(apiUrl);
+
+      expect(result).toEqual(attendee);
+      expect(service.getAttendee).toHaveBeenCalledWith(apiUrl);
+      expect(eventsService.createOrUpdateInvitee).toHaveBeenCalledWith(
+        attendee,
+      );
+    });
+  });
+
+  describe('getAttendee', () => {
+    it('should get attendee', async () => {
+      const apiUrl = 'https://example.com/api';
+      const eventbriteAttendee = {
+        id: 'attendee-id',
+        profile: {
+          first_name: 'John',
+          last_name: 'Doe',
+          email: 'john@example.com',
+        },
+      };
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        json: jest.fn().mockResolvedValue(eventbriteAttendee),
+      } as any);
+
+      const result = await service.getAttendee(apiUrl);
+
+      expect(result).toEqual({
+        id: 'attendee-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+      });
       expect(fetch).toHaveBeenCalledWith(apiUrl, {
         headers: {
           Authorization: 'Bearer test-token',
