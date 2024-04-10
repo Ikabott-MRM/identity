@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventsService, Event } from './events.service';
+import { EventsService, Event, Invitee } from './events.service';
 import { Knex } from 'knex';
 
 describe('EventsService', () => {
@@ -109,6 +109,71 @@ describe('EventsService', () => {
         endDate: '2023-06-02T02:00:00Z',
         url: 'https://example.com/updated-event',
       });
+    });
+  });
+
+  describe('createOrUpdateInvitee', () => {
+    it('should create an invitee if it does not exist', async () => {
+      const invitee: Invitee = {
+        id: 'invitee-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+      };
+
+      await service.createOrUpdateInvitee(invitee);
+
+      expect(knexMock().where).toHaveBeenCalledWith('id', 'invitee-id');
+      expect(knexMock().first).toHaveBeenCalled();
+      expect(knexMock().insert).toHaveBeenCalledWith({
+        id: 'invitee-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+      });
+    });
+
+    it('should update an invitee if it exists', async () => {
+      const invitee: Invitee = {
+        id: 'invitee-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+      };
+
+      jest.spyOn(knexMock(), 'first').mockResolvedValueOnce({
+        id: 'invitee-id',
+      });
+
+      await service.createOrUpdateInvitee(invitee);
+
+      expect(knexMock().where).toHaveBeenCalledWith('id', 'invitee-id');
+      expect(knexMock().first).toHaveBeenCalled();
+      expect(knexMock().update).toHaveBeenCalledWith({
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+      });
+    });
+  });
+
+  describe('getInviteeById', () => {
+    it('should get an invitee by ID', async () => {
+      const inviteeId = 'invitee-id';
+      const expectedInvitee: Invitee = {
+        id: 'invitee-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+      };
+
+      jest.spyOn(knexMock(), 'first').mockResolvedValueOnce(expectedInvitee);
+
+      const result = await service.getInviteeById(inviteeId);
+
+      expect(knexMock().where).toHaveBeenCalledWith('id', 'invitee-id');
+      expect(knexMock().first).toHaveBeenCalled();
+      expect(result).toEqual(expectedInvitee);
     });
   });
 });
