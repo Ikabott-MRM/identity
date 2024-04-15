@@ -24,6 +24,7 @@ class EventbriteAttendee {
     last_name: string;
     email: string;
   };
+  event_id: string;
 }
 
 @Injectable()
@@ -78,6 +79,7 @@ export class EventbriteService {
       firstName: data.profile.first_name,
       lastName: data.profile.last_name,
       email: data.profile.email,
+      eventId: data.event_id,
     };
   }
 }

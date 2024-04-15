@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Knex } from 'knex';
+import { Resend } from 'resend';
 
 export class Event {
   id: string;
@@ -15,11 +17,15 @@ export class Invitee {
   firstName: string;
   lastName: string;
   email: string;
+  eventId: string;
 }
 
 @Injectable()
 export class EventsService {
-  constructor(@Inject('KnexConnection') private readonly knex: Knex) {}
+  constructor(
+    @Inject('KnexConnection') private readonly knex: Knex,
+    private configService: ConfigService,
+  ) {}
 
   async createEvent(event: Event): Promise<void> {
     await this.knex('event').insert({
@@ -67,6 +73,7 @@ export class EventsService {
         firstName: invitee.firstName,
         lastName: invitee.lastName,
         email: invitee.email,
+        eventId: invitee.eventId,
       });
     } else {
       await this.knex('invitee').insert({
@@ -74,8 +81,22 @@ export class EventsService {
         firstName: invitee.firstName,
         lastName: invitee.lastName,
         email: invitee.email,
+        eventId: invitee.eventId,
       });
+
+      await this.sendConfirmationEmail(invitee);
     }
+  }
+
+  async sendConfirmationEmail(invitee: Invitee): Promise<void> {
+    const resend = new Resend(this.configService.getOrThrow('RESEND_API_KEY'));
+
+    const result = await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: 'vbermudez@infuy.com',
+      subject: 'Aquí está tu invitación',
+      text: `Hola ${invitee.firstName} ${invitee.lastName}, aquí está tu invitación: https://example.com/invite/${invitee.id}`,
+    });
   }
 
   async getInviteeById(id: string): Promise<Invitee> {

@@ -42,8 +42,6 @@ export class EventbriteController {
   async handleAttendeeWebhook(
     @Body() dto: WebhookDTO,
   ): Promise<WebhookResponse> {
-    console.log('Attendee update', dto);
-
     if (dto.config.action === 'attendee.updated') {
       const attendee = await this.eventbriteService.syncAttendee(dto.api_url);
       return {
