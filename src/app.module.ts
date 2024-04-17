@@ -10,6 +10,7 @@ import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
 import { HttpModule } from '@nestjs/axios';
 import { SSiController } from './ssi/ssi.controller';
+import { EventbriteModule } from './eventbrite/eventbrite.module';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -26,8 +27,9 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     SsiModule,
     EventsModule,
     HttpModule,
+    EventbriteModule
   ],
   controllers: [MembersController, SSiController],
-  providers: [MembersService, SsiService, Logger],
+  providers: [MembersService, SsiService, Logger], 
 })
 export class AppModule {}

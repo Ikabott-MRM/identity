@@ -16,14 +16,9 @@ export class EventsController {
 
   @Post(':eventId/assistance')
   async createAttendanceProof(): Promise<void> {
-    // Validate VC for member from DID (from req)
-    // If VC is of invitation type -> invalidate VC
-    // Generate a new assistance VC for the event and assign to member
     return null;
   }
 
-  // /events/{eventId}/invite
-  // create invitation (VC) for member
   @Post(':eventId/invite')
   async createInvitation(): Promise<void> {
     return null;
