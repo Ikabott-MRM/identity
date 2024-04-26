@@ -42,6 +42,7 @@ export class EventbriteController {
   async handleAttendeeWebhook(
     @Body() dto: WebhookDTO,
   ): Promise<WebhookResponse> {
+    console.log({ dto });
     if (dto.config.action === 'attendee.updated') {
       const attendee = await this.eventbriteService.syncAttendee(dto.api_url);
       return {
@@ -50,6 +51,25 @@ export class EventbriteController {
         endpoint_url: dto.config.endpoint_url,
         webhook_id: dto.config.webhook_id,
         changes: attendee,
+      };
+    }
+  }
+
+  @Post('/order-webhook')
+  async handleOrderWebhook(@Body() dto: WebhookDTO): Promise<WebhookResponse> {
+    console.log({ dto });
+    if (
+      dto.config.action === 'order.updated' ||
+      dto.config.action === 'order.placed' ||
+      dto.config.action === 'order.refunded'
+    ) {
+      const order = await this.eventbriteService.syncOrder(dto.api_url);
+      return {
+        action: dto.config.action,
+        api_url: dto.api_url,
+        endpoint_url: dto.config.endpoint_url,
+        webhook_id: dto.config.webhook_id,
+        changes: order,
       };
     }
   }

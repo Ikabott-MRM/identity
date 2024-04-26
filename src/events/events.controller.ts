@@ -1,24 +1,13 @@
 import { Controller, Get, Post } from '@nestjs/common';
+import { Event, EventsService } from './events.service';
 
 @Controller('events')
 export class EventsController {
+  constructor(private eventsService: EventsService) {}
+
   @Get('/')
-  async getEvents(): Promise<void> {
-    return null;
-  }
-
-  @Post('/')
-  async createEvent(): Promise<void> {
-    return null;
-  }
-
-  @Post(':eventId/assistance')
-  async createAttendanceProof(): Promise<void> {
-    return null;
-  }
-
-  @Post(':eventId/invite')
-  async createInvitation(): Promise<void> {
-    return null;
+  async getEvents(): Promise<Event[]> {
+    const events = await this.eventsService.getEvents();
+    return events;
   }
 }

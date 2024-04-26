@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Invitee, Event, EventsService } from '../events/events.service';
+import { Invitee, Event, EventsService, Order } from '../events/events.service';
 
 class EventbriteEvent {
   id: string;
@@ -19,12 +19,39 @@ class EventbriteEvent {
 
 class EventbriteAttendee {
   id: string;
+  order_id: string;
   profile: {
     first_name: string;
     last_name: string;
     email: string;
   };
   event_id: string;
+  questions: {
+    id: string;
+    label: string;
+  }[];
+  answers: {
+    question_id: string;
+    answer: string;
+  }[];
+  ticket_class_name: string;
+}
+
+class EventbriteTicket {
+  description: string;
+  name: string;
+  display_name: string;
+}
+
+class EventbriteOrder {
+  id: string;
+  name: string;
+  first_name: string;
+  last_name: string;
+  created: string;
+  event_id: string;
+  status: string;
+  email: string;
 }
 
 @Injectable()
@@ -42,8 +69,13 @@ export class EventbriteService {
 
   async syncAttendee(apiUrl: string): Promise<Invitee> {
     const attendee = await this.getAttendee(apiUrl);
-    await this.eventsService.createOrUpdateInvitee(attendee);
     return attendee;
+  }
+
+  async syncOrder(apiUrl: string): Promise<Order> {
+    const order = await this.getOrder(apiUrl);
+    await this.eventsService.createOrUpdateOrder(order);
+    return order;
   }
 
   async getEvent(apiUrl: string): Promise<Event> {
@@ -65,6 +97,41 @@ export class EventbriteService {
     };
   }
 
+  async getTicketType(eventId: string, ticketId: string): Promise<string> {
+    const res = await fetch(
+      `https://www.eventbriteapi.com/v3/events/${eventId}/ticket_classes/${ticketId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${this.configService.getOrThrow('EVENTBRITE_PRIVATE_TOKEN')}`,
+        },
+      },
+    );
+
+    const data = (await res.json()) as EventbriteTicket;
+
+    return data.name;
+  }
+
+  async getOrder(apiUrl: string): Promise<Order> {
+    const res = await fetch(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${this.configService.getOrThrow('EVENTBRITE_PRIVATE_TOKEN')}`,
+      },
+    });
+
+    const data = (await res.json()) as EventbriteOrder;
+
+    return {
+      id: data.id,
+      firstName: data.name,
+      lastName: data.last_name,
+      createdAt: data.created,
+      email: data.email,
+      eventId: data.event_id,
+      status: data.status,
+    };
+  }
+
   async getAttendee(apiUrl: string): Promise<Invitee> {
     const res = await fetch(apiUrl, {
       headers: {
@@ -72,14 +139,31 @@ export class EventbriteService {
       },
     });
 
-    const data = (await res.json()) as EventbriteAttendee;
+    const json = await res.json();
+    const attendee = json as EventbriteAttendee;
+
+    const questions =
+      json.questions?.reduce((acc, question) => {
+        acc[question.id] = question.label.toLowerCase();
+        return acc;
+      }, {}) || {};
+
+    const answers =
+      json.answers?.reduce((acc, answer) => {
+        const question = questions[answer.question_id];
+        acc[question] = answer.answer;
+        return acc;
+      }, {}) || {};
 
     return {
-      id: data.id,
-      firstName: data.profile.first_name,
-      lastName: data.profile.last_name,
-      email: data.profile.email,
-      eventId: data.event_id,
+      id: attendee.id,
+      firstName: attendee.profile.first_name,
+      lastName: attendee.profile.last_name,
+      email: attendee.profile.email,
+      eventId: attendee.event_id,
+      orderId: attendee.order_id,
+      ticketType: attendee.ticket_class_name,
+      companyName: answers['empresa'],
     };
   }
 }
