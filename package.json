@@ -31,7 +31,10 @@
     "@web5/dwn-server": "^0.1.17",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "exponential-backoff": "^3.1.1",
     "knex": "^3.1.0",
+    "nestjs-pino": "^4.0.0",
+    "pino-http": "^9.0.0",
     "qrcode": "^1.5.3",
     "react": "^18.2.0",
     "reflect-metadata": "^0.2.0",
@@ -56,6 +59,7 @@
     "eslint-plugin-prettier": "^5.0.0",
     "jest": "^29.5.0",
     "mock-knex": "^0.4.13",
+    "nock": "^14.0.0-beta.6",
     "prettier": "^3.0.0",
     "source-map-support": "^0.5.21",
     "supertest": "^6.3.3",
@@ -69,12 +73,13 @@
     "moduleFileExtensions": [
       "js",
       "json",
-      "ts"
+      "ts",
+      "tsx"
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)(s|sx)$": "ts-jest"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

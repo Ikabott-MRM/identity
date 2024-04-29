@@ -1,9 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Knex } from 'knex';
 import { Resend } from 'resend';
 import { render } from '@react-email/render';
 import Invitation from './invitation';
+import { backOff } from 'exponential-backoff';
 
 export class Event {
   id: string;
@@ -37,6 +38,8 @@ export class Order {
 
 @Injectable()
 export class EventsService {
+  private readonly logger = new Logger(EventsService.name);
+
   constructor(
     @Inject('KnexConnection') private readonly knex: Knex,
     private configService: ConfigService,
@@ -59,6 +62,35 @@ export class EventsService {
 
   async getEventById(id: string): Promise<Event> {
     return this.knex('event').where('id', id).first();
+  }
+
+  async getInviteeByOrderId(orderId: string, poll: boolean): Promise<Invitee> {
+    let invitee;
+    if (poll) {
+      try {
+        invitee = await backOff(async () => {
+          const result = await this.knex('invitee')
+            .where('orderId', orderId)
+            .first();
+
+          if (!result) {
+            throw new Error('Invitee not found');
+          }
+
+          return result;
+        });
+      } catch (error) {
+        this.logger.debug(
+          'Invitee not found after exponential backoff. Order Id %s.',
+          orderId,
+        );
+        return null;
+      }
+    }
+
+    invitee = await this.knex('invitee').where('orderId', orderId).first();
+
+    return invitee;
   }
 
   async getOrdersByEventId(eventId: string): Promise<Order[]> {
@@ -166,5 +198,11 @@ export class EventsService {
 
   async getInviteeById(id: string): Promise<Invitee> {
     return this.knex('invitee').where('id', id).first();
+  }
+
+  async clearTables(): Promise<void> {
+    await this.knex('invitee').truncate();
+    await this.knex('order').truncate();
+    await this.knex('event').truncate();
   }
 }

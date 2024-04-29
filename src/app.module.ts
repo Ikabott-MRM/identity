@@ -10,6 +10,9 @@ import { SsiModule } from './ssi/ssi.module';
 import { EventsModule } from './events/events.module';
 import { EventbriteModule } from './eventbrite/eventbrite.module';
 import { ConfigModule } from '@nestjs/config';
+import { InviteeService } from './invitee/invitee.service';
+import { InviteeModule } from './invitee/invitee.module';
+import { LoggerModule } from 'nestjs-pino';
 
 @Module({
   imports: [
@@ -19,8 +22,10 @@ import { ConfigModule } from '@nestjs/config';
     EventsModule,
     EventbriteModule,
     ConfigModule.forRoot(),
+    InviteeModule,
+    LoggerModule.forRoot(),
   ],
   controllers: [AppController, MembersController],
-  providers: [AppService, MembersService, SsiService],
+  providers: [AppService, MembersService, SsiService, InviteeService],
 })
 export class AppModule {}

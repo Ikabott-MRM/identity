@@ -1,5 +1,4 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { IsNotEmpty, IsObject, IsString } from 'class-validator';
 import { EventbriteService } from './eventbrite.service';
 
