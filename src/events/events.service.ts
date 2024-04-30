@@ -11,8 +11,10 @@ export class Event {
   name: string;
   description: string;
   startDate: string;
+  location: string;
   endDate: string;
   url: string;
+  organizer: string;
 }
 
 export class Invitee {
@@ -67,11 +69,10 @@ export class EventsService {
   async getInviteeByOrderId(orderId: string, poll: boolean): Promise<Invitee> {
     let invitee;
 
-    // log
-    this.logger.error('Polling for invitee with order Id %s.', orderId);
+    this.logger.log('Polling for invitee with order Id %s.', orderId);
 
     const invitees = await this.knex('invitee').select('*');
-    this.logger.error('Invitees: %o', invitees);
+    this.logger.log('Invitees: %o', invitees);
 
     if (poll) {
       try {
@@ -87,7 +88,7 @@ export class EventsService {
           return result;
         });
       } catch (error) {
-        this.logger.debug(
+        this.logger.error(
           'Invitee not found after exponential backoff. Order Id %s.',
           orderId,
         );
@@ -120,6 +121,8 @@ export class EventsService {
         startDate: event.startDate,
         endDate: event.endDate,
         url: event.url,
+        location: event.location,
+        organizer: event.organizer,
       });
     } else {
       await this.knex('event').insert({
@@ -129,6 +132,8 @@ export class EventsService {
         startDate: event.startDate,
         endDate: event.endDate,
         url: event.url,
+        location: event.location,
+        organizer: event.organizer,
       });
     }
   }
@@ -165,10 +170,9 @@ export class EventsService {
       .where('id', invitee.id)
       .first();
 
-      this.logger.error('Creating invitee %o', invitee);
-
-
+    this.logger.debug('Creating invitee %o', invitee);
     if (existingInvitee) {
+      this.logger.debug('Updating invitee %o', invitee);
       await this.knex('invitee').where('id', invitee.id).update({
         firstName: invitee.firstName,
         lastName: invitee.lastName,
@@ -179,6 +183,7 @@ export class EventsService {
         ticketType: invitee.ticketType,
       });
     } else {
+      this.logger.debug('Inserting invitee %o', invitee);
       await this.knex('invitee').insert({
         id: invitee.id,
         firstName: invitee.firstName,

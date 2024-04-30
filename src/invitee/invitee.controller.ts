@@ -1,5 +1,26 @@
 import { Controller, Get, HttpException, Query } from '@nestjs/common';
-import { EventsService, Invitee } from '../events/events.service';
+import { EventsService } from '../events/events.service';
+
+export class GetInviteeResponse {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  eventId: string;
+  orderId: string;
+  ticketType: string;
+  companyName: string;
+  event: {
+    id: string;
+    name: string;
+    description: string;
+    startDate: string;
+    location: string;
+    endDate: string;
+    url: string;
+  };
+  credential: string;
+}
 
 @Controller('invitee')
 export class InviteeController {
@@ -9,7 +30,7 @@ export class InviteeController {
   async getInvitee(
     @Query('poll') poll,
     @Query('orderId') orderId,
-  ): Promise<Invitee> {
+  ): Promise<GetInviteeResponse> {
     if (!orderId) {
       throw new HttpException('orderId is required', 400);
     }
@@ -19,12 +40,19 @@ export class InviteeController {
     }
 
     poll = poll === '1';
+
     const invitee = await this.eventsService.getInviteeByOrderId(orderId, poll);
 
     if (!invitee) {
       throw new HttpException('Invitee not found', 404);
     }
 
-    return invitee;
+    const event = await this.eventsService.getEventById(invitee.eventId);
+
+    return {
+      ...invitee,
+      event,
+      credential: 'placeholder',
+    };
   }
 }

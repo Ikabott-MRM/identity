@@ -1,17 +1,18 @@
 import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
-  await knex.schema.createTable('event', (table) => {
+  await knex.schema.createTableIfNotExists('event', (table) => {
     table.string('id').primary();
     table.string('name').notNullable();
     table.text('description');
     table.dateTime('startDate');
     table.dateTime('endDate');
     table.string('organizer').notNullable();
+    table.string('location').notNullable();
     table.string('url');
   });
 
-  await knex.schema.createTable('invitee', (table) => {
+  await knex.schema.createTableIfNotExists('invitee', (table) => {
     table.string('id').primary();
     table.string('firstName').notNullable();
     table.string('lastName').notNullable();
@@ -22,7 +23,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('orderId').notNullable();
   });
 
-  await knex.schema.createTable('order', (table) => {
+  await knex.schema.createTableIfNotExists('order', (table) => {
     table.string('id').primary();
     table.string('firstName').notNullable();
     table.string('lastName').notNullable();

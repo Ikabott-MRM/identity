@@ -4,7 +4,10 @@ import { Invitee, Event, EventsService, Order } from '../events/events.service';
 
 class EventbriteEvent {
   id: string;
-  name: string;
+  name: {
+    text: string;
+    html: string;
+  };
   description: {
     text: string;
   };
@@ -15,6 +18,7 @@ class EventbriteEvent {
     utc: string;
   };
   url: string;
+  venue_id: string;
 }
 
 class EventbriteAttendee {
@@ -56,9 +60,24 @@ class EventbriteOrder {
   email: string;
 }
 
+class EventbriteVenue {
+  name: string;
+  address: {
+    address_1: string;
+    address_2: string;
+    city: string;
+    region: string;
+    postal_code: string;
+    country: string;
+    latitude: string;
+    longitude: string;
+  };
+}
+
 @Injectable()
 export class EventbriteService {
   private readonly logger = new Logger(EventbriteService.name);
+  private readonly url = 'https://www.eventbriteapi.com/v3';
 
   constructor(
     private configService: ConfigService,
@@ -74,6 +93,7 @@ export class EventbriteService {
   async syncAttendee(apiUrl: string): Promise<Invitee> {
     const attendee = await this.getAttendee(apiUrl);
     await this.eventsService.createOrUpdateInvitee(attendee);
+    await this.syncEvents(`${this.url}/events/${attendee.eventId}/`);
     return attendee;
   }
 
@@ -84,21 +104,31 @@ export class EventbriteService {
   }
 
   async getEvent(apiUrl: string): Promise<Event> {
-    const res = await fetch(apiUrl, {
+    const eventRes = await fetch(apiUrl, {
       headers: {
         Authorization: `Bearer ${this.configService.getOrThrow('EVENTBRITE_PRIVATE_TOKEN')}`,
       },
     });
 
-    const data = (await res.json()) as EventbriteEvent;
+    const event = (await eventRes.json()) as EventbriteEvent;
+
+    const venueRes = await fetch(`${this.url}/venues/${event.venue_id}/`, {
+      headers: {
+        Authorization: `Bearer ${this.configService.getOrThrow('EVENTBRITE_PRIVATE_TOKEN')}`,
+      },
+    });
+
+    const venue = (await venueRes.json()) as EventbriteVenue;
 
     return {
-      id: data.id,
-      name: data.name,
-      description: data.description.text,
-      startDate: data.start.utc,
-      endDate: data.end.utc,
-      url: data.url,
+      id: event.id,
+      name: event.name.text,
+      description: event.description.text,
+      startDate: event.start.utc,
+      endDate: event.end.utc,
+      url: event.url,
+      location: venue.name,
+      organizer: 'CACE',
     };
   }
 
