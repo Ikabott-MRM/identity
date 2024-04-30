@@ -31,8 +31,10 @@ class EventbriteAttendee {
     label: string;
   }[];
   answers: {
-    question_id: string;
+    question: string;
     answer: string;
+    type: string;
+    question_id: string;
   }[];
   ticket_class_name: string;
 }
@@ -71,6 +73,7 @@ export class EventbriteService {
 
   async syncAttendee(apiUrl: string): Promise<Invitee> {
     const attendee = await this.getAttendee(apiUrl);
+    await this.eventsService.createOrUpdateInvitee(attendee);
     return attendee;
   }
 
@@ -157,18 +160,12 @@ export class EventbriteService {
 
     const attendee = json as EventbriteAttendee;
 
-    const questions =
-      json.questions?.reduce((acc, question) => {
-        acc[question.id] = question.label.toLowerCase();
-        return acc;
-      }, {}) || {};
+    // Find the answer for the "Empresa" question
+    const empresaAnswer = attendee.answers.find(
+      (answer) => answer.question.toLocaleLowerCase() === 'empresa',
+    )?.answer;
 
-    const answers =
-      json.answers?.reduce((acc, answer) => {
-        const question = questions[answer.question_id];
-        acc[question] = answer.answer;
-        return acc;
-      }, {}) || {};
+    this.logger.log(`Empresa answer: ${empresaAnswer}`);
 
     return {
       id: attendee.id,
@@ -178,7 +175,7 @@ export class EventbriteService {
       eventId: attendee.event_id,
       orderId: attendee.order_id,
       ticketType: attendee.ticket_class_name,
-      companyName: answers['empresa'],
+      companyName: empresaAnswer || '',
     };
   }
 }

@@ -66,6 +66,13 @@ export class EventsService {
 
   async getInviteeByOrderId(orderId: string, poll: boolean): Promise<Invitee> {
     let invitee;
+
+    // log
+    this.logger.error('Polling for invitee with order Id %s.', orderId);
+
+    const invitees = await this.knex('invitee').select('*');
+    this.logger.error('Invitees: %o', invitees);
+
     if (poll) {
       try {
         invitee = await backOff(async () => {
@@ -158,12 +165,17 @@ export class EventsService {
       .where('id', invitee.id)
       .first();
 
+      this.logger.error('Creating invitee %o', invitee);
+
+
     if (existingInvitee) {
       await this.knex('invitee').where('id', invitee.id).update({
         firstName: invitee.firstName,
         lastName: invitee.lastName,
         email: invitee.email,
         eventId: invitee.eventId,
+        company: invitee.companyName,
+        orderId: invitee.orderId,
         ticketType: invitee.ticketType,
       });
     } else {
@@ -172,7 +184,9 @@ export class EventsService {
         firstName: invitee.firstName,
         lastName: invitee.lastName,
         email: invitee.email,
+        company: invitee.companyName,
         eventId: invitee.eventId,
+        orderId: invitee.orderId,
         ticketType: invitee.ticketType,
       });
 
