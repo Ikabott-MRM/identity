@@ -10,6 +10,14 @@ export class InviteeController {
     @Query('poll') poll,
     @Query('orderId') orderId,
   ): Promise<Invitee> {
+    if (!orderId) {
+      throw new HttpException('orderId is required', 400);
+    }
+
+    if (poll !== '0' && poll !== '1') {
+      throw new HttpException('poll must be 0 or 1', 400);
+    }
+
     poll = poll === '1';
     const invitee = await this.eventsService.getInviteeByOrderId(orderId, poll);
 
