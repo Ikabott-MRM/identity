@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Invitee, Event, EventsService, Order } from '../events/events.service';
 
@@ -56,6 +56,8 @@ class EventbriteOrder {
 
 @Injectable()
 export class EventbriteService {
+  private readonly logger = new Logger(EventbriteService.name);
+
   constructor(
     private configService: ConfigService,
     private eventsService: EventsService,
@@ -139,7 +141,20 @@ export class EventbriteService {
       },
     });
 
+    if (!res.ok) {
+      this.logger.error(
+        `Failed to fetch attendee from ${apiUrl}. Response: ${JSON.stringify(await res.text())}`,
+      );
+
+      throw new Error('Failed to fetch attendee');
+    }
+
     const json = await res.json();
+
+    this.logger.log(
+      `Fetched attendee from ${apiUrl}. Response: ${JSON.stringify(json)}`,
+    );
+
     const attendee = json as EventbriteAttendee;
 
     const questions =
