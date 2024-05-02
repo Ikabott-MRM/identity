@@ -3,14 +3,16 @@ import { MembersModule } from './members/members.module';
 import { KnexModule } from './db/knex.module';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
-import { SsiService } from './ssi/ssi.service';
-import { SsiModule } from './ssi/ssi.module';
 import { EventsModule } from './events/events.module';
 import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
 import { HttpModule } from '@nestjs/axios';
-import { SSiController } from './ssi/ssi.controller';
 import { EventbriteModule } from './eventbrite/eventbrite.module';
+import { IssuerAgentController } from './ssi/issuerAgent.controller';
+import { IssuerAgentService } from './ssi/issuerAgent.service';
+import { IssuerAgentModule } from './ssi/issuerAgent.module';
+import { CredentialsSchemasInMemoryRepository } from './ssi/inMemoryRepositories/credentialsSchemas-in-memory';
+import { PresentationsDefinitions } from './ssi/inMemoryRepositories/presentations-definitions-in-memory';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -24,12 +26,18 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     }),
     MembersModule,
     KnexModule,
-    SsiModule,
+    IssuerAgentModule,
     EventsModule,
     HttpModule,
-    EventbriteModule
+    EventbriteModule,
   ],
-  controllers: [MembersController, SSiController],
-  providers: [MembersService, SsiService, Logger], 
+  controllers: [MembersController, IssuerAgentController],
+  providers: [
+    MembersService,
+    IssuerAgentService,
+    CredentialsSchemasInMemoryRepository,
+    PresentationsDefinitions,
+    Logger,
+  ],
 })
 export class AppModule {}

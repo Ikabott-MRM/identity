@@ -119,6 +119,7 @@ describe('EventsService', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
+        eventId: '',
       };
 
       await service.createOrUpdateInvitee(invitee);
@@ -139,6 +140,7 @@ describe('EventsService', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
+        eventId: '',
       };
 
       jest.spyOn(knexMock(), 'first').mockResolvedValueOnce({
@@ -165,6 +167,7 @@ describe('EventsService', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
+        eventId: '',
       };
 
       jest.spyOn(knexMock(), 'first').mockResolvedValueOnce(expectedInvitee);
