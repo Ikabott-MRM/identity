@@ -19,9 +19,6 @@ COPY . .
 # Creates a "dist" folder with the production build
 RUN npm run build
 
-# Knex migrations
-RUN knex migrate:up
-
 # Expose the port on which the app will run
 EXPOSE 3001
 
