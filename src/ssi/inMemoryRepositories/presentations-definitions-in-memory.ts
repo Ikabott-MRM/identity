@@ -1,12 +1,5 @@
 import { PresentationDefinitionV2 } from '@web5/credentials';
 
-type InputDescriptor = {
-  id: string;
-  name: string;
-  purpose: string;
-  constraints: any;
-};
-
 export class PresentationsDefinitions {
   private presentationsDefinitions: PresentationDefinitionV2[] = [
     {
@@ -28,7 +21,6 @@ export class PresentationsDefinitions {
                   pattern: 'InvitationCredential',
                 },
               },
-              //https://developer.tbd.website/docs/web5/build/verifiable-credentials/presentation-definition
             ],
           },
         },
