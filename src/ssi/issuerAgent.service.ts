@@ -47,7 +47,7 @@ export class IssuerAgentService {
 
       const portableDid = await didDht.export();
       /**
-       * TODO Aca tendria que hacer un save del exported did, pero a donde no se definio aun
+       * TODO Aca tendria que hacer un save del exported did, pero no se definio a donde aun
        */
       return {
         success: true,
@@ -103,7 +103,7 @@ export class IssuerAgentService {
         vcDataPreview.expirationDate = expirationISOString;
       }
 
-      //TODO aca el id para guardar vendria dado
+      //TODO confirmar que vendria dado el id para guardar credential offer, modificar endpoint si es asi
       let id = randomBytes(16).toString('hex');
       let idExists = (await this.vcDataModelsStorage.get(id)) === null;
       while (idExists) {
@@ -180,7 +180,6 @@ export class IssuerAgentService {
    * @returns a JSON string that contains the Presentation Definition
    */
 
-  //TODO aca podria ser de una para attendance pq sino no tiene sentido pasarle event name en realidad. cambiarlo y cambiar tests
   async getPresentationDefinitionForEvent(eventName: string): Promise<{
     success: boolean;
     result: string | null;

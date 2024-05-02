@@ -1,4 +1,3 @@
-import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { IssuerAgentService } from './issuerAgent.service';
 import { IssuerAgentController } from './issuerAgent.controller';
