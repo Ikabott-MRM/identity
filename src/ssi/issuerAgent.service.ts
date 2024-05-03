@@ -47,7 +47,7 @@ export class IssuerAgentService {
 
       const portableDid = await didDht.export();
       /**
-       * TODO Aca tendria que hacer un save del exported did, pero no se definio a donde aun
+       * TODO se haria el save del exported did. se va a confirmar storage
        */
       return {
         success: true,

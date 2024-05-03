@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { VerifiableCredential } from '@web5/credentials';
 /** NOT FOR PRODUCTION
- * it uses filesystem storages
+ * it uses filesystem
  */
 
 type CredentialOfferType = {
