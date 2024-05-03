@@ -1,5 +1,4 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { IsNotEmpty, IsObject, IsString } from 'class-validator';
 import { EventbriteService } from './eventbrite.service';
 
@@ -50,6 +49,25 @@ export class EventbriteController {
         endpoint_url: dto.config.endpoint_url,
         webhook_id: dto.config.webhook_id,
         changes: attendee,
+      };
+    }
+  }
+
+  @Post('/order-webhook')
+  async handleOrderWebhook(@Body() dto: WebhookDTO): Promise<WebhookResponse> {
+    console.log({ dto });
+    if (
+      dto.config.action === 'order.updated' ||
+      dto.config.action === 'order.placed' ||
+      dto.config.action === 'order.refunded'
+    ) {
+      const order = await this.eventbriteService.syncOrder(dto.api_url);
+      return {
+        action: dto.config.action,
+        api_url: dto.api_url,
+        endpoint_url: dto.config.endpoint_url,
+        webhook_id: dto.config.webhook_id,
+        changes: order,
       };
     }
   }

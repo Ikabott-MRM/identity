@@ -1,27 +1,36 @@
 import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
-  await knex.schema.createTable('event', (table) => {
+  await knex.schema.createTableIfNotExists('event', (table) => {
     table.string('id').primary();
     table.string('name').notNullable();
     table.text('description');
     table.dateTime('startDate');
     table.dateTime('endDate');
+    table.string('organizer').notNullable();
+    table.string('location').notNullable();
     table.string('url');
   });
 
-  await knex.schema.createTable('invitee', (table) => {
+  await knex.schema.createTableIfNotExists('invitee', (table) => {
     table.string('id').primary();
     table.string('firstName').notNullable();
     table.string('lastName').notNullable();
     table.string('email').notNullable();
     table.string('eventId').notNullable();
+    table.string('ticketType').notNullable();
+    table.string('company').notNullable();
+    table.string('orderId').notNullable();
   });
 
-  await knex.schema.createTable('verification_code', (table) => {
-    table.string('code').notNullable();
-    table.dateTime('expirationDate').defaultTo(knex.fn.now());
+  await knex.schema.createTableIfNotExists('order', (table) => {
+    table.string('id').primary();
+    table.string('firstName').notNullable();
+    table.string('lastName').notNullable();
+    table.dateTime('createdAt').notNullable();
     table.string('email').notNullable();
+    table.string('eventId').notNullable();
+    table.string('status').notNullable();
   });
 }
 

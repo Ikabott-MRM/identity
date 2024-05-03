@@ -31,6 +31,9 @@ jobs:
           tenant-id: ${{ secrets.IDENTITYAPI_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.IDENTITYAPI_AZURE_SUBSCRIPTION_ID }}
 
+      - name: Create .env file
+        run: echo "${{ secrets.DEV_ENV_FILE }}" > .env
+
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:

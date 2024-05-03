@@ -31,6 +31,8 @@ describe('EventbriteService', () => {
     eventsService = module.get<EventsService>(EventsService);
   });
 
+  afterEach(async () => {});
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -103,6 +105,10 @@ describe('EventbriteService', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
+        eventId: 'event-id',
+        orderId: 'order-id',
+        ticketType: 'ticket-type',
+        companyName: 'company-name',
       };
       jest.spyOn(service, 'getAttendee').mockResolvedValue(attendee);
       jest
