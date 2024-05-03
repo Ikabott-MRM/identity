@@ -153,13 +153,9 @@ export class IssuerAgentService {
         expirationDate: credentialData.expirationDate,
       });
 
-      console.log(vc);
-
       this.logger.debug(`credential is being signed`);
       const signedVcJwt = await vc.sign({ did: this.operationalDID });
       this.logger.debug(`credential has been successfully signed`);
-
-      console.log(signedVcJwt);
 
       return {
         success: true,

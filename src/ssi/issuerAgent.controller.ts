@@ -166,7 +166,6 @@ export class IssuerAgentController {
 
     if (result?.success) {
       this.logger.debug('VC pd retrieved');
-      console.log(result.result);
       return sendResponse(result.result, 200, null);
     }
 
@@ -214,7 +213,6 @@ export class IssuerAgentController {
 
     if (result?.success) {
       this.logger.debug('verifiable presentation validated');
-      console.log(result.result);
       return sendResponse(result.result, 200, null);
     }
 
