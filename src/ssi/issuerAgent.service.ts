@@ -73,7 +73,7 @@ export class IssuerAgentService {
     data: any,
   ): Promise<{
     success: boolean;
-    result: {id:string, credentialOffer:string} | null;
+    result: { id: string; credentialOffer: string } | null;
     error: string | null;
   }> {
     try {
@@ -113,7 +113,7 @@ export class IssuerAgentService {
       this.vcDataModelsStorage.add({ id, ...vcDataPreview });
       return {
         success: true,
-        result: {id:id, credentialOffer:JSON.stringify(vcDataPreview)},
+        result: { id: id, credentialOffer: JSON.stringify(vcDataPreview) },
         error: null,
       };
     } catch (error) {
@@ -269,7 +269,7 @@ export class IssuerAgentService {
         presentationDefinition: JSON.parse(pd),
       });
 
-      const { result:COResult } = await this.createCredentialOffer(
+      const { result: COResult } = await this.createCredentialOffer(
         'Attendance',
         data,
       );

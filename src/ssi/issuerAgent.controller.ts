@@ -57,7 +57,7 @@ export class IssuerAgentController {
 
   @ApiOperation({
     summary:
-    'It creates a credential offer using the credential schema ID and the intended holder data.',
+      'It creates a credential offer using the credential schema ID and the intended holder data.',
   })
   @ApiOkResponse({
     status: 201,
@@ -96,7 +96,8 @@ export class IssuerAgentController {
   }
 
   @ApiOperation({
-    summary: 'Issues the VC using its credential offer and the DID of its intended holder.',
+    summary:
+      'Issues the VC using its credential offer and the DID of its intended holder.',
   })
   @ApiOkResponse({
     status: 200,
@@ -173,11 +174,13 @@ export class IssuerAgentController {
   }
 
   @ApiOperation({
-    summary: 'It retrieves whether the verifiable presentation submitted is valid or not',
+    summary:
+      'It retrieves whether the verifiable presentation submitted is valid or not',
   })
   @ApiOkResponse({
     status: 200,
-    description: 'Verifiable Presentation satisfies presentation definition of interest',
+    description:
+      'Verifiable Presentation satisfies presentation definition of interest',
   })
   @ApiResponse({
     status: 400,
@@ -220,7 +223,8 @@ export class IssuerAgentController {
   }
 
   @ApiOperation({
-    summary: 'Retrieves the credential offer for an attendee credential for a specific event.',
+    summary:
+      'Retrieves the credential offer for an attendee credential for a specific event.',
   })
   @ApiOkResponse({
     status: 201,

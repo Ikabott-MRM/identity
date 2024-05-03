@@ -158,7 +158,9 @@ describe('IssuerAgentService', () => {
 
       expect(result.success).toBe(true);
       expect(result.result).toBeDefined();
-      expect(result.result.credentialOffer).toBe(JSON.stringify(expectedCredentiaOffer));
+      expect(result.result.credentialOffer).toBe(
+        JSON.stringify(expectedCredentiaOffer),
+      );
       expect(result.error).toBeNull();
       credentialRepo.mockClear();
     });
