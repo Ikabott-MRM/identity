@@ -38,7 +38,7 @@ export class IssuerAgentController {
     description:
       'Internal server error. Message field on response will provide a more accurate description of it',
   })
-  @Post('createDID')
+  @Post('did')
   async createDID() {
     const ssiProject = this.configService.get('ssi.ssiProjectName');
     let result: any;
@@ -77,7 +77,7 @@ export class IssuerAgentController {
     description:
       'schema of the VC intended to be offered and data needed for the credential',
   })
-  @Post('credentialOffer')
+  @Post('credential-offer')
   async createCredentialOffer(@Body() credentialOfferData: CredentialOfferDto) {
     const result = await this.issuerAgentService.createCredentialOffer(
       credentialOfferData.schemaId,
@@ -112,7 +112,7 @@ export class IssuerAgentController {
     description:
       'Internal server error. Message field on response will provide a more accurate description of it',
   })
-  @Post('issueCredential')
+  @Post('credential')
   async issueCredential(
     @Body('offerId') offerId: string,
     @Body('subjectDid') subjectDid: string,
@@ -158,7 +158,7 @@ export class IssuerAgentController {
     required: true,
     type: String,
   })
-  @Get('getPd')
+  @Get('presentation-definition')
   async getPresentationDefinition(@Query('eventName') eventName: string) {
     const result =
       await this.issuerAgentService.getPresentationDefinitionForEvent(
@@ -203,7 +203,7 @@ export class IssuerAgentController {
     required: true,
     type: String,
   })
-  @Get('evalPS')
+  @Get('eval-ps')
   async evalPresentationSubmission(
     @Query('signedPresentation') signedPresentation: string,
     @Query('eventName') eventName: string,
@@ -239,7 +239,7 @@ export class IssuerAgentController {
     description:
       'Internal server error. Message field on response will provide a more accurate description of it',
   })
-  @Post('attendeeCredentialOffer')
+  @Post('attendee-credential-offer')
   async issueAttendeeCredential(
     @Body('signedPresentation') signedPresentation: string,
     @Body('eventName') eventName: string,
