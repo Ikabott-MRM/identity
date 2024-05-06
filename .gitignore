@@ -15,6 +15,10 @@ lerna-debug.log*
 # OS
 .DS_Store
 
+#
+issuer-dataModels-storage.json
+issuer-dataModels-tests-storage.json
+
 # Tests
 /coverage
 /.nyc_output

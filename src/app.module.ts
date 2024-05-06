@@ -1,31 +1,47 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Module, Logger } from '@nestjs/common';
 import { MembersModule } from './members/members.module';
 import { KnexModule } from './db/knex.module';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
-import { SsiService } from './ssi/ssi.service';
-import { SsiModule } from './ssi/ssi.module';
 import { EventsModule } from './events/events.module';
-import { EventbriteModule } from './eventbrite/eventbrite.module';
 import { ConfigModule } from '@nestjs/config';
+import configuration from './config/configuration';
+import { HttpModule } from '@nestjs/axios';
+import { EventbriteModule } from './eventbrite/eventbrite.module';
+import { IssuerAgentController } from './ssi/issuerAgent.controller';
+import { IssuerAgentService } from './ssi/issuerAgent.service';
+import { IssuerAgentModule } from './ssi/issuerAgent.module';
+import { CredentialsSchemasInMemoryRepository } from './ssi/inMemoryRepositories/credentialsSchemas-in-memory';
+import { PresentationsDefinitions } from './ssi/inMemoryRepositories/presentations-definitions-in-memory';
 import { InviteeService } from './invitee/invitee.service';
 import { InviteeModule } from './invitee/invitee.module';
-import { LoggerModule } from 'nestjs-pino';
+
+const ENV = process.env.NODE_ENV;
+const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      envFilePath,
+      isGlobal: true,
+      load: [configuration],
+    }),
     MembersModule,
     KnexModule,
-    SsiModule,
+    IssuerAgentModule,
     EventsModule,
+    HttpModule,
     EventbriteModule,
-    ConfigModule.forRoot(),
     InviteeModule,
-    LoggerModule.forRoot(),
   ],
-  controllers: [AppController, MembersController],
-  providers: [AppService, MembersService, SsiService, InviteeService],
+  controllers: [MembersController, IssuerAgentController],
+  providers: [
+    MembersService,
+    InviteeService,
+    IssuerAgentService,
+    CredentialsSchemasInMemoryRepository,
+    PresentationsDefinitions,
+    Logger,
+  ],
 })
 export class AppModule {}
