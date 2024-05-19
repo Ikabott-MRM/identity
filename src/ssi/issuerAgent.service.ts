@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { BearerDid, DidDht } from '@web5/dids';
 import { VerifiableCredential, PresentationExchange } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
@@ -6,24 +6,36 @@ import { mapDataWithRules } from '../helpers/functions';
 import { MemoryTempDataService } from './storage/storage.service';
 import { PresentationsDefinitions } from './inMemoryRepositories/presentations-definitions-in-memory';
 import { randomBytes } from 'crypto';
+import { Web5, Web5ConnectResult } from '@web5/api';
+import { DWNService } from './dwn/dwn.service';
+import { AUTHORIZED_CALLER_TOKEN } from './dwn/authorized-caller.provider';
 
 @Injectable()
-export class IssuerAgentService {
+export class IssuerAgentService implements OnModuleInit {
   private readonly logger = new Logger(IssuerAgentService.name);
   private operationalDID: BearerDid | null = null;
   private vcDataModelsStorage: MemoryTempDataService =
     new MemoryTempDataService({ filepath: 'issuer-dataModels-storage.json' });
+  private web5Instance: Web5;
 
   constructor(
     private readonly credentialsRepository: CredentialsSchemasInMemoryRepository,
     private readonly presentationsDefinitions: PresentationsDefinitions,
+    private readonly dwnService: DWNService,
+    @Inject(AUTHORIZED_CALLER_TOKEN) private readonly dwnServiceToken: symbol,
   ) {}
 
   async onModuleInit() {
     // Check if DID already exists
     if (!this.operationalDID) {
-      // If DID does not exist, create, export, and save one
-      this.operationalDID = (await this.createAndExportTBDIdentity()).result;
+      this.logger.debug(`issuer agent getting initialized:`);
+
+      //Ahora como voy a estar usando el did del agente que se crea al usar web5 connect
+      //para firmar y guardar las credenciales, tengo que obtenerlo de ese service
+
+      this.operationalDID = await this.dwnService.getDWNAgentDid(
+        this.dwnServiceToken,
+      );
 
       this.logger.debug(`operational DID of agent:`);
       this.logger.debug(this.operationalDID.uri);
@@ -83,7 +95,7 @@ export class IssuerAgentService {
         schema.mappingRulesDescriptor,
       );
       this.logger.log(`credentialDataMapped:`);
-      this.logger.log(credentialData);
+      console.log(credentialData);
       let expirationISOString: string;
 
       this.logger.log(`credential offer is being created`);
@@ -156,6 +168,12 @@ export class IssuerAgentService {
       this.logger.debug(`credential is being signed`);
       const signedVcJwt = await vc.sign({ did: this.operationalDID });
       this.logger.debug(`credential has been successfully signed`);
+
+      await this.dwnService.saveCredentialtoDWN(
+        subjectDid,
+        signedVcJwt,
+        credentialData.type[0],
+      );
 
       return {
         success: true,

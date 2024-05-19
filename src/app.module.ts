@@ -15,7 +15,9 @@ import { CredentialsSchemasInMemoryRepository } from './ssi/inMemoryRepositories
 import { PresentationsDefinitions } from './ssi/inMemoryRepositories/presentations-definitions-in-memory';
 import { InviteeService } from './invitee/invitee.service';
 import { InviteeModule } from './invitee/invitee.module';
-
+import { DWNModule } from './ssi/dwn/dwn.module';
+import { AUTHORIZED_CALLER_TOKEN } from './ssi/dwn/authorized-caller.provider';
+import { DWNController } from './ssi/dwn/dwn.controller';
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
 
@@ -33,15 +35,24 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     HttpModule,
     EventbriteModule,
     InviteeModule,
+    DWNModule,
   ],
-  controllers: [MembersController, IssuerAgentController],
+  controllers: [MembersController, IssuerAgentController, DWNController],
   providers: [
+    //IMPORTANT NOTE!!!
+    //Services should not be imported directly. It breaks modularity and can lead
+    //to haveing that service instantiated multiple times
+    //Services that need to be used in other modules, needs to be exported by their defining module
+
+    //only modules should be imported in order to promote a modular arch
+    //and to simplify dependency management as each module is responsible of managing and providing its components
     MembersService,
     InviteeService,
-    IssuerAgentService,
-    CredentialsSchemasInMemoryRepository,
-    PresentationsDefinitions,
     Logger,
+    {
+      provide: AUTHORIZED_CALLER_TOKEN,
+      useValue: Symbol('AUTHORIZED_CALLER_TOKEN'),
+    },
   ],
 })
 export class AppModule {}

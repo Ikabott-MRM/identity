@@ -9,7 +9,10 @@ export class CredentialsSchemasInMemoryRepository {
   private credentialsSchemas: Schema[] = [
     {
       id: 'Invitation',
-      type: ['InvitationCredential'],
+      // type: ['InvitationCredential'],
+      //TODO le cambie el tipo pq para guardar en DWN el schema tiene que ser el tipo de la credencial y
+      //para trabajar con protocolos, el schema tiene que ser el schmea del tipo definido en el protocolo
+      type: ['https://identity-iovf.xyz/schemas/invitationCredentialSchema'],
       contexts: ['https://www.w3.org/2018/credentials/v1'],
       mappingRulesDescriptor: {
         eventName: 'name',
@@ -25,7 +28,8 @@ export class CredentialsSchemasInMemoryRepository {
     },
     {
       id: 'Attendance',
-      type: ['AttendanceCredential'],
+      // type: ['AttendanceCredential'],
+      type: ['https://identity-iovf.xyz/schemas/attendanceCredentialSchema'],
       contexts: ['https://www.w3.org/2018/credentials/v1'],
       mappingRulesDescriptor: {
         eventName: 'name',
