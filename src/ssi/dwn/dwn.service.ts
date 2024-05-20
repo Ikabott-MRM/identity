@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Web5 } from '@web5/api';
+import { Record, Web5 } from '@web5/api';
 import * as fs from 'fs';
 import { AUTHORIZED_CALLER_TOKEN } from './authorized-caller.provider';
 import { BearerDid } from '@web5/dids';
@@ -11,10 +11,7 @@ import { VerifiableCredential } from '@web5/credentials';
 export class DWNService {
   private readonly logger = new Logger(DWNService.name);
   private web5Instance: Web5;
-
-  //TODO solo par probar protocolo
-  //   private web51;
-  //   private web52;
+  private authorDid: string;
 
   constructor(
     @Inject(AUTHORIZED_CALLER_TOKEN)
@@ -24,37 +21,16 @@ export class DWNService {
   async onModuleInit() {
     try {
       if (!this.web5Instance) {
-        const { web5, did: DWNAgentDidUri } = await Web5.connect({
+        const { web5, did } = await Web5.connect({
           sync: '30s',
         });
         this.logger.debug(
           `web5 agent has been intialized and connected to local dwn server`,
         );
-        this.logger.debug(`DID of dwn agent:`);
-        this.logger.debug(DWNAgentDidUri);
-
-        //TODO si uso eso como did del issuer agent, tengo que firmar con esto:
-        //tendria que exportar y guardar este did. A definir donde guardarlo
-        //solo tendria que crear uno nuevo si no tengo uno, sino tengo que usar
-        // crear el web5UserAgent, importar el did como agent-managed identity e inicializar
-        //web5 api con el user Agent y el Did en vez de con web5.connect
-        // ver file de apuntes
-        const dwnAgentDid = web5.agent.agentDid.export();
+        this.logger.debug(`DID author of records:`);
+        this.logger.debug(did);
+        this.authorDid = did;
         this.web5Instance = web5;
-
-        // const { web5:web51, did: DidUri1 } = await Web5.connect({
-        //     sync: '30s',
-        //   });
-        //   this.web51 = web51
-        //   this.logger.debug(`DID 1:`);
-        //   this.logger.debug(DidUri1);
-
-        //   const { web5:web52, did: DidUri2 } = await Web5.connect({
-        //     sync: '30s',
-        //   });
-        //   this.web52 = web52;
-        //   this.logger.debug(`DID 2:`);
-        //   this.logger.debug(DidUri2);
       }
 
       await this.importAndConfigureProtocol();
@@ -87,7 +63,7 @@ export class DWNService {
         return;
       }
 
-      // if the protocol already exists, we return
+      // protocol already exists
       if (protocols.length > 0) {
         this.logger.log('Protocol already exists');
         return;
@@ -120,11 +96,11 @@ export class DWNService {
     credentialSchema: string,
   ): Promise<{
     success: boolean;
-    result: string | null;
+    result: Record | null;
     error: string | null;
   }> {
     try {
-      const { record } = await this.web5Instance.dwn.records.create({
+      const res = await this.web5Instance.dwn.records.create({
         data: signedVc,
         message: {
           protocol: 'https://identity-iovf.xyz',
@@ -134,21 +110,21 @@ export class DWNService {
           recipient: holderDid,
         },
       });
-      if (record) {
+      if (res.status.code === 200 && res.record) {
         this.logger.debug(
           `Credential has been successfully written to DWN node`,
         );
         return {
           success: true,
-          result: 'definir que retornar',
+          result: res.record,
           error: null,
         };
-      } else {
+      } else if (res.status.code !== 200) {
         this.logger.debug(`Credential has not been written to DWN node`);
         return {
           success: false,
-          result: 'definir que retornar',
-          error: null,
+          result: null,
+          error: res.status.detail,
         };
       }
     } catch (error) {

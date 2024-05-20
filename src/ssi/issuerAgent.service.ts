@@ -30,6 +30,7 @@ export class IssuerAgentService implements OnModuleInit {
     if (!this.operationalDID) {
       this.logger.debug(`issuer agent getting initialized:`);
 
+      //TODO borrar before merge
       //Ahora como voy a estar usando el did del agente que se crea al usar web5 connect
       //para firmar y guardar las credenciales, tengo que obtenerlo de ese service
 

@@ -22,11 +22,12 @@ export class DWNController {
   ) {}
 
   @ApiOperation({
-    summary: 'It creates a new DID',
+    summary:
+      'It retrieves VCs stored on the DWN node of the DID passed as parameters',
   })
   @ApiOkResponse({
-    status: 201,
-    description: 'DID successfully created',
+    status: 200,
+    description: 'VCs successfully retrieved',
   })
   @ApiResponse({
     status: 400,
@@ -37,12 +38,14 @@ export class DWNController {
     description:
       'Internal server error. Message field on response will provide a more accurate description of it',
   })
-  @Get('read')
+  @Get('credentials')
   async credentials(holderDid: string) {
     const result = await this.dwnService.queryCredentialsFromDWN(holderDid);
 
     if (result?.success) {
-      this.logger.debug('DID successfully queried');
+      this.logger.debug(
+        `DWN node successfully queried for VCs of ${holderDid}`,
+      );
       console.log(result);
       return sendResponse(result.result, 200, null);
     }
