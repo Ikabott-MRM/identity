@@ -1,21 +1,29 @@
 import type { Knex } from 'knex';
+require('dotenv').config();
 
-// Update with your config settings.
 const config: { [key: string]: Knex.Config } = {
   development: {
-    client: 'sqlite3',
+    client: 'pg',
     connection: {
-      filename: './dev.sqlite3',
+      host: process.env.POSTGRES_HOST,
+      database: 'iovf-identity',
+      user: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
     },
-    useNullAsDefault: true,
+    pool: {
+      min: 2,
+      max: 10,
+    },
+    migrations: {
+      tableName: 'knex_migrations',
+    },
   },
-
   staging: {
-    client: 'postgresql',
+    client: 'pg',
     connection: {
-      database: 'my_db',
-      user: 'username',
-      password: 'password',
+      database: 'iovf-identity',
+      user: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
     },
     pool: {
       min: 2,
@@ -27,11 +35,11 @@ const config: { [key: string]: Knex.Config } = {
   },
 
   production: {
-    client: 'postgresql',
+    client: 'PG',
     connection: {
-      database: 'my_db',
-      user: 'username',
-      password: 'password',
+      database: 'iovf-identity',
+      user: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
     },
     pool: {
       min: 2,

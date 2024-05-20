@@ -13,8 +13,8 @@ import { IssuerAgentService } from './ssi/issuerAgent.service';
 import { IssuerAgentModule } from './ssi/issuerAgent.module';
 import { CredentialsSchemasInMemoryRepository } from './ssi/inMemoryRepositories/credentialsSchemas-in-memory';
 import { PresentationsDefinitions } from './ssi/inMemoryRepositories/presentations-definitions-in-memory';
-import { InviteeService } from './invitee/invitee.service';
-import { InviteeModule } from './invitee/invitee.module';
+import { InvitationService } from './invitation/invitation.service';
+import { InvitationModule } from './invitation/invitation.module';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -32,12 +32,12 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     EventsModule,
     HttpModule,
     EventbriteModule,
-    InviteeModule,
+    InvitationModule,
   ],
   controllers: [MembersController, IssuerAgentController],
   providers: [
     MembersService,
-    InviteeService,
+    InvitationService,
     IssuerAgentService,
     CredentialsSchemasInMemoryRepository,
     PresentationsDefinitions,

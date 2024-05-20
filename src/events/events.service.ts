@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Knex } from 'knex';
 import { Resend } from 'resend';
 import { render } from '@react-email/render';
-import Invitation from './invitation';
+import InvitationEmail from './invitation';
 import { backOff } from 'exponential-backoff';
 
 export class Event {
@@ -17,15 +17,22 @@ export class Event {
   organizer: string;
 }
 
-export class Invitee {
+export class Person {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
+  company: string;
+  position: string;
+  memberId: string;
+}
+
+export class Invitation {
+  id: string;
+  personId: string;
   eventId: string;
-  orderId: string;
   ticketType: string;
-  companyName: string;
+  orderId: string;
 }
 
 export class Order {
@@ -47,68 +54,6 @@ export class EventsService {
     private configService: ConfigService,
   ) {}
 
-  async createEvent(event: Event): Promise<void> {
-    await this.knex('event').insert({
-      id: event.id,
-      name: event.name,
-      description: event.description,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      url: event.url,
-    });
-  }
-
-  async getEvents(): Promise<Event[]> {
-    return this.knex('event').select('*');
-  }
-
-  async getEventById(id: string): Promise<Event> {
-    return this.knex('event').where('id', id).first();
-  }
-
-  async getInviteeByOrderId(orderId: string, poll: boolean): Promise<Invitee> {
-    let invitee;
-
-    this.logger.log('Polling for invitee with order Id %s.', orderId);
-
-    const invitees = await this.knex('invitee').select('*');
-    this.logger.log('Invitees: %o', invitees);
-
-    if (poll) {
-      try {
-        invitee = await backOff(async () => {
-          const result = await this.knex('invitee')
-            .where('orderId', orderId)
-            .first();
-
-          if (!result) {
-            throw new Error('Invitee not found');
-          }
-
-          return result;
-        });
-      } catch (error) {
-        this.logger.error(
-          'Invitee not found after exponential backoff. Order Id %s.',
-          orderId,
-        );
-        return null;
-      }
-    }
-
-    invitee = await this.knex('invitee').where('orderId', orderId).first();
-
-    return invitee;
-  }
-
-  async getOrdersByEventId(eventId: string): Promise<Order[]> {
-    return this.knex('order').where('eventId', eventId);
-  }
-
-  async getInviteesByEventId(eventId: string): Promise<Invitee[]> {
-    return this.knex('invitee').where('eventId', eventId);
-  }
-
   async createOrUpdateEvent(event: Event): Promise<void> {
     const existingEvent = await this.knex('event')
       .where('id', event.id)
@@ -120,9 +65,9 @@ export class EventsService {
         description: event.description,
         startDate: event.startDate,
         endDate: event.endDate,
-        url: event.url,
-        location: event.location,
         organizer: event.organizer,
+        location: event.location,
+        url: event.url,
       });
     } else {
       await this.knex('event').insert({
@@ -131,11 +76,107 @@ export class EventsService {
         description: event.description,
         startDate: event.startDate,
         endDate: event.endDate,
-        url: event.url,
-        location: event.location,
         organizer: event.organizer,
+        location: event.location,
+        url: event.url,
       });
     }
+  }
+
+  async getEvents(): Promise<Event[]> {
+    return this.knex('event').select('*');
+  }
+
+  async createOrUpdatePerson(person: Person): Promise<void> {
+    const existingPerson = await this.knex('person')
+      .where('id', person.id)
+      .first();
+
+    if (existingPerson) {
+      await this.knex('person').where('id', person.id).update({
+        firstName: person.firstName,
+        lastName: person.lastName,
+        email: person.email,
+        company: person.company,
+        position: person.position,
+        memberId: person.memberId,
+      });
+    } else {
+      await this.knex('person').insert({
+        id: person.id,
+        firstName: person.firstName,
+        lastName: person.lastName,
+        email: person.email,
+        company: person.company,
+        position: person.position,
+        memberId: person.memberId,
+      });
+    }
+  }
+
+  async createOrUpdateInvitation(invitation: Invitation): Promise<void> {
+    const existingInvitation = await this.knex('invitation')
+      .where('id', invitation.id)
+      .first();
+
+    if (existingInvitation) {
+      await this.knex('invitation').where('id', invitation.id).update({
+        personId: invitation.personId,
+        eventId: invitation.eventId,
+        ticketType: invitation.ticketType,
+        orderId: invitation.orderId,
+      });
+    } else {
+      await this.knex('invitation').insert({
+        id: invitation.id,
+        personId: invitation.personId,
+        eventId: invitation.eventId,
+        ticketType: invitation.ticketType,
+        orderId: invitation.orderId,
+      });
+
+      await this.sendConfirmationEmail(invitation);
+    }
+  }
+
+  async getInvitationByOrderId(
+    orderId: string,
+    poll: boolean,
+  ): Promise<Invitation> {
+    let invitation;
+
+    this.logger.log('Polling for invitation with order Id %s.', orderId);
+
+    const invitees = await this.knex('invitation').select('*');
+    this.logger.log('Invitations: %o', invitees);
+
+    if (poll) {
+      try {
+        invitation = await backOff(async () => {
+          const result = await this.knex('invitation')
+            .where('orderId', orderId)
+            .first();
+
+          if (!result) {
+            throw new Error('Invitation not found');
+          }
+
+          return result;
+        });
+      } catch (error) {
+        this.logger.error(
+          'Invitation not found after exponential backoff. Order Id %s.',
+          orderId,
+        );
+        return null;
+      }
+    }
+
+    invitation = await this.knex('invitation')
+      .where('orderId', orderId)
+      .first();
+
+    return invitation;
   }
 
   async createOrUpdateOrder(order: Order): Promise<void> {
@@ -165,62 +206,48 @@ export class EventsService {
     }
   }
 
-  async createOrUpdateInvitee(invitee: Invitee): Promise<void> {
-    const existingInvitee = await this.knex('invitee')
-      .where('id', invitee.id)
-      .first();
-
-    this.logger.debug('Creating invitee %o', invitee);
-    if (existingInvitee) {
-      this.logger.debug('Updating invitee %o', invitee);
-      await this.knex('invitee').where('id', invitee.id).update({
-        firstName: invitee.firstName,
-        lastName: invitee.lastName,
-        email: invitee.email,
-        eventId: invitee.eventId,
-        company: invitee.companyName,
-        orderId: invitee.orderId,
-        ticketType: invitee.ticketType,
-      });
-    } else {
-      this.logger.debug('Inserting invitee %o', invitee);
-      await this.knex('invitee').insert({
-        id: invitee.id,
-        firstName: invitee.firstName,
-        lastName: invitee.lastName,
-        email: invitee.email,
-        company: invitee.companyName,
-        eventId: invitee.eventId,
-        orderId: invitee.orderId,
-        ticketType: invitee.ticketType,
-      });
-
-      await this.sendConfirmationEmail(invitee);
-    }
-  }
-
-  async sendConfirmationEmail(invitee: Invitee): Promise<void> {
+  async sendConfirmationEmail(invitation: Invitation): Promise<void> {
     const resend = new Resend(this.configService.getOrThrow('RESEND_API_KEY'));
+
+    const person = await this.getPersonById(invitation.personId);
+    const event = await this.getEventById(invitation.eventId);
 
     const result = await resend.emails.send({
       from: 'onboarding@resend.dev',
-      to: 'vbermudez@infuy.com',
+      to: person.email,
       subject: 'Aquí está tu invitación',
-      text: `Hola ${invitee.firstName} ${invitee.lastName}, aquí está tu invitación: https://example.com/invite/${invitee.id}`,
+      text: `Hola ${person.firstName} ${person.lastName}, aquí está tu invitación para el evento ${event.name}: https://example.com/invite/${invitation.id}`,
       html: render(
-        Invitation({
-          url: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${invitee.id}`,
+        InvitationEmail({
+          url: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${invitation.id}`,
         }),
       ),
     });
   }
 
-  async getInviteeById(id: string): Promise<Invitee> {
-    return this.knex('invitee').where('id', id).first();
+  async getEventById(id: string): Promise<Event> {
+    return this.knex('event').where('id', id).first();
+  }
+
+  async getPersonById(id: string): Promise<Person> {
+    return this.knex('person').where('id', id).first();
+  }
+
+  async getInvitationById(id: string): Promise<Invitation> {
+    return this.knex('invitation').where('id', id).first();
+  }
+
+  async getInvitationsByEventId(eventId: string): Promise<Invitation[]> {
+    return this.knex('invitation').where('eventId', eventId);
+  }
+
+  async getOrdersByEventId(eventId: string): Promise<Order[]> {
+    return this.knex('order').where('eventId', eventId);
   }
 
   async clearTables(): Promise<void> {
-    await this.knex('invitee').truncate();
+    await this.knex('invitation').truncate();
+    await this.knex('person').truncate();
     await this.knex('order').truncate();
     await this.knex('event').truncate();
   }
