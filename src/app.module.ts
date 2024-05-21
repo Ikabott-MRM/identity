@@ -36,13 +36,6 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
   ],
   controllers: [MembersController, IssuerAgentController, DWNController],
   providers: [
-    //IMPORTANT NOTE!!!  
-    //Services should not be imported directly. It breaks modularity and can lead
-    //to haveing that service instantiated multiple times
-    //Services that need to be used in other modules, needs to be exported by their defining module
-
-    //only modules should be imported in order to promote a modular arch
-    //and to simplify dependency management as each module is responsible of managing and providing its components
     MembersService,
     InviteeService,
     Logger,
