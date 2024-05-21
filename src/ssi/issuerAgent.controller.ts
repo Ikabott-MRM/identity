@@ -117,6 +117,18 @@ export class IssuerAgentController {
     @Body('offerId') offerId: string,
     @Body('subjectDid') subjectDid: string,
   ) {
+    if (!offerId)
+      return sendResponse(
+        null,
+        400,
+        `offerId must be provided in the body of the request.`,
+      );
+    if (!subjectDid)
+      return sendResponse(
+        null,
+        400,
+        `subjectDid must be provided in the body of the request.`,
+      );
     const result = await this.issuerAgentService.issueCredential(
       offerId,
       subjectDid,
@@ -160,6 +172,13 @@ export class IssuerAgentController {
   })
   @Get('presentation-definition')
   async getPresentationDefinition(@Query('eventName') eventName: string) {
+    if (!eventName)
+      return sendResponse(
+        null,
+        400,
+        `eventName cannot be undefined. A value must be passed as query parameter`,
+      );
+
     const result =
       await this.issuerAgentService.getPresentationDefinitionForEvent(
         eventName,
@@ -208,6 +227,19 @@ export class IssuerAgentController {
     @Query('signedPresentation') signedPresentation: string,
     @Query('eventName') eventName: string,
   ) {
+    if (!eventName)
+      return sendResponse(
+        null,
+        400,
+        `eventName cannot be undefined. A value must be passed as query parameter`,
+      );
+    if (!signedPresentation)
+      return sendResponse(
+        null,
+        400,
+        `signedPresentation cannot be undefined. A value must be passed as query parameter`,
+      );
+
     const result =
       await this.issuerAgentService.evaluatesPresentationSubmission(
         signedPresentation,
@@ -245,6 +277,18 @@ export class IssuerAgentController {
     @Body('eventName') eventName: string,
     @Body('data') data: object,
   ) {
+    if (!eventName)
+      return sendResponse(
+        null,
+        400,
+        `eventName must be provided in the body of the request.`,
+      );
+    if (!signedPresentation)
+      return sendResponse(
+        null,
+        400,
+        `signedPresentation must be provided in the body of the request.`,
+      );
     const result = await this.issuerAgentService.createAttendeeCredentialOffer(
       signedPresentation,
       eventName,

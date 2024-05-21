@@ -11,7 +11,6 @@ import { VerifiableCredential } from '@web5/credentials';
 export class DWNService {
   private readonly logger = new Logger(DWNService.name);
   private web5Instance: Web5;
-  private authorDid: string;
 
   constructor(
     @Inject(AUTHORIZED_CALLER_TOKEN)
@@ -29,10 +28,8 @@ export class DWNService {
         );
         this.logger.debug(`DID author of records:`);
         this.logger.debug(did);
-        this.authorDid = did;
         this.web5Instance = web5;
       }
-
       await this.importAndConfigureProtocol();
     } catch (error) {
       this.logger.error(
@@ -100,6 +97,11 @@ export class DWNService {
     error: string | null;
   }> {
     try {
+      if (!holderDid) throw new Error(`holderDid cannot be undefined.`);
+      if (!signedVc) throw new Error(`signedVc cannot be undefined.`);
+      if (!credentialSchema)
+        throw new Error(`credentialSchema cannot be undefined.`);
+
       const res = await this.web5Instance.dwn.records.create({
         data: signedVc,
         message: {
@@ -142,6 +144,8 @@ export class DWNService {
     error: string | null;
   }> {
     try {
+      if (!holderDid) throw new Error(`holderDid cannot be undefined.`);
+
       const res = await this.web5Instance.dwn.records.query({
         message: {
           filter: {

@@ -16,7 +16,6 @@ export class IssuerAgentService implements OnModuleInit {
   private operationalDID: BearerDid | null = null;
   private vcDataModelsStorage: MemoryTempDataService =
     new MemoryTempDataService({ filepath: 'issuer-dataModels-storage.json' });
-  private web5Instance: Web5;
 
   constructor(
     private readonly credentialsRepository: CredentialsSchemasInMemoryRepository,
@@ -29,10 +28,6 @@ export class IssuerAgentService implements OnModuleInit {
     // Check if DID already exists
     if (!this.operationalDID) {
       this.logger.debug(`issuer agent getting initialized:`);
-
-      //TODO borrar before merge
-      //Ahora como voy a estar usando el did del agente que se crea al usar web5 connect
-      //para firmar y guardar las credenciales, tengo que obtenerlo de ese service
 
       this.operationalDID = await this.dwnService.getDWNAgentDid(
         this.dwnServiceToken,
@@ -201,13 +196,22 @@ export class IssuerAgentService implements OnModuleInit {
     error: string | null;
   }> {
     try {
-      const pdForEvent = await this.presentationsDefinitions.get('PD_Attendee');
+      if (!eventName)
+        throw new Error(
+          `No eventName was provided for generating the presentation definition`,
+        );
+
+      const pdForEvents =
+        await this.presentationsDefinitions.get('PD_Attendee');
+
+      const pdForEventsCopy = JSON.parse(JSON.stringify(pdForEvents));
       // If there are errors with the PD, an error will be thrown
       const validated = PresentationExchange.validateDefinition({
-        presentationDefinition: pdForEvent,
+        presentationDefinition: pdForEventsCopy,
       });
+
       if (validated)
-        pdForEvent.input_descriptors[0].constraints.fields.push({
+        pdForEventsCopy.input_descriptors[0].constraints.fields.push({
           path: ['$.credentialSubject.eventName'],
           filter: {
             type: 'string',
@@ -217,7 +221,7 @@ export class IssuerAgentService implements OnModuleInit {
 
       return {
         success: true,
-        result: JSON.stringify(pdForEvent),
+        result: JSON.stringify(pdForEventsCopy),
         error: null,
       };
     } catch (error) {
