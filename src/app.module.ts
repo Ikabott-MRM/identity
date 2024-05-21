@@ -9,10 +9,7 @@ import configuration from './config/configuration';
 import { HttpModule } from '@nestjs/axios';
 import { EventbriteModule } from './eventbrite/eventbrite.module';
 import { IssuerAgentController } from './ssi/issuerAgent.controller';
-import { IssuerAgentService } from './ssi/issuerAgent.service';
 import { IssuerAgentModule } from './ssi/issuerAgent.module';
-import { CredentialsSchemasInMemoryRepository } from './ssi/inMemoryRepositories/credentialsSchemas-in-memory';
-import { PresentationsDefinitions } from './ssi/inMemoryRepositories/presentations-definitions-in-memory';
 import { InviteeService } from './invitee/invitee.service';
 import { InviteeModule } from './invitee/invitee.module';
 import { DWNModule } from './ssi/dwn/dwn.module';
@@ -39,7 +36,7 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
   ],
   controllers: [MembersController, IssuerAgentController, DWNController],
   providers: [
-    //IMPORTANT NOTE!!!
+    //IMPORTANT NOTE!!!  
     //Services should not be imported directly. It breaks modularity and can lead
     //to haveing that service instantiated multiple times
     //Services that need to be used in other modules, needs to be exported by their defining module
