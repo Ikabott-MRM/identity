@@ -10,11 +10,12 @@ import { HttpModule } from '@nestjs/axios';
 import { EventbriteModule } from './eventbrite/eventbrite.module';
 import { IssuerAgentController } from './ssi/issuerAgent.controller';
 import { IssuerAgentModule } from './ssi/issuerAgent.module';
-import { InviteeService } from './invitee/invitee.service';
-import { InviteeModule } from './invitee/invitee.module';
 import { DWNModule } from './ssi/dwn/dwn.module';
 import { AUTHORIZED_CALLER_TOKEN } from './ssi/dwn/authorized-caller.provider';
 import { DWNController } from './ssi/dwn/dwn.controller';
+import { InvitationService } from './invitation/invitation.service';
+import { InvitationModule } from './invitation/invitation.module';
+
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
 
@@ -31,13 +32,13 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     EventsModule,
     HttpModule,
     EventbriteModule,
-    InviteeModule,
     DWNModule,
+    InvitationModule,
   ],
   controllers: [MembersController, IssuerAgentController, DWNController],
   providers: [
     MembersService,
-    InviteeService,
+    InvitationService,
     Logger,
     {
       provide: AUTHORIZED_CALLER_TOKEN,

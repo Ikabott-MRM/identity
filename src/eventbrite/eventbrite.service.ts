@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Invitee, Event, EventsService, Order } from '../events/events.service';
+import {
+  Event,
+  EventsService,
+  Invitation,
+  Order,
+} from '../events/events.service';
+import { randomUUID } from 'crypto';
 
 class EventbriteEvent {
   id: string;
@@ -86,15 +92,54 @@ export class EventbriteService {
 
   async syncEvents(apiUrl: string): Promise<Event> {
     const event = await this.getEvent(apiUrl);
+
     await this.eventsService.createOrUpdateEvent(event);
+
     return event;
   }
 
-  async syncAttendee(apiUrl: string): Promise<Invitee> {
+  async syncAttendee(apiUrl: string): Promise<Invitation> {
     const attendee = await this.getAttendee(apiUrl);
-    await this.eventsService.createOrUpdateInvitee(attendee);
-    await this.syncEvents(`${this.url}/events/${attendee.eventId}/`);
-    return attendee;
+    const {
+      id,
+      firstName,
+      lastName,
+      email,
+      company,
+      eventId,
+      orderId,
+      ticketType,
+      position,
+      memberId,
+    } = attendee;
+
+    await this.eventsService.createOrUpdatePerson({
+      id,
+      firstName,
+      lastName,
+      email,
+      company,
+      position,
+      memberId,
+    });
+
+    await this.syncEvents(`${this.url}/events/${eventId}/`);
+
+    await this.eventsService.createOrUpdateInvitation({
+      id: randomUUID(),
+      personId: id,
+      eventId,
+      ticketType,
+      orderId,
+    });
+
+    return {
+      id,
+      personId: id,
+      eventId,
+      ticketType,
+      orderId,
+    };
   }
 
   async syncOrder(apiUrl: string): Promise<Order> {
@@ -167,7 +212,18 @@ export class EventbriteService {
     };
   }
 
-  async getAttendee(apiUrl: string): Promise<Invitee> {
+  async getAttendee(apiUrl: string): Promise<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    company: string;
+    eventId: string;
+    orderId: string;
+    ticketType: string;
+    memberId: string;
+    position: string;
+  }> {
     const res = await fetch(apiUrl, {
       headers: {
         Authorization: `Bearer ${this.configService.getOrThrow('EVENTBRITE_PRIVATE_TOKEN')}`,
@@ -190,22 +246,47 @@ export class EventbriteService {
 
     const attendee = json as EventbriteAttendee;
 
-    // Find the answer for the "Empresa" question
     const empresaAnswer = attendee.answers.find(
       (answer) => answer.question.toLocaleLowerCase() === 'empresa',
     )?.answer;
 
-    this.logger.log(`Empresa answer: ${empresaAnswer}`);
+    this.logger.debug(`Empresa answer: ${empresaAnswer}`);
+
+    const memberIdAnswer = attendee.answers.find(
+      (answer) => answer.question.toLocaleLowerCase() === 'número de socio',
+    )?.answer;
+
+    this.logger.debug(`Member ID answer: ${memberIdAnswer}`);
+
+    const positionAnswer = attendee.answers.find(
+      (answer) => answer.question.toLocaleLowerCase() === 'cargo',
+    )?.answer;
+
+    this.logger.debug(`Position answer: ${positionAnswer}`);
+
+    if (!empresaAnswer) {
+      this.logger.error('Empresa answer is missing.');
+    }
+
+    if (!memberIdAnswer) {
+      this.logger.error('Member ID answer is missing.');
+    }
+
+    if (!positionAnswer) {
+      this.logger.error('Position answer is missing.');
+    }
 
     return {
       id: attendee.id,
       firstName: attendee.profile.first_name,
       lastName: attendee.profile.last_name,
       email: attendee.profile.email,
+      company: empresaAnswer || '',
+      memberId: memberIdAnswer || '',
+      position: positionAnswer || '',
       eventId: attendee.event_id,
       orderId: attendee.order_id,
       ticketType: attendee.ticket_class_name,
-      companyName: empresaAnswer || '',
     };
   }
 }

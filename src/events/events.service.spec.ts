@@ -1,5 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventsService, Event, Invitee, Order } from './events.service';
+import {
+  EventsService,
+  Event,
+  Invitation,
+  Order,
+  Person,
+} from './events.service';
 import { Knex } from 'knex';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
@@ -18,6 +24,7 @@ describe('EventsService', () => {
       update: jest.fn().mockResolvedValue(undefined),
       first: jest.fn().mockResolvedValue(undefined),
       select: jest.fn().mockResolvedValue([]),
+      truncate: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<Knex>;
 
     knexMock = jest
@@ -49,30 +56,6 @@ describe('EventsService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('createEvent', () => {
-    it('should create an event', async () => {
-      const event: Event = {
-        id: 'event-id',
-        name: 'Test Event',
-        description: 'Test description',
-        startDate: '2023-06-01T00:00:00Z',
-        endDate: '2023-06-01T02:00:00Z',
-        url: 'https://example.com/event',
-      };
-
-      await service.createEvent(event);
-
-      expect(knexMock().insert).toHaveBeenCalledWith({
-        id: 'event-id',
-        name: 'Test Event',
-        description: 'Test description',
-        startDate: '2023-06-01T00:00:00Z',
-        endDate: '2023-06-01T02:00:00Z',
-        url: 'https://example.com/event',
-      });
-    });
-  });
-
   describe('createOrUpdateEvent', () => {
     it('should create an event if it does not exist', async () => {
       const event: Event = {
@@ -82,6 +65,8 @@ describe('EventsService', () => {
         startDate: '2023-06-01T00:00:00Z',
         endDate: '2023-06-01T02:00:00Z',
         url: 'https://example.com/event',
+        organizer: 'Test Organizer',
+        location: 'Test Location',
       };
 
       await service.createOrUpdateEvent(event);
@@ -95,6 +80,7 @@ describe('EventsService', () => {
         startDate: '2023-06-01T00:00:00Z',
         endDate: '2023-06-01T02:00:00Z',
         url: 'https://example.com/event',
+        organizer: 'Test Organizer',
       });
     });
 
@@ -106,6 +92,8 @@ describe('EventsService', () => {
         startDate: '2023-06-02T00:00:00Z',
         endDate: '2023-06-02T02:00:00Z',
         url: 'https://example.com/updated-event',
+        organizer: 'Updated Organizer',
+        location: 'Updated Location',
       };
 
       jest.spyOn(knexMock(), 'first').mockResolvedValueOnce({
@@ -122,21 +110,19 @@ describe('EventsService', () => {
         startDate: '2023-06-02T00:00:00Z',
         endDate: '2023-06-02T02:00:00Z',
         url: 'https://example.com/updated-event',
+        organizer: 'Updated Organizer',
       });
     });
   });
 
-  describe('createOrUpdateInvitee', () => {
-    it('should create an invitee if it does not exist', async () => {
-      const invitee: Invitee = {
-        id: 'invitee-id',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
+  describe('createOrUpdateInvitation', () => {
+    it('should create an invitation if it does not exist', async () => {
+      const invitation: Invitation = {
+        id: 'invitation-id',
+        personId: 'person-id',
         eventId: 'event-id',
-        orderId: 'order-id',
         ticketType: 'VIP',
-        companyName: 'Example Inc.',
+        orderId: 'order-id',
       };
 
       const resendMock = {
@@ -146,96 +132,220 @@ describe('EventsService', () => {
       };
       (Resend as jest.Mock).mockReturnValue(resendMock);
 
-      await service.createOrUpdateInvitee(invitee);
-
-      expect(knexMock().where).toHaveBeenCalledWith('id', 'invitee-id');
-      expect(knexMock().first).toHaveBeenCalled();
-      expect(knexMock().insert).toHaveBeenCalledWith({
-        id: 'invitee-id',
+      jest.spyOn(service, 'getPersonById').mockResolvedValueOnce({
+        id: 'person-id',
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
+        company: 'Example Inc.',
+        position: 'Developer',
+        memberId: 'member-id',
+      });
+
+      jest.spyOn(service, 'getEventById').mockResolvedValueOnce({
+        id: 'event-id',
+        name: 'Test Event',
+        description: 'Test description',
+        startDate: '2023-06-01T00:00:00Z',
+        endDate: '2023-06-01T02:00:00Z',
+        url: 'https://example.com/event',
+        organizer: 'Test Organizer',
+        location: 'Test Location',
+      });
+
+      await service.createOrUpdateInvitation(invitation);
+
+      expect(knexMock().where).toHaveBeenCalledWith('id', 'invitation-id');
+      expect(knexMock().first).toHaveBeenCalled();
+      expect(knexMock().insert).toHaveBeenCalledWith({
+        id: 'invitation-id',
+        personId: 'person-id',
         eventId: 'event-id',
         ticketType: 'VIP',
+        orderId: 'order-id',
       });
       expect(resendMock.emails.send).toHaveBeenCalled();
     });
 
-    it('should update an invitee if it exists', async () => {
-      const invitee: Invitee = {
-        id: 'invitee-id',
+    it('should update an invitation if it exists', async () => {
+      const invitation: Invitation = {
+        id: 'invitation-id',
+        personId: 'person-id',
+        eventId: 'event-id',
+        ticketType: 'VIP',
+        orderId: 'order-id',
+      };
+
+      jest.spyOn(knexMock(), 'first').mockResolvedValueOnce({
+        id: 'invitation-id',
+      });
+
+      await service.createOrUpdateInvitation(invitation);
+
+      expect(knexMock().where).toHaveBeenCalledWith('id', 'invitation-id');
+      expect(knexMock().first).toHaveBeenCalled();
+      expect(knexMock().update).toHaveBeenCalledWith({
+        personId: 'person-id',
+        eventId: 'event-id',
+        ticketType: 'VIP',
+        orderId: 'order-id',
+      });
+    });
+  });
+
+  describe('getInvitationByOrderId', () => {
+    it('should get an invitation by order ID', async () => {
+      const orderId = 'order-id';
+      const expectedInvitation: Invitation = {
+        id: 'invitation-id',
+        personId: 'person-id',
+        eventId: 'event-id',
+        ticketType: 'VIP',
+        orderId: 'order-id',
+      };
+
+      jest.spyOn(knexMock(), 'first').mockResolvedValueOnce(expectedInvitation);
+
+      const result = await service.getInvitationByOrderId(orderId, false);
+
+      expect(knexMock().where).toHaveBeenCalledWith('orderId', 'order-id');
+      expect(knexMock().first).toHaveBeenCalled();
+      expect(result).toEqual(expectedInvitation);
+    });
+  });
+
+  describe('createOrUpdateOrder', () => {
+    it('should create an order if it does not exist', async () => {
+      const order: Order = {
+        id: 'order-id',
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
         eventId: 'event-id',
-        orderId: 'order-id',
-        ticketType: 'VIP',
-        companyName: 'Example Inc.',
+        status: 'placed',
+        createdAt: '2023-06-01T00:00:00Z',
+      };
+
+      await service.createOrUpdateOrder(order);
+
+      expect(knexMock().where).toHaveBeenCalledWith('id', 'order-id');
+      expect(knexMock().first).toHaveBeenCalled();
+      expect(knexMock().insert).toHaveBeenCalledWith({
+        id: 'order-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        eventId: 'event-id',
+        status: 'placed',
+        createdAt: '2023-06-01T00:00:00Z',
+      });
+    });
+
+    it('should update an order if it exists', async () => {
+      const order: Order = {
+        id: 'order-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        eventId: 'event-id',
+        status: 'completed',
+        createdAt: '2023-06-01T00:00:00Z',
       };
 
       jest.spyOn(knexMock(), 'first').mockResolvedValueOnce({
-        id: 'invitee-id',
+        id: 'order-id',
       });
 
-      await service.createOrUpdateInvitee(invitee);
+      await service.createOrUpdateOrder(order);
 
-      expect(knexMock().where).toHaveBeenCalledWith('id', 'invitee-id');
+      expect(knexMock().where).toHaveBeenCalledWith('id', 'order-id');
       expect(knexMock().first).toHaveBeenCalled();
       expect(knexMock().update).toHaveBeenCalledWith({
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
         eventId: 'event-id',
-        ticketType: 'VIP',
+        status: 'completed',
+        createdAt: '2023-06-01T00:00:00Z',
       });
     });
   });
 
-  describe('getInviteeById', () => {
-    it('should get an invitee by ID', async () => {
-      const inviteeId = 'invitee-id';
-      const expectedInvitee: Invitee = {
-        id: 'invitee-id',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        eventId: 'event-id',
-        orderId: 'order-id',
-        ticketType: 'VIP',
-        companyName: 'Example Inc.',
+  describe('getEventById', () => {
+    it('should get an event by ID', async () => {
+      const eventId = 'event-id';
+      const expectedEvent: Event = {
+        id: 'event-id',
+        name: 'Test Event',
+        description: 'Test description',
+        startDate: '2023-06-01T00:00:00Z',
+        endDate: '2023-06-01T02:00:00Z',
+        url: 'https://example.com/event',
+        organizer: 'Test Organizer',
+        location: 'Test Location',
       };
 
-      jest.spyOn(knexMock(), 'first').mockResolvedValueOnce(expectedInvitee);
+      jest.spyOn(knexMock(), 'first').mockResolvedValueOnce(expectedEvent);
 
-      const result = await service.getInviteeById(inviteeId);
+      const result = await service.getEventById(eventId);
 
-      expect(knexMock().where).toHaveBeenCalledWith('id', 'invitee-id');
+      expect(knexMock().where).toHaveBeenCalledWith('id', 'event-id');
       expect(knexMock().first).toHaveBeenCalled();
-      expect(result).toEqual(expectedInvitee);
+      expect(result).toEqual(expectedEvent);
     });
   });
 
-  describe('getInviteeByOrderId', () => {
-    it('should get an invitee by order ID', async () => {
-      const orderId = 'order-id';
-      const expectedInvitee: Invitee = {
-        id: 'invitee-id',
+  describe('getPersonById', () => {
+    it('should get a person by ID', async () => {
+      const personId = 'person-id';
+      const expectedPerson: Person = {
+        id: 'person-id',
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
-        eventId: 'event-id',
-        orderId: 'order-id',
-        ticketType: 'VIP',
-        companyName: 'Example Inc.',
+        company: 'Example Inc.',
+        position: 'Developer',
+        memberId: 'member-id',
       };
 
-      jest.spyOn(knexMock(), 'first').mockResolvedValueOnce(expectedInvitee);
+      jest.spyOn(knexMock(), 'first').mockResolvedValueOnce(expectedPerson);
 
-      const result = await service.getInviteeByOrderId(orderId, false);
+      const result = await service.getPersonById(personId);
 
-      expect(knexMock().where).toHaveBeenCalledWith('orderId', 'order-id');
+      expect(knexMock().where).toHaveBeenCalledWith('id', 'person-id');
       expect(knexMock().first).toHaveBeenCalled();
-      expect(result).toEqual(expectedInvitee);
+      expect(result).toEqual(expectedPerson);
+    });
+  });
+
+  describe('getInvitationsByEventId', () => {
+    it('should get invitations by event ID', async () => {
+      const eventId = 'event-id';
+      const expectedInvitations: Invitation[] = [
+        {
+          id: 'invitation-1',
+          personId: 'person-1',
+          eventId: 'event-id',
+          ticketType: 'VIP',
+          orderId: 'order-1',
+        },
+        {
+          id: 'invitation-2',
+          personId: 'person-2',
+          eventId: 'event-id',
+          ticketType: 'General',
+          orderId: 'order-2',
+        },
+      ];
+
+      jest
+        .spyOn(knexMock(), 'where')
+        .mockResolvedValueOnce(expectedInvitations);
+
+      const result = await service.getInvitationsByEventId(eventId);
+
+      expect(knexMock().where).toHaveBeenCalledWith('eventId', 'event-id');
+      expect(result).toEqual(expectedInvitations);
     });
   });
 
@@ -269,41 +379,6 @@ describe('EventsService', () => {
 
       expect(knexMock().where).toHaveBeenCalledWith('eventId', 'event-id');
       expect(result).toEqual(expectedOrders);
-    });
-  });
-
-  describe('getInviteesByEventId', () => {
-    it('should get invitees by event ID', async () => {
-      const eventId = 'event-id';
-      const expectedInvitees: Invitee[] = [
-        {
-          id: 'invitee-1',
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          eventId: 'event-id',
-          orderId: 'order-1',
-          ticketType: 'VIP',
-          companyName: 'Example Inc.',
-        },
-        {
-          id: 'invitee-2',
-          firstName: 'Jane',
-          lastName: 'Smith',
-          email: 'jane@example.com',
-          eventId: 'event-id',
-          orderId: 'order-2',
-          ticketType: 'General',
-          companyName: 'Example Co.',
-        },
-      ];
-
-      jest.spyOn(knexMock(), 'where').mockResolvedValueOnce(expectedInvitees);
-
-      const result = await service.getInviteesByEventId(eventId);
-
-      expect(knexMock().where).toHaveBeenCalledWith('eventId', 'event-id');
-      expect(result).toEqual(expectedInvitees);
     });
   });
 });
