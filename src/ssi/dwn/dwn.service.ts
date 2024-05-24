@@ -84,6 +84,7 @@ export class DWNService {
     if (callerToken === this.authorizedCallerToken) {
       return this.web5Instance.agent.agentDid;
     }
+
     throw new Error('Unauthorized access. Cannot access to dwn agent did');
   }
 
