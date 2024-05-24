@@ -3,11 +3,11 @@ import { InvitationController } from './invitation';
 import { EventsModule } from '../events/events.module';
 import { EventsService } from '../events/events.service';
 import { KnexModule } from '../db/knex.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   controllers: [InvitationController],
   providers: [EventsService, ConfigService],
-  imports: [EventsModule, KnexModule, ConfigModule],
+  imports: [EventsModule, KnexModule],
 })
 export class InvitationModule {}

@@ -9,10 +9,10 @@ import configuration from './config/configuration';
 import { HttpModule } from '@nestjs/axios';
 import { EventbriteModule } from './eventbrite/eventbrite.module';
 import { IssuerAgentController } from './ssi/issuerAgent.controller';
-import { IssuerAgentService } from './ssi/issuerAgent.service';
 import { IssuerAgentModule } from './ssi/issuerAgent.module';
-import { CredentialsSchemasInMemoryRepository } from './ssi/inMemoryRepositories/credentialsSchemas-in-memory';
-import { PresentationsDefinitions } from './ssi/inMemoryRepositories/presentations-definitions-in-memory';
+import { DWNModule } from './ssi/dwn/dwn.module';
+import { AUTHORIZED_CALLER_TOKEN } from './ssi/dwn/authorized-caller.provider';
+import { DWNController } from './ssi/dwn/dwn.controller';
 import { InvitationService } from './invitation/invitation.service';
 import { InvitationModule } from './invitation/invitation.module';
 
@@ -32,16 +32,18 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     EventsModule,
     HttpModule,
     EventbriteModule,
+    DWNModule,
     InvitationModule,
   ],
-  controllers: [MembersController, IssuerAgentController],
+  controllers: [MembersController, IssuerAgentController, DWNController],
   providers: [
     MembersService,
     InvitationService,
-    IssuerAgentService,
-    CredentialsSchemasInMemoryRepository,
-    PresentationsDefinitions,
     Logger,
+    {
+      provide: AUTHORIZED_CALLER_TOKEN,
+      useValue: Symbol('AUTHORIZED_CALLER_TOKEN'),
+    },
   ],
 })
 export class AppModule {}
