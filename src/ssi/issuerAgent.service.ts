@@ -91,7 +91,6 @@ export class IssuerAgentService implements OnModuleInit {
         schema.mappingRulesDescriptor,
       );
       this.logger.log(`credentialDataMapped:`);
-      console.log(credentialData);
       let expirationISOString: string;
 
       this.logger.log(`credential offer is being created`);
@@ -138,7 +137,7 @@ export class IssuerAgentService implements OnModuleInit {
    * @param subjectDid DID of the entity that the credential is being issued to
    * @returns A VC JWT; a secure URL-safe string representation of a credential, ideal for storage or transmission between two parties
    */
-  async issueCredential(
+  async issueCredentialGivenOfferId(
     offerId: string,
     subjectDid: string,
   ): Promise<{
@@ -179,6 +178,82 @@ export class IssuerAgentService implements OnModuleInit {
     } catch (error) {
       this.logger.error(
         `An error occurred while trying to issue a Verifiable credential given data associated to id ${offerId}`,
+        error.stack,
+      );
+      return { success: false, result: null, error: error.message };
+    }
+  }
+
+  /**
+   * @param data data that is going to be used to form the credential claims
+   * @param schemaId id of the schema associated to the credential that is going to be offered where mapping rules and credential properties are defined
+   * @param subjectDid DID of the entity that the credential is being issued to
+   * @returns A VC JWT; a secure URL-safe string representation of a credential, ideal for storage or transmission between two parties
+   */
+  async issueCredential(
+    data: any,
+    schemaId:string,
+    subjectDid: string,
+
+  ): Promise<{
+    success: boolean;
+    result: string | null;
+    error: string | null;
+  }> {
+    try {
+
+      const schema = await this.credentialsRepository.get(schemaId);
+      const mappedData = mapDataWithRules(
+        data,
+        schema.mappingRulesDescriptor,
+      );
+      this.logger.log(`credentialDataMapped:`);
+      let expirationISOString: string;
+
+      this.logger.log(`credential offer is being created`);
+      let credentialData: {
+        type: string[];
+        data: any;
+        expirationDate?: string;
+      } = {
+        type: schema.type,
+        data: mappedData,
+      };
+
+      if (schema.type.includes('DriversLicense')) {
+        const expirationDate = new Date(data.startDate);
+        expirationDate.setDate(expirationDate.getFullYear() + 5); // Add 5 years
+        expirationISOString = expirationDate.toISOString();
+        credentialData.expirationDate = expirationISOString;
+      }
+
+      this.logger.debug(`credential is being created`);
+      const vc = await VerifiableCredential.create({
+        type: credentialData.type,
+        issuer: this.operationalDID.uri,
+        subject: subjectDid,
+        data: credentialData.data,
+        expirationDate: credentialData.expirationDate,
+      });
+
+      this.logger.debug(`credential is being signed`);
+      const signedVcJwt = await vc.sign({ did: this.operationalDID });
+      this.logger.debug(`credential has been successfully signed`);
+
+      await this.dwnService.saveCredentialtoDWN(
+        subjectDid,
+        signedVcJwt,
+        credentialData.type[0],
+      );
+
+      return {
+        success: true,
+        result: signedVcJwt,
+        error: null,
+      };
+    } catch (error) {
+      this.logger.error(
+        `An error occurred while trying to issue a Verifiable credential for ${subjectDid}`,
         error.stack,
       );
       return { success: false, result: null, error: error.message };

@@ -225,7 +225,7 @@ describe('IssuerAgentService', () => {
       const getMock = jest
         .spyOn(vcDataModelsStorage, 'get')
         .mockResolvedValue(credentialOfferData);
-      const result = await service.issueCredential(offerId, subjectDid);
+      const result = await service.issueCredentialGivenOfferId(offerId, subjectDid);
       const vc = VerifiableCredential.parseJwt({ vcJwt: result.result });
       //assertions
       expect(getMock).toHaveBeenCalledWith(offerId);
@@ -270,7 +270,7 @@ describe('IssuerAgentService', () => {
       const getMock = jest
         .spyOn(vcDataModelsStorage, 'get')
         .mockResolvedValue(null);
-      const result = await service.issueCredential(offerId, subjectDid);
+      const result = await service.issueCredentialGivenOfferId(offerId, subjectDid);
 
       //assertions
       expect(getMock).toHaveBeenCalledWith(offerId);
