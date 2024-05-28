@@ -6,7 +6,6 @@ import { mapDataWithRules } from '../helpers/functions';
 import { MemoryTempDataService } from './storage/storage.service';
 import { PresentationsDefinitions } from './inMemoryRepositories/presentations-definitions-in-memory';
 import { randomBytes } from 'crypto';
-import { Web5, Web5ConnectResult } from '@web5/api';
 import { DWNService } from './dwn/dwn.service';
 import { AUTHORIZED_CALLER_TOKEN } from './dwn/authorized-caller.provider';
 
@@ -29,9 +28,7 @@ export class IssuerAgentService implements OnModuleInit {
     if (!this.operationalDID) {
       this.logger.debug(`issuer agent getting initialized:`);
 
-      this.operationalDID = await this.dwnService.getDWNAgentDid(
-        this.dwnServiceToken,
-      );
+      this.operationalDID = (await this.createAndExportTBDIdentity()).result;
 
       this.logger.debug(`operational DID of agent:`);
       this.logger.debug(this.operationalDID.uri);
@@ -192,21 +189,16 @@ export class IssuerAgentService implements OnModuleInit {
    */
   async issueCredential(
     data: any,
-    schemaId:string,
+    schemaId: string,
     subjectDid: string,
-
   ): Promise<{
     success: boolean;
     result: string | null;
     error: string | null;
   }> {
     try {
-
       const schema = await this.credentialsRepository.get(schemaId);
-      const mappedData = mapDataWithRules(
-        data,
-        schema.mappingRulesDescriptor,
-      );
+      const mappedData = mapDataWithRules(data, schema.mappingRulesDescriptor);
       this.logger.log(`credentialDataMapped:`);
       let expirationISOString: string;
 
@@ -261,47 +253,50 @@ export class IssuerAgentService implements OnModuleInit {
   }
 
   /**
-   * @param eventName name of the event for which the PD is needed
+   * @param issuerDid did of the issuer that needs to be added as constraint to the PD
+   * @param pdId id of the PD that is stored in database/memory
    * @returns a JSON string that contains the Presentation Definition
    */
 
-  async getPresentationDefinitionForEvent(eventName: string): Promise<{
+  async getPresentationDefinition(
+    issuerDid: string | undefined,
+    pdId: string,
+  ): Promise<{
     success: boolean;
     result: string | null;
     error: string | null;
   }> {
     try {
-      if (!eventName)
+      if (!pdId)
         throw new Error(
-          `No eventName was provided for generating the presentation definition`,
+          `No pdId was provided for generating the presentation definition`,
         );
 
-      const pdForEvents =
-        await this.presentationsDefinitions.get('PD_Attendee');
+      const pdForEvents = await this.presentationsDefinitions.get(pdId);
 
-      const pdForEventsCopy = JSON.parse(JSON.stringify(pdForEvents));
+      const pdCopy = JSON.parse(JSON.stringify(pdForEvents));
       // If there are errors with the PD, an error will be thrown
       const validated = PresentationExchange.validateDefinition({
-        presentationDefinition: pdForEventsCopy,
+        presentationDefinition: pdCopy,
       });
 
       if (validated)
-        pdForEventsCopy.input_descriptors[0].constraints.fields.push({
-          path: ['$.credentialSubject.eventName'],
+        pdCopy.input_descriptors[0].constraints.fields.push({
+          path: ['$.issuer'],
           filter: {
             type: 'string',
-            pattern: eventName,
+            pattern: issuerDid,
           },
         });
 
       return {
         success: true,
-        result: JSON.stringify(pdForEventsCopy),
+        result: JSON.stringify(pdCopy),
         error: null,
       };
     } catch (error) {
       this.logger.error(
-        `An error occurred while trying to retrieve the presentation definition for event ${eventName}`,
+        `An error occurred while trying to retrieve the presentation definition with id ${pdId}`,
         error.stack,
       );
       return { success: false, result: null, error: error.message };
@@ -310,20 +305,24 @@ export class IssuerAgentService implements OnModuleInit {
 
   /**
    * @param signedPresentation A Verifiable Presentation as a signed and encoded JWT
-   * @param eventName name of the event associated to the PD in matter
+   * @param issuerDid did of the issuer associated to the PD in matter(if any. Can be undefined and no specific issuer would be require as constraint)
+   * @param pdId id of the PD that is stored in database/memory
    * @returns a boolean that represents whether the signedPresentation satisfies or not the PD
    */
   async evaluatesPresentationSubmission(
     signedPresentation: string,
-    eventName: string,
+    issuerDid: string | undefined,
+    pdId: string,
   ): Promise<{
     success: boolean;
     result: boolean | null;
     error: string | null;
   }> {
     try {
-      const { result: pd } =
-        await this.getPresentationDefinitionForEvent(eventName);
+      const { result: pd } = await this.getPresentationDefinition(
+        issuerDid,
+        pdId,
+      );
       PresentationExchange.satisfiesPresentationDefinition({
         vcJwts: [signedPresentation],
         presentationDefinition: JSON.parse(pd),
@@ -340,49 +339,6 @@ export class IssuerAgentService implements OnModuleInit {
         error.stack,
       );
       return { success: false, result: false, error: error.message };
-    }
-  }
-
-  /**
-   * @param signedPresentation A Verifiable Presentation as a signed and encoded JWT
-   * @param eventName Name of the event for which attendee credential is intended to be issued
-   * @param data data that is going to be used to form the credential claims
-   * @returns credential offer for an attendee credential
-   */
-  async createAttendeeCredentialOffer(
-    signedPresentation: string,
-    eventName: string,
-    data: object,
-  ): Promise<{
-    success: boolean;
-    result: string | null;
-    error: string | null;
-  }> {
-    try {
-      const { result: pd } =
-        await this.getPresentationDefinitionForEvent(eventName);
-
-      PresentationExchange.satisfiesPresentationDefinition({
-        vcJwts: [signedPresentation],
-        presentationDefinition: JSON.parse(pd),
-      });
-
-      const { result: COResult } = await this.createCredentialOffer(
-        'Attendance',
-        data,
-      );
-
-      return {
-        success: true,
-        result: COResult.credentialOffer,
-        error: null,
-      };
-    } catch (error) {
-      this.logger.error(
-        `An error occurred while creating the credential offer for the attendee credential`,
-        error.stack,
-      );
-      return { success: false, result: null, error: error.message };
     }
   }
 }

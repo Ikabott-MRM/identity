@@ -18,7 +18,8 @@ export class PresentationsDefinitions {
                 path: ['$.type[*]'],
                 filter: {
                   type: 'string',
-                  pattern: 'https://identity-iovf.xyz/schemas/dirversLicenseSchema',
+                  pattern:
+                    'https://identity-iovf.xyz/schemas/driversLicenseSchema',
                 },
               },
             ],
@@ -37,9 +38,9 @@ export class PresentationsDefinitions {
   }
 
   /**
-   * 
+   *
    * @param id id of the presentation definition to which issuer is going to be added as a constraint
-   * @param issuer issuer did that is going to be set as the string pattern against which the credential issuer is going to be tested 
+   * @param issuer issuer did that is going to be set as the string pattern against which the credential issuer is going to be tested
    * @returns presentation definition associated to id passed as parameter with the issuer as an added constraint
    */
   async addIssuerAsConstraint(

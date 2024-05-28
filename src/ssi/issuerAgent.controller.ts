@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOkResponse,
@@ -11,7 +11,10 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { sendResponse } from 'src/helpers/functions';
 import { IssuerAgentService } from './issuerAgent.service';
-import { CredentialOfferDto } from './dto/CredentialOffer.dto';
+import {
+  CredentialOfferDto,
+  IssueCredentialDto,
+} from './dto/CredentialsIssuance.dto';
 
 @ApiTags('issuerAgent')
 @Controller('issuerAgent')
@@ -97,6 +100,56 @@ export class IssuerAgentController {
 
   @ApiOperation({
     summary:
+      'Issues the VC using its schema Id, the DID of its intended holder and the data for forming the claims.',
+  })
+  @ApiOkResponse({
+    status: 200,
+    description: 'VC successfully issued and retrieved',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request.',
+  })
+  @ApiResponse({
+    status: 500,
+    description:
+      'Internal server error. Message field on response will provide a more accurate description of it',
+  })
+  @ApiBody({
+    type: IssueCredentialDto,
+    description: 'Data needed for issuing a new credential',
+  })
+  @Post('credential')
+  async issueCredential(@Body() issueCredentialDto: IssueCredentialDto) {
+    const { data, schemaId, subjectDid } = issueCredentialDto;
+
+    if (!schemaId)
+      return sendResponse(
+        null,
+        400,
+        `schemaId must be provided in the body of the request.`,
+      );
+    if (!subjectDid)
+      return sendResponse(
+        null,
+        400,
+        `subjectDid must be provided in the body of the request.`,
+      );
+    const result = await this.issuerAgentService.issueCredential(
+      data,
+      schemaId,
+      subjectDid,
+    );
+
+    if (result?.success) {
+      this.logger.debug('VC successfully issued');
+      return sendResponse(result.result, 200, 'vc successfully issued');
+    }
+    return sendResponse(null, 500, result.error);
+  }
+
+  @ApiOperation({
+    summary:
       'Issues the VC using its credential offer and the DID of its intended holder.',
   })
   @ApiOkResponse({
@@ -112,9 +165,9 @@ export class IssuerAgentController {
     description:
       'Internal server error. Message field on response will provide a more accurate description of it',
   })
-  @Post('credential')
-  async issueCredential(
-    @Body('offerId') offerId: string,
+  @Post('credential/:offerId')
+  async issueCredentialGivenOfferId(
+    @Param('offerId') offerId: string,
     @Body('subjectDid') subjectDid: string,
   ) {
     if (!offerId)
@@ -165,24 +218,28 @@ export class IssuerAgentController {
     type: String,
   })
   @ApiQuery({
-    name: 'eventName',
-    description: 'Name of the event',
-    required: true,
+    name: 'issuerDid',
+    description:
+      'Did of the issuer that needs to be added as constraint to the presentation definition',
+    required: false,
     type: String,
   })
   @Get('presentation-definition')
-  async getPresentationDefinition(@Query('eventName') eventName: string) {
-    if (!eventName)
+  async getPresentationDefinition(
+    @Query('issuerDid') issuerDid: string,
+    @Query('pdId') pdId: string,
+  ) {
+    if (!pdId)
       return sendResponse(
         null,
         400,
-        `eventName cannot be undefined. A value must be passed as query parameter`,
+        `pdId cannot be undefined. A value must be passed as query parameter`,
       );
 
-    const result =
-      await this.issuerAgentService.getPresentationDefinitionForEvent(
-        eventName,
-      );
+    const result = await this.issuerAgentService.getPresentationDefinition(
+      issuerDid,
+      pdId,
+    );
 
     if (result?.success) {
       this.logger.debug('VC pd retrieved');
@@ -217,21 +274,29 @@ export class IssuerAgentController {
     type: String,
   })
   @ApiQuery({
-    name: 'eventName',
-    description: 'Name of the event',
+    name: 'pdId',
+    description: 'ID of the presentation definition',
     required: true,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'issuerDid',
+    description:
+      'Did of the issuer that needs to be added as constraint to the presentation definition',
+    required: false,
     type: String,
   })
   @Get('eval-ps')
   async evalPresentationSubmission(
     @Query('signedPresentation') signedPresentation: string,
-    @Query('eventName') eventName: string,
+    @Query('issuerDid') issuerDid: string,
+    @Query('pdId') pdId: string,
   ) {
-    if (!eventName)
+    if (!pdId)
       return sendResponse(
         null,
         400,
-        `eventName cannot be undefined. A value must be passed as query parameter`,
+        `pdId cannot be undefined. A value must be passed as query parameter`,
       );
     if (!signedPresentation)
       return sendResponse(
@@ -243,61 +308,13 @@ export class IssuerAgentController {
     const result =
       await this.issuerAgentService.evaluatesPresentationSubmission(
         signedPresentation,
-        eventName,
+        issuerDid,
+        pdId,
       );
 
     if (result?.success) {
       this.logger.debug('verifiable presentation validated');
       return sendResponse(result.result, 200, null);
-    }
-
-    return sendResponse(null, 500, result.error);
-  }
-
-  @ApiOperation({
-    summary:
-      'Retrieves the credential offer for an attendee credential for a specific event.',
-  })
-  @ApiOkResponse({
-    status: 201,
-    description: 'credential offer successfully created and retrieved',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request.',
-  })
-  @ApiResponse({
-    status: 500,
-    description:
-      'Internal server error. Message field on response will provide a more accurate description of it',
-  })
-  @Post('attendee-credential-offer')
-  async issueAttendeeCredential(
-    @Body('signedPresentation') signedPresentation: string,
-    @Body('eventName') eventName: string,
-    @Body('data') data: object,
-  ) {
-    if (!eventName)
-      return sendResponse(
-        null,
-        400,
-        `eventName must be provided in the body of the request.`,
-      );
-    if (!signedPresentation)
-      return sendResponse(
-        null,
-        400,
-        `signedPresentation must be provided in the body of the request.`,
-      );
-    const result = await this.issuerAgentService.createAttendeeCredentialOffer(
-      signedPresentation,
-      eventName,
-      data,
-    );
-
-    if (result?.success) {
-      this.logger.debug('attendee credential offer is being created');
-      return sendResponse(result.result, 201, null);
     }
 
     return sendResponse(null, 500, result.error);

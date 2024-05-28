@@ -5,8 +5,6 @@ import { AUTHORIZED_CALLER_TOKEN } from './authorized-caller.provider';
 import { BearerDid } from '@web5/dids';
 import { VerifiableCredential } from '@web5/credentials';
 
-//IMPORTANTE Usar version node 20 o mas sino faltan imports
-
 @Injectable()
 export class DWNService {
   private readonly logger = new Logger(DWNService.name);
@@ -107,13 +105,13 @@ export class DWNService {
         data: signedVc,
         message: {
           protocol: 'https://identity-iovf.xyz',
-          protocolPath: 'invitation',
+          protocolPath: 'driversLicense',
           schema: credentialSchema,
           dataFormat: 'application/vc+jwt',
           recipient: holderDid,
         },
       });
-      if (res.status.code === 200 && res.record) {
+      if (res.status.code === 202 && res.record) {
         this.logger.debug(
           `Credential has been successfully written to DWN node`,
         );
@@ -122,8 +120,8 @@ export class DWNService {
           result: res.record,
           error: null,
         };
-      } else if (res.status.code !== 200) {
-        this.logger.debug(`Credential has not been written to DWN node`);
+      } else {
+        this.logger.debug(`Credential has not been written to DWN node. Detail: ${res.status.detail}`);
         return {
           success: false,
           result: null,

@@ -1,0 +1,37 @@
+import { IsNotEmpty, IsObject, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+
+export class CredentialOfferDto {
+  @ApiProperty({
+    description: `Id of the VC schema`,
+    type: String,
+  })
+  @IsNotEmpty()
+  @IsString()
+  schemaId: string;
+
+  @ApiProperty({
+    description: `Data needed for issuing the credential`,
+    type: Object,
+  })
+  @IsNotEmpty()
+  data: Object;
+}
+
+export class IssueCredentialDto {
+  @ApiProperty({ description: 'The data associated with the credential' })
+  @IsObject()
+  data: any;
+
+  @ApiProperty({
+    description: 'The ID of the schema of the credential to be issued',
+  })
+  @IsString()
+  @IsNotEmpty()
+  schemaId: string;
+
+  @ApiProperty({ description: 'The DID of the subject' })
+  @IsString()
+  @IsNotEmpty()
+  subjectDid: string;
+}
