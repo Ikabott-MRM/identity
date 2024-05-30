@@ -3,22 +3,23 @@ import { PresentationDefinitionV2 } from '@web5/credentials';
 export class PresentationsDefinitions {
   private presentationsDefinitions: PresentationDefinitionV2[] = [
     {
-      id: 'PD_Attendee',
-      name: 'Credentials verification for certifying attendance to event',
+      id: 'PD_DriversLicense',
+      name: 'Credentials verification for certifying validity of drivers license',
       purpose:
-        'Confirm the applicant holds an invitation credential for the event of interest',
+        'Confirm the applicant holds a divers license credential that has not expired and has been issued by the issuer of interest',
       input_descriptors: [
         {
-          id: 'invitationVerification',
-          name: 'Invitation verification',
-          purpose: "Verify the applicant's invitation credential",
+          id: 'driversLicenseVerification',
+          name: 'Drivers License verification',
+          purpose: "Verify the applicant's drivers license credential",
           constraints: {
             fields: [
               {
                 path: ['$.type[*]'],
                 filter: {
                   type: 'string',
-                  pattern: 'InvitationCredential',
+                  pattern:
+                    'https://identity-iovf.xyz/schemas/driversLicenseSchema',
                 },
               },
             ],
@@ -36,17 +37,23 @@ export class PresentationsDefinitions {
     return pd;
   }
 
-  async addInputDescriptor(
+  /**
+   *
+   * @param id id of the presentation definition to which issuer is going to be added as a constraint
+   * @param issuer issuer did that is going to be set as the string pattern against which the credential issuer is going to be tested
+   * @returns presentation definition associated to id passed as parameter with the issuer as an added constraint
+   */
+  async addIssuerAsConstraint(
     id: string,
-    eventName: string,
+    issuer: string,
   ): Promise<PresentationDefinitionV2> {
     const presentation = await this.get(id);
     if (presentation) {
       presentation.input_descriptors[0].constraints.fields.push({
-        path: ['$.credentialSubject.eventName'],
+        path: ['$.issuer'],
         filter: {
           type: 'string',
-          pattern: eventName,
+          pattern: issuer,
         },
       });
       return presentation;

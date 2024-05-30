@@ -11,6 +11,8 @@ import {
   VerifiableCredential,
 } from '@web5/credentials';
 import { Logger } from '@nestjs/common';
+import { DWNService } from './dwn/dwn.service';
+import { AUTHORIZED_CALLER_TOKEN } from './dwn/authorized-caller.provider';
 
 describe('IssuerAgentService', () => {
   let loggerErrorSpy: jest.SpyInstance;
@@ -25,6 +27,11 @@ describe('IssuerAgentService', () => {
         IssuerAgentService,
         CredentialsSchemasInMemoryRepository,
         PresentationsDefinitions,
+        DWNService,
+        {
+          provide: AUTHORIZED_CALLER_TOKEN,
+          useValue: Symbol('AuthorizedCallerToken'), // You can mock the token here
+        },
       ],
     }).compile();
 
@@ -225,7 +232,10 @@ describe('IssuerAgentService', () => {
       const getMock = jest
         .spyOn(vcDataModelsStorage, 'get')
         .mockResolvedValue(credentialOfferData);
-      const result = await service.issueCredential(offerId, subjectDid);
+      const result = await service.issueCredentialGivenOfferId(
+        offerId,
+        subjectDid,
+      );
       const vc = VerifiableCredential.parseJwt({ vcJwt: result.result });
       //assertions
       expect(getMock).toHaveBeenCalledWith(offerId);
@@ -270,7 +280,10 @@ describe('IssuerAgentService', () => {
       const getMock = jest
         .spyOn(vcDataModelsStorage, 'get')
         .mockResolvedValue(null);
-      const result = await service.issueCredential(offerId, subjectDid);
+      const result = await service.issueCredentialGivenOfferId(
+        offerId,
+        subjectDid,
+      );
 
       //assertions
       expect(getMock).toHaveBeenCalledWith(offerId);
@@ -288,9 +301,9 @@ describe('IssuerAgentService', () => {
     });
   });
 
-  describe('method for getting a presentation definition given an event name and presentation definition base id', () => {
-    it('should retrieve a presentation definition for an attendee credential for "Yoga Masterclass" event successfully', async () => {
-      const eventName = 'Yoga Masterclass';
+  describe('method for getting a presentation definition given an issuer did  and presentation definition base id', () => {
+    it('should retrieve a presentation definition for an attendee credential issued by 12345 event successfully', async () => {
+      const issuerdDid = '12345';
 
       const presentationExchangeMock = jest.spyOn(
         PresentationExchange,
@@ -330,7 +343,10 @@ describe('IssuerAgentService', () => {
         .spyOn(service['presentationsDefinitions'], 'get')
         .mockResolvedValue(mockPd);
 
-      const result = await service.getPresentationDefinitionForEvent(eventName);
+      const result = await service.getPresentationDefinition(
+        issuerdDid,
+        'PD_Attendee',
+      );
 
       const pd = JSON.parse(result.result);
       //assertions
@@ -338,9 +354,9 @@ describe('IssuerAgentService', () => {
       expect(result.result).not.toBeNull();
 
       const lastField = pd.input_descriptors[0].constraints.fields.slice(-1)[0];
-      expect(lastField.path).toEqual(['$.credentialSubject.eventName']);
+      expect(lastField.path).toEqual(['$.issuer']);
       expect(lastField.filter.type).toBe('string');
-      expect(lastField.filter.pattern).toBe(eventName);
+      expect(lastField.filter.pattern).toBe(issuerdDid);
 
       expect(result.error).toBeNull();
       presentationExchangeMock.mockClear();
@@ -349,13 +365,16 @@ describe('IssuerAgentService', () => {
 
     it('should handle errors gracefully', async () => {
       const pdId = 'PD_Attendee';
-      const eventName = 'Yoga Masterclass';
+      const issuerdDid = '12345';
 
       const credentialRepo = jest
         .spyOn(service['presentationsDefinitions'], 'get')
         .mockRejectedValue(new Error(`PD with ID ${pdId} not found`));
 
-      const result = await service.getPresentationDefinitionForEvent(eventName);
+      const result = await service.getPresentationDefinition(
+        issuerdDid,
+        'PD_Attendee',
+      );
       //assertions
       expect(credentialRepo).toHaveBeenCalledWith(pdId);
       expect(result.success).toBe(false);
@@ -363,16 +382,14 @@ describe('IssuerAgentService', () => {
       expect(result.error).toBe(`PD with ID ${pdId} not found`);
       expect(loggerErrorSpy).toHaveBeenNthCalledWith(
         1,
-        `An error occurred while trying to retrieve the presentation definition for event ${eventName}`,
+        `An error occurred while trying to retrieve the presentation definition with id ${pdId}`,
         expect.any(String),
       );
     });
   });
 
-  describe('method for evaluating a presentation submission to prove having an invitation to an event whose name was passed as a parameter', () => {
+  describe('method for evaluating a presentation submission to prove having an invitation to an event whose id was passed as a parameter', () => {
     it('should retrieve true', async () => {
-      const eventName = 'Yoga Masterclass';
-
       const presentationExchangeMock = jest.spyOn(
         PresentationExchange,
         'satisfiesPresentationDefinition',
@@ -411,7 +428,8 @@ describe('IssuerAgentService', () => {
 
       const result = await service.evaluatesPresentationSubmission(
         'mockVerifiablePresentation0',
-        eventName,
+        undefined,
+        'PD_Attendee',
       );
 
       //assertions
@@ -425,15 +443,15 @@ describe('IssuerAgentService', () => {
 
     it('should retrieve false and error as no presentation definition was found', async () => {
       const pdId = 'PD_Attendee';
-      const eventName = 'Yoga Masterclass';
 
       jest
-        .spyOn(service, 'getPresentationDefinitionForEvent')
+        .spyOn(service, 'getPresentationDefinition')
         .mockRejectedValue(new Error(`PD with ID ${pdId} not found`));
 
       const result = await service.evaluatesPresentationSubmission(
         'mockVerifiablePresentation',
-        eventName,
+        undefined,
+        pdId,
       );
 
       //assertions
@@ -449,7 +467,6 @@ describe('IssuerAgentService', () => {
 
     it('should retrieve false and error as verifiable presentation submitted did not satisfied the PD', async () => {
       const pdId = 'PD_Attendee';
-      const eventName = 'Yoga Masterclass';
 
       const presentationExchangeMock = jest.spyOn(
         PresentationExchange,
@@ -499,7 +516,8 @@ describe('IssuerAgentService', () => {
 
       const result = await service.evaluatesPresentationSubmission(
         'mockVerifiablePresentation0',
-        eventName,
+        undefined,
+        pdId,
       );
 
       //assertions
@@ -512,90 +530,6 @@ describe('IssuerAgentService', () => {
         `An error occurred while validating the submitted presentation`,
         expect.any(String),
       );
-    });
-  });
-
-  describe('method for creating a credential offer for an attendee credential for an event of interest', () => {
-    it('should retrieve the credential offer for an attendee credential for the event "Yoga Masterclass"', async () => {
-      const eventName = 'Yoga Masterclass';
-
-      const presentationExchangeMock = jest.spyOn(
-        PresentationExchange,
-        'satisfiesPresentationDefinition',
-      );
-
-      presentationExchangeMock.mockReturnValue();
-
-      const mockPd = {
-        id: 'PD_Attendee',
-        name: 'Credentials verification for certifying attendance to event',
-        purpose:
-          'Confirm the applicant holds an invitation credential for the event of interest',
-        input_descriptors: [
-          {
-            id: 'invitationVerification',
-            name: 'Invitation verification',
-            purpose: "Verify the applicant's invitation credential",
-            constraints: {
-              fields: [
-                {
-                  path: ['$.type[*]'],
-                  filter: {
-                    type: 'string',
-                    pattern: 'InvitationCredential',
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      };
-
-      const pdRepo = jest
-        .spyOn(service['presentationsDefinitions'], 'get')
-        .mockResolvedValue(mockPd);
-
-      jest
-        .spyOn(service, 'getPresentationDefinitionForEvent')
-        .mockResolvedValue({
-          success: true,
-          result: JSON.stringify(mockPd),
-          error: null,
-        });
-
-      const data = {
-        firstName: 'Romina',
-      };
-
-      const mockSchema = {
-        id: 'Attendee',
-        type: ['AttendanceCredential'],
-        contexts: ['https://www.w3.org/2018/credentials/v1'],
-        mappingRulesDescriptor: {
-          inviteeName: 'firstName',
-        },
-      };
-
-      const expectedCredentiaOffer = {
-        type: mockSchema.type,
-        data: {
-          inviteeName: data.firstName,
-        },
-      };
-
-      const result = await service.createAttendeeCredentialOffer(
-        'mockVerifiablePresentation0',
-        eventName,
-        data,
-      );
-
-      //assertions
-      expect(result.result).not.toBeNull();
-      expect(result.success).toBe(true);
-      expect(result.result).toBe(JSON.stringify(expectedCredentiaOffer));
-      expect(result.error).toBeNull();
-      presentationExchangeMock.mockClear();
-      pdRepo.mockClear();
     });
   });
 });
