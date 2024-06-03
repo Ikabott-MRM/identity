@@ -199,10 +199,7 @@ export class IssuerAgentService implements OnModuleInit {
     try {
       const schema = await this.credentialsRepository.get(schemaId);
       const mappedData = mapDataWithRules(data, schema.mappingRulesDescriptor);
-      this.logger.log(`credentialDataMapped:`);
       let expirationISOString: string;
-
-      this.logger.log(`credential offer is being created`);
       let credentialData: {
         type: string[];
         data: any;
@@ -212,8 +209,10 @@ export class IssuerAgentService implements OnModuleInit {
         data: mappedData,
       };
 
-      if (schema.type.includes('DriversLicense')) {
-        const expirationDate = new Date(data.startDate);
+      if (
+        schema.type.includes('https://identity-iovf.xyz/schemas/driversLicense')
+      ) {
+        const expirationDate = new Date();
         expirationDate.setDate(expirationDate.getFullYear() + 5); // Add 5 years
         expirationISOString = expirationDate.toISOString();
         credentialData.expirationDate = expirationISOString;

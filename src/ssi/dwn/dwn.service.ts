@@ -1,9 +1,14 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Record, Web5 } from '@web5/api';
+import { Record, RecordsQueryResponse, Web5 } from '@web5/api';
 import * as fs from 'fs';
 import { AUTHORIZED_CALLER_TOKEN } from './authorized-caller.provider';
 import { BearerDid } from '@web5/dids';
 import { VerifiableCredential } from '@web5/credentials';
+
+interface CredentialQueryResultObject {
+  verifiableCredential: VerifiableCredential;
+  vcJwt: string;
+}
 
 @Injectable()
 export class DWNService {
@@ -121,7 +126,9 @@ export class DWNService {
           error: null,
         };
       } else {
-        this.logger.debug(`Credential has not been written to DWN node. Detail: ${res.status.detail}`);
+        this.logger.debug(
+          `Credential has not been written to DWN node. Detail: ${res.status.detail}`,
+        );
         return {
           success: false,
           result: null,
@@ -137,9 +144,28 @@ export class DWNService {
     }
   }
 
+  async fetchAndParseCredentials(
+    res: RecordsQueryResponse,
+  ): Promise<CredentialQueryResultObject[]> {
+    const credentialPromises = res.records.map(async (record) => {
+      const encodedCredential = await record.data.text();
+      const parsedCredential = VerifiableCredential.parseJwt({
+        vcJwt: encodedCredential,
+      });
+
+      return {
+        vcJwt: encodedCredential,
+        verifiableCredential: parsedCredential,
+      };
+    });
+
+    const credentialsResult = await Promise.all(credentialPromises);
+    return credentialsResult;
+  }
+
   async queryCredentialsFromDWN(holderDid: string): Promise<{
     success: boolean;
-    result: VerifiableCredential[] | null;
+    result: CredentialQueryResultObject[] | null;
     error: string | null;
   }> {
     try {
@@ -157,12 +183,8 @@ export class DWNService {
         this.logger.log(
           `credentials with holder ${holderDid} have been successfully retrieved `,
         );
-        const credentialPromises = res.records.map(async (record) => {
-          const encodedCredential = await record.data.text();
-          return VerifiableCredential.parseJwt({ vcJwt: encodedCredential });
-        });
 
-        const credentials = await Promise.all(credentialPromises);
+        const credentials = await this.fetchAndParseCredentials(res);
 
         return {
           success: true,
