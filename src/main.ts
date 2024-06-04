@@ -5,6 +5,7 @@ import { WinstonModule } from 'nest-winston';
 import { winstonLoggerOptions } from './loggers/constants';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { MulterModule } from '@nestjs/platform-express';
 
 async function bootstrap() {
   const instance = WinstonModule.createLogger(winstonLoggerOptions);
