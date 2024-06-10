@@ -9,7 +9,7 @@ export async function up(knex: Knex): Promise<void> {
     table.dateTime('endDate').notNullable();
     table.string('organizer').notNullable();
     table.string('location').notNullable();
-    table.string('url');
+    table.string('url'); 
   });
 
   await knex.schema.createTableIfNotExists('person', (table) => {
