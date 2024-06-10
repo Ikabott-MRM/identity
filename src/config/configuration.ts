@@ -11,7 +11,6 @@ export default () => ({
     limit: parseInt(process.env.RL_LIMIT) || 10,
   },
   ssi: {
-    //TODO definir si se va a tener uno no propio por default
     dwn: process.env.DWN_URL,
     ssiProjectName: process.env.SSI_PROJECT_NAME || 'TBD',
   },
