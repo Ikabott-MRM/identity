@@ -8,6 +8,8 @@ import { IssuerAgentModule } from './ssi/issuerAgent.module';
 import { DWNModule } from './ssi/dwn/dwn.module';
 import { AUTHORIZED_CALLER_TOKEN } from './ssi/dwn/authorized-caller.provider';
 import { DWNController } from './ssi/dwn/dwn.controller';
+import { VerificationModule } from './verification/verification.module';
+import * as Joi from 'joi';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -18,11 +20,21 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
       envFilePath,
       isGlobal: true,
       load: [configuration],
+      // check if postgres environment variables are set
+      validationSchema: Joi.object({
+        NODE_ENV: Joi.string()
+          .valid('development', 'production', 'test', 'provision')
+          .default('development'),
+        POSTGRES_HOST: Joi.string().required(),
+        POSTGRES_USER: Joi.string().required(),
+        POSTGRES_PASSWORD: Joi.string().required(),
+      }),
     }),
     KnexModule,
     IssuerAgentModule,
     HttpModule,
     DWNModule,
+    VerificationModule,
   ],
   controllers: [IssuerAgentController, DWNController],
   providers: [

@@ -1,14 +1,11 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOkResponse,
   ApiOperation,
   ApiResponse,
-  ApiBody,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { sendResponse } from 'src/helpers/functions';
 import { DWNService } from './dwn.service';
 
@@ -16,10 +13,7 @@ import { DWNService } from './dwn.service';
 @Controller('dwn')
 export class DWNController {
   private readonly logger: Logger = new Logger(DWNController.name);
-  constructor(
-    private readonly dwnService: DWNService,
-    private configService: ConfigService,
-  ) {}
+  constructor(private readonly dwnService: DWNService) {}
 
   @ApiOperation({
     summary:

@@ -30,7 +30,7 @@ describe('IssuerAgentService', () => {
         DWNService,
         {
           provide: AUTHORIZED_CALLER_TOKEN,
-          useValue: Symbol('AuthorizedCallerToken'), // You can mock the token here
+          useValue: Symbol('AuthorizedCallerToken'),
         },
       ],
     }).compile();
