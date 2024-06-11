@@ -319,4 +319,31 @@ export class IssuerAgentController {
 
     return sendResponse(null, 500, result.error);
   }
+
+  @ApiOperation({
+    summary: 'It retrieves issuer public key',
+  })
+  @ApiOkResponse({
+    status: 200,
+    description: `Issuer's PK successfully retrieved`,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request.',
+  })
+  @ApiResponse({
+    status: 500,
+    description:
+      'Internal server error. Message field on response will provide a more accurate description of it',
+  })
+  @Get('issuerPubK')
+  async getIssuerPublicJWKey() {
+    const result = await this.issuerAgentService.getIssuerPublicJWKey();
+
+    if (result?.success) {
+      this.logger.debug(`Issuer's PK successfully retrieved`);
+      return sendResponse(result.result, 200, null);
+    }
+    return sendResponse(null, 500, result.error);
+  }
 }

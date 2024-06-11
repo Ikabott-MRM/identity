@@ -8,6 +8,7 @@ import { PresentationsDefinitions } from './inMemoryRepositories/presentations-d
 import { randomBytes } from 'crypto';
 import { DWNService } from './dwn/dwn.service';
 import { AUTHORIZED_CALLER_TOKEN } from './dwn/authorized-caller.provider';
+import { Jwk } from '@web5/crypto';
 
 @Injectable()
 export class IssuerAgentService implements OnModuleInit {
@@ -338,6 +339,43 @@ export class IssuerAgentService implements OnModuleInit {
         error.stack,
       );
       return { success: false, result: false, error: error.message };
+    }
+  }
+
+  /**
+   * 
+   * @returns issuer's public key in JWK format 
+   */
+  async getIssuerPublicJWKey(): Promise<{
+    success: boolean;
+    result: Jwk | null;
+    error: string | null;
+  }> {
+    try {
+      if (!this.operationalDID.document.verificationMethod)
+        throw new Error(
+          `There is no verification method in the issuer's did document`,
+        );
+
+      const issuerPubKey =
+        this.operationalDID.document.verificationMethod[0].publicKeyJwk;
+
+      if (!issuerPubKey)
+        throw new Error(
+          `No JSON Web Key was obtained from the verification method in the issuer's did document`,
+        );
+      if (issuerPubKey)
+        return {
+          success: true,
+          result: issuerPubKey,
+          error: null,
+        };
+    } catch (error) {
+      this.logger.error(
+        `An error occurred while retrieving the issuer public JSON web key from the verification method in its did document`,
+        error.stack,
+      );
+      return { success: false, result: null, error: error.message };
     }
   }
 }
