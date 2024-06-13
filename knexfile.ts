@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const config: { [key: string]: Knex.Config } = {
   development: {
-    client: 'pg',
+    client: 'mysql',
     connection: {
       host: process.env.POSTGRES_HOST,
       database: 'iovf-identity',
@@ -19,7 +19,7 @@ const config: { [key: string]: Knex.Config } = {
     },
   },
   staging: {
-    client: 'pg',
+    client: 'mysql',
     connection: {
       database: 'iovf-identity',
       user: process.env.POSTGRES_USER,
@@ -33,9 +33,8 @@ const config: { [key: string]: Knex.Config } = {
       tableName: 'knex_migrations',
     },
   },
-
   production: {
-    client: 'PG',
+    client: 'mysql',
     connection: {
       database: 'iovf-identity',
       user: process.env.POSTGRES_USER,
