@@ -88,7 +88,7 @@ export class RequestController {
     );
   }
 
-  @Post(':did/request')
+  @Post(':did')
   @UseInterceptors(
     FileInterceptor('file', {
       dest: 'documents/',
@@ -112,6 +112,10 @@ export class RequestController {
       subject_did: did,
       document_url: file.path,
     };
+
+    if (!did.startsWith('did:')) {
+      throw new BadRequestException('Invalid DID.');
+    }
 
     const request = await this.requestService.createRequest(data);
 
