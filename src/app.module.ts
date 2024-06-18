@@ -8,7 +8,7 @@ import { IssuerAgentModule } from './ssi/issuerAgent.module';
 import { DWNModule } from './ssi/dwn/dwn.module';
 import { AUTHORIZED_CALLER_TOKEN } from './ssi/dwn/authorized-caller.provider';
 import { DWNController } from './ssi/dwn/dwn.controller';
-import { VerificationModule } from './verification/verification.module';
+import { RequestModule } from './request/request.module';
 import * as Joi from 'joi';
 
 const ENV = process.env.NODE_ENV;
@@ -34,7 +34,7 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     IssuerAgentModule,
     HttpModule,
     DWNModule,
-    VerificationModule,
+    RequestModule,
   ],
   controllers: [IssuerAgentController, DWNController],
   providers: [

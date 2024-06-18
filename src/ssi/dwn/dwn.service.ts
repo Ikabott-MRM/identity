@@ -45,6 +45,7 @@ export class DWNService {
   async importAndConfigureProtocol() {
     try {
       const rawData = fs.readFileSync('src/ssi/dwn/credentials-protocol.json');
+
       const credProtocol = JSON.parse(rawData.toString());
 
       // query the list of existing protocols on the DWN
@@ -57,6 +58,7 @@ export class DWNService {
           },
         },
       );
+
 
       if (status.code !== 200) {
         this.logger.error('Error querying protocols', status);

@@ -232,12 +232,19 @@ export class IssuerAgentService implements OnModuleInit {
       const signedVcJwt = await vc.sign({ did: this.operationalDID });
       this.logger.debug(`credential has been successfully signed`);
 
-      await this.dwnService.saveCredentialtoDWN(
+      const saveResult = await this.dwnService.saveCredentialtoDWN(
         subjectDid,
         signedVcJwt,
         credentialData.type[0],
       );
 
+      if (!saveResult.success) {
+        throw new Error(
+          saveResult.error ||
+            `An error occurred while saving the credential to DWN`,
+        );
+      }
+      
       return {
         success: true,
         result: signedVcJwt,
