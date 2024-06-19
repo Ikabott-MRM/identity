@@ -8,6 +8,8 @@ import {
   UseInterceptors,
   Body,
   BadRequestException,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { sendResponse } from '../helpers/functions';
@@ -15,6 +17,7 @@ import {
   IdentifiableData,
   RequestAlreadyProcessedError,
   RequestService,
+  RequestStatus,
 } from './request.service';
 import { ApiOkResponse, ApiResponse } from '@nestjs/swagger';
 
@@ -44,7 +47,7 @@ export class RequestController {
       throw new BadRequestException('Param "identifiable_data" is required.');
     }
 
-    const requiredFields = ['firstname', 'lastname', 'licensecategory'];
+    const requiredFields = ['name', 'lastname', 'category'];
 
     for (const field of requiredFields) {
       if (!identifiableData[field]) {
@@ -88,7 +91,46 @@ export class RequestController {
     );
   }
 
-  @Post(':did')
+  @Get('/')
+  @ApiOkResponse({
+    status: 200,
+    description: 'Requests retrieved successfully.',
+  })
+  async getRequests(@Query('status') status: RequestStatus) {
+    const validStatuses = [
+      RequestStatus.PENDING,
+      RequestStatus.APPROVED,
+      RequestStatus.REJECTED,
+    ];
+
+    if (status && !validStatuses.includes(status)) {
+      return sendResponse(
+        {},
+        400,
+        `Invalid status. Status should be one of: ${validStatuses.join(', ')}`,
+      );
+    }
+
+    if (status) {
+      const requests = await this.requestService.getRequestsWithStatus(status);
+      return sendResponse(requests, 200, 'Requests retrieved successfully.');
+    }
+
+    const requests = await this.requestService.getRequests();
+    return sendResponse(requests, 200, 'Requests retrieved successfully.');
+  }
+
+  @Get(':did/requests')
+  @ApiOkResponse({
+    status: 200,
+    description: 'Requests retrieved successfully.',
+  })
+  async getRequestsForDid(@Param('did') did: string) {
+    const requests = await this.requestService.getRequestsForSubject(did);
+    return sendResponse(requests, 200, 'Requests retrieved successfully.');
+  }
+
+  @Post(':did/request')
   @UseInterceptors(
     FileInterceptor('file', {
       dest: 'documents/',
@@ -112,10 +154,6 @@ export class RequestController {
       subject_did: did,
       document_url: file.path,
     };
-
-    if (!did.startsWith('did:')) {
-      throw new BadRequestException('Invalid DID.');
-    }
 
     const request = await this.requestService.createRequest(data);
 

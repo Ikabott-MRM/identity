@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RequestController } from './request.controller';
-import { RequestService } from './request.service';
+import { RequestService, RequestStatus } from './request.service';
 import { sendResponse } from '../helpers/functions';
 import { ParseFilePipe, MaxFileSizeValidator } from '@nestjs/common';
 import { of } from 'rxjs';
@@ -13,6 +13,8 @@ describe('RequestController', () => {
     approveRequest: jest.fn().mockResolvedValue({ status: 'approved' }),
     rejectRequest: jest.fn().mockResolvedValue({ status: 'rejected' }),
     createRequest: jest.fn().mockResolvedValue({ id: '12345' }),
+    getRequests: jest.fn().mockResolvedValue([]),
+    getRequestsWithStatus: jest.fn().mockResolvedValue([]),
   };
 
   beforeEach(async () => {
@@ -37,10 +39,9 @@ describe('RequestController', () => {
   describe('handleAction', () => {
     it('should approve the request', async () => {
       const identifiableData = {
-        firstname: 'John',
+        name: 'John',
         lastname: 'Doe',
-        licensecategory: 'A',
-        expiry_date: '2023-03-21',
+        category: 'A',
       };
 
       const result = await controller.handleAction(
@@ -64,9 +65,9 @@ describe('RequestController', () => {
 
     it('should reject the request', async () => {
       const result = await controller.handleAction('test-id', 'reject', {
-        firstname: 'John',
+        name: 'John',
         lastname: 'Doe',
-        licensecategory: 'A',
+        category: 'A',
       });
       expect(service.rejectRequest).toHaveBeenCalledWith('test-id');
       expect(result).toEqual(
@@ -83,9 +84,9 @@ describe('RequestController', () => {
         'test-id',
         'invalid' as any,
         {
-          firstname: 'John',
+          name: 'John',
           lastname: 'Doe',
-          licensecategory: 'A',
+          category: 'A',
         },
       );
       expect(result).toEqual(
@@ -122,6 +123,60 @@ describe('RequestController', () => {
         expect(error.getStatus()).toEqual(400);
         expect(error.message).toEqual('File too large');
       }
+    });
+  });
+
+  describe('getRequests', () => {
+    it('should return all requests when no status is provided', async () => {
+      const mockRequests = [
+        { id: '1', status: 'pending' },
+        { id: '2', status: 'approved' },
+        { id: '3', status: 'rejected' },
+      ];
+      jest.spyOn(service, 'getRequests').mockResolvedValueOnce(mockRequests);
+
+      const result = await controller.getRequests(null);
+
+      expect(service.getRequests).toHaveBeenCalled();
+      expect(result).toEqual(
+        sendResponse(mockRequests, 200, 'Requests retrieved successfully.'),
+      );
+    });
+
+    it('should return requests with the specified status', async () => {
+      const mockPendingRequests = [
+        { id: '1', status: 'pending' },
+        { id: '2', status: 'pending' },
+      ];
+      jest
+        .spyOn(service, 'getRequestsWithStatus')
+        .mockResolvedValueOnce(mockPendingRequests);
+
+      const result = await controller.getRequests(RequestStatus.PENDING);
+
+      expect(service.getRequestsWithStatus).toHaveBeenCalledWith(
+        RequestStatus.PENDING,
+      );
+
+      expect(result).toEqual(
+        sendResponse(
+          mockPendingRequests,
+          200,
+          'Requests retrieved successfully.',
+        ),
+      );
+    });
+
+    it('should return an error for an invalid status', async () => {
+      const result = await controller.getRequests('invalid' as any);
+
+      expect(result).toEqual(
+        sendResponse(
+          {},
+          400,
+          'Invalid status. Status should be one of: pending, approved',
+        ),
+      );
     });
   });
 });
