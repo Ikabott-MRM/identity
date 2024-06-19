@@ -3,7 +3,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  Req,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Knex } from 'knex';
@@ -81,16 +80,6 @@ export class RequestService {
   }
 
   async approveRequest(id: string, identifiable_data: IdentifiableData) {
-    // const tx = await this.knex.transaction();
-    // const request = await tx('request').where({ id: id }).first();
-    // if (!request) {
-    //   this.logger.debug('Request not found');
-    //   throw new NotFoundException('Request not found');
-    // }
-    // if (request.status !== RequestStatus.PENDING) {
-    //   this.logger.debug('Request already processed');
-    //   throw new RequestAlreadyProcessedError();
-    // }
     const tx = await this.knex.transaction();
 
     try {
@@ -121,10 +110,6 @@ export class RequestService {
   }
 
   async rejectRequest(id: string) {
-    // await this.knex('request')
-    //   .where({ id: id })
-    //   .update({ status: RequestStatus.REJECTED });
-    // return { status: RequestStatus.REJECTED };
     const tx = await this.knex.transaction();
 
     try {
