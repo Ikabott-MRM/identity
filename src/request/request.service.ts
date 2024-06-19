@@ -67,44 +67,77 @@ export class RequestService {
     return this.knex.select('*').from('request').where({ subject_did });
   }
 
-  async approveRequest(id: string, identifiable_data: IdentifiableData) {
-    const tx = await this.knex.transaction();
-    const request = await tx('request').where({ id: id }).first();
+  async getRequestAndValidate(tx: Knex.Transaction, id: string): Promise<any> {
+    const request = await tx('request').where({ id }).first();
     if (!request) {
       this.logger.debug('Request not found');
-      await tx.rollback();
       throw new NotFoundException('Request not found');
     }
     if (request.status !== RequestStatus.PENDING) {
       this.logger.debug('Request already processed');
-      await tx.rollback();
       throw new RequestAlreadyProcessedError();
     }
-    const subject_did = request.subject_did;
-    const issuance = await this.issuerService.issueCredential(
-      identifiable_data,
-      'DriversLicense',
-      subject_did,
-    );
-    if (!issuance.success) {
-      this.logger.debug(issuance.error);
+    return { request };
+  }
+
+  async approveRequest(id: string, identifiable_data: IdentifiableData) {
+    // const tx = await this.knex.transaction();
+    // const request = await tx('request').where({ id: id }).first();
+    // if (!request) {
+    //   this.logger.debug('Request not found');
+    //   throw new NotFoundException('Request not found');
+    // }
+    // if (request.status !== RequestStatus.PENDING) {
+    //   this.logger.debug('Request already processed');
+    //   throw new RequestAlreadyProcessedError();
+    // }
+    const tx = await this.knex.transaction();
+
+    try {
+      const { request } = await this.getRequestAndValidate(tx, id);
+
+      const subject_did = request.subject_did;
+      const issuance = await this.issuerService.issueCredential(
+        identifiable_data,
+        'DriversLicense',
+        subject_did,
+      );
+      if (!issuance.success) {
+        this.logger.error(issuance.error);
+        throw new Error(issuance.error);
+      }
+      await tx('request')
+        .where({ id: id })
+        .update({ status: RequestStatus.APPROVED });
+      await tx.commit();
+      return {
+        ...request,
+        status: RequestStatus.APPROVED,
+      };
+    } catch (error) {
       await tx.rollback();
-      throw new Error(issuance.error);
+      throw error;
     }
-    await tx('request')
-      .where({ id: id })
-      .update({ status: RequestStatus.APPROVED });
-    await tx.commit();
-    return {
-      ...request,
-      status: RequestStatus.APPROVED,
-    };
   }
 
   async rejectRequest(id: string) {
-    await this.knex('request')
-      .where({ id: id })
-      .update({ status: RequestStatus.REJECTED });
-    return { status: RequestStatus.REJECTED };
+    // await this.knex('request')
+    //   .where({ id: id })
+    //   .update({ status: RequestStatus.REJECTED });
+    // return { status: RequestStatus.REJECTED };
+    const tx = await this.knex.transaction();
+
+    try {
+      await this.getRequestAndValidate(tx, id);
+
+      await tx('request')
+        .where({ id })
+        .update({ status: RequestStatus.REJECTED });
+      await tx.commit();
+      return { status: RequestStatus.REJECTED };
+    } catch (error) {
+      await tx.rollback();
+      throw error;
+    }
   }
 }

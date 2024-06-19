@@ -25,9 +25,9 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         NODE_ENV: Joi.string()
           .valid('development', 'production', 'test', 'provision')
           .default('development'),
-        POSTGRES_HOST: Joi.string().required(),
-        POSTGRES_USER: Joi.string().required(),
-        POSTGRES_PASSWORD: Joi.string().required(),
+        DB_HOST: Joi.string().required(),
+        DB_USER: Joi.string().required(),
+        DB_PASSWORD: Joi.string().required(),
       }),
     }),
     KnexModule,

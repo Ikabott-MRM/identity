@@ -2,8 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RequestController } from './request.controller';
 import { RequestService, RequestStatus } from './request.service';
 import { sendResponse } from '../helpers/functions';
-import { ParseFilePipe, MaxFileSizeValidator } from '@nestjs/common';
-import { of } from 'rxjs';
 
 describe('RequestController', () => {
   let controller: RequestController;
@@ -174,7 +172,7 @@ describe('RequestController', () => {
         sendResponse(
           {},
           400,
-          'Invalid status. Status should be one of: pending, approved',
+          'Invalid status. Status should be one of: pending, approved, rejected',
         ),
       );
     });

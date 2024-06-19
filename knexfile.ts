@@ -5,10 +5,10 @@ const config: { [key: string]: Knex.Config } = {
   development: {
     client: 'mysql',
     connection: {
-      host: process.env.POSTGRES_HOST,
+      host: process.env.DB_HOST,
       database: 'iovf-identity',
-      user: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
     },
     pool: {
       min: 2,
@@ -22,8 +22,8 @@ const config: { [key: string]: Knex.Config } = {
     client: 'mysql',
     connection: {
       database: 'iovf-identity',
-      user: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
     },
     pool: {
       min: 2,
@@ -37,8 +37,8 @@ const config: { [key: string]: Knex.Config } = {
     client: 'mysql',
     connection: {
       database: 'iovf-identity',
-      user: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
     },
     pool: {
       min: 2,

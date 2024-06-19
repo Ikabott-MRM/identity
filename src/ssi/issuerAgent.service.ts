@@ -244,7 +244,7 @@ export class IssuerAgentService implements OnModuleInit {
             `An error occurred while saving the credential to DWN`,
         );
       }
-      
+
       return {
         success: true,
         result: signedVcJwt,
@@ -350,8 +350,8 @@ export class IssuerAgentService implements OnModuleInit {
   }
 
   /**
-   * 
-   * @returns issuer's public key in JWK format 
+   *
+   * @returns issuer's public key in JWK format
    */
   async getIssuerPublicJWKey(): Promise<{
     success: boolean;

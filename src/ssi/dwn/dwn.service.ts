@@ -59,7 +59,6 @@ export class DWNService {
         },
       );
 
-
       if (status.code !== 200) {
         this.logger.error('Error querying protocols', status);
         return;
