@@ -14,7 +14,7 @@ export class CredentialsSchemasInMemoryRepository {
       mappingRulesDescriptor: {
         firstname: 'name',
         lastname: 'lastname',
-        licenseCateogry: 'category',
+        licenseCategory: 'category',
       },
     },
   ];

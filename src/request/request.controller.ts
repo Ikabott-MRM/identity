@@ -7,9 +7,9 @@ import {
   UploadedFile,
   UseInterceptors,
   Body,
-  BadRequestException,
   Get,
   Query,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { sendResponse } from '../helpers/functions';
@@ -42,53 +42,60 @@ export class RequestController {
     @Body('identifiable_data') identifiableData: IdentifiableData,
   ) {
     let request;
+    try {
+      if (action === 'approve') {
+        if (!identifiableData) {
+          return sendResponse(
+            null,
+            400,
+            `Param "identifiable_data" is required.`,
+          );
+        }
 
-    if (!identifiableData) {
-      throw new BadRequestException('Param "identifiable_data" is required.');
-    }
+        const requiredFields = ['name', 'lastname', 'category'];
 
-    const requiredFields = ['name', 'lastname', 'category'];
+        for (const field of requiredFields) {
+          if (!identifiableData[field]) {
+            return sendResponse(
+              null,
+              400,
+              `Field ${field} is required in identifiable_data.`,
+            );
+          }
+        }
 
-    for (const field of requiredFields) {
-      if (!identifiableData[field]) {
-        throw new BadRequestException(
-          `Field ${field} is required in identifiable_data.`,
-        );
-      }
-    }
-
-    if (action === 'approve') {
-      try {
         request = await this.requestService.approveRequest(
           id,
           identifiableData,
         );
-      } catch (error) {
-        if (error instanceof RequestAlreadyProcessedError) {
-          return sendResponse({}, 409, 'Request already processed.');
-        }
-
+      } else if (action === 'reject') {
+        request = await this.requestService.rejectRequest(id);
+      } else {
         return sendResponse(
           {},
-          error.status || 500,
-          error.message || 'An unexpected error occurred.',
+          400,
+          'Action should be either "approve" or "reject".',
         );
       }
-    } else if (action === 'reject') {
-      request = await this.requestService.rejectRequest(id);
-    } else {
+
+      return sendResponse(
+        request,
+        200,
+        `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully.`,
+      );
+    } catch (error) {
+      if (error instanceof RequestAlreadyProcessedError) {
+        return sendResponse({}, 409, 'Request already processed.');
+      } else if (error instanceof NotFoundException) {
+        return sendResponse({}, 404, 'Request not found.');
+      }
+
       return sendResponse(
         {},
-        400,
-        'Action should be either "approve" or "reject".',
+        error.status || 500,
+        error.message || 'An unexpected error occurred.',
       );
     }
-
-    return sendResponse(
-      request,
-      200,
-      `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully.`,
-    );
   }
 
   @Get('/')
