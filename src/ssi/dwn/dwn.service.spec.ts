@@ -1,18 +1,82 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DWNService } from './dwn.service';
 import { AUTHORIZED_CALLER_TOKEN } from './authorized-caller.provider';
 import { Logger } from '@nestjs/common';
+import * as fs from 'fs';
+import { DWNService } from './dwn.service';
 import { Web5 } from '@web5/api';
+import { BearerDid } from '@web5/dids';
+import { LocalKeyManager } from '@web5/crypto';
+import { Record, RecordsQueryResponse } from '@web5/api';
+import { VerifiableCredential } from '@web5/credentials';
 
-jest.mock('@web5/api');
+jest.mock('@web5/dids', () => {
+  return {
+    BearerDid: jest.fn(),
+  };
+});
+jest.mock('@web5/credentials', () => {
+  return {
+    VerifiableCredential: {
+      parseJwt: jest.fn(),
+    },
+  };
+});
+
+jest.mock('@web5/crypto', () => {
+  return {
+    LocalKeyManager: jest.fn(),
+  };
+});
+
+
+jest.mock('@web5/api', () => {
+  return {
+    Web5: {
+      connect: jest.fn(),
+    },
+    Record: jest.fn(),
+    RecordsQueryResponse: jest.fn(),
+  };
+});jest.mock('fs');
 
 describe('DWNService', () => {
   let web5Mock = Web5 as jest.Mocked<typeof Web5>;
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
+  let loggerLogSpy: jest.SpyInstance;
+
   let service: DWNService;
 
-  class MockWeb5 {}
+  const signerMock = {
+    algorithm: 'mockAlgorithm',
+    keyId: 'mockKeyId',
+    sign: jest.fn().mockResolvedValue(new Uint8Array()),
+    verify: jest.fn().mockResolvedValue(true),
+  };
+  
+  class MockWeb5 {
+    agent = {
+      agentDid:{
+        keyManager: new LocalKeyManager(),
+        export: jest.fn().mockResolvedValue({
+          uri: 'did:dht:web5Agent',
+        }),
+        uri: 'did:dht:web5Agent',
+        document: undefined,
+        metadata: undefined,
+        getSigner: jest.fn().mockResolvedValue(signerMock),
+      }
+    };
+    dwn = {
+      protocols: {
+        query: jest.fn(),
+        configure: jest.fn(),
+      },
+      records: {
+        create: jest.fn(),
+      }
+    };
+  }
 
   // Mock the Web5 connect method
   (Web5.connect as jest.Mock).mockResolvedValue({
@@ -33,6 +97,7 @@ describe('DWNService', () => {
 
     service = module.get<DWNService>(DWNService);
     loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
+    loggerLogSpy = jest.spyOn(Logger.prototype, 'log');
     loggerDebugSpy = jest.spyOn(Logger.prototype, 'debug');
   });
 
@@ -64,4 +129,263 @@ describe('DWNService', () => {
       );
     });
   });
+
+  describe('importAndConfigureProtocol', () => {
+    it('should log an error if reading the JSON file fails', async () => {
+      const error = new Error('File read error');
+      (fs.readFileSync as jest.Mock).mockImplementation(() => { throw error });
+
+      await service.importAndConfigureProtocol();
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Error loading JSON file:', error);
+    });
+
+    it('should log if the protocol already exists', async () => {
+      const protocolData = { protocol: 'https://identity-iovf.xyz' };
+      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(protocolData));
+      const mockWeb5Instance = new MockWeb5();
+      (service as any).web5Instance = mockWeb5Instance;
+
+      mockWeb5Instance.dwn.protocols.query.mockResolvedValue({
+        protocols: [protocolData],
+        status: { code: 200 },
+      });
+
+      await service.importAndConfigureProtocol();
+
+      expect(mockWeb5Instance.dwn.protocols.query).toHaveBeenCalledWith({
+        message: {
+          filter: {
+            protocol: 'https://identity-iovf.xyz',
+          },
+        },
+      });
+
+      expect(loggerLogSpy).toHaveBeenCalledWith('Protocol already exists');
+    });
+
+    it('should configure the protocol if it does not exist', async () => {
+      const protocolData = { protocol: 'https://identity-iovf.xyz' };
+      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(protocolData));
+      const mockWeb5Instance = new MockWeb5();
+      (service as any).web5Instance = mockWeb5Instance;
+
+      mockWeb5Instance.dwn.protocols.query.mockResolvedValue({
+        protocols: [],
+        status: { code: 200 },
+      });
+
+      const configureResponse = {
+        status: { code: 200 },
+        protocol: protocolData,
+      };
+
+      mockWeb5Instance.dwn.protocols.configure.mockResolvedValue(configureResponse);
+
+      await service.importAndConfigureProtocol();
+
+      expect(mockWeb5Instance.dwn.protocols.query).toHaveBeenCalledWith({
+        message: {
+          filter: {
+            protocol: 'https://identity-iovf.xyz',
+          },
+        },
+      });
+
+      expect(mockWeb5Instance.dwn.protocols.configure).toHaveBeenCalledWith({
+        message: {
+          definition: protocolData,
+        },
+      });
+
+      expect(loggerLogSpy).toHaveBeenCalledWith('Protocol configured', configureResponse.status, configureResponse.protocol);
+    });
+
+    it('should log an error if querying protocols fails', async () => {
+      const protocolData = { protocol: 'https://identity-iovf.xyz' };
+      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(protocolData));
+      const mockWeb5Instance = new MockWeb5();
+      (service as any).web5Instance = mockWeb5Instance;
+
+      const queryError = { code: 500, message: 'Internal Server Error' };
+      mockWeb5Instance.dwn.protocols.query.mockResolvedValue({
+        protocols: [],
+        status: queryError,
+      });
+
+      await service.importAndConfigureProtocol();
+
+      expect(mockWeb5Instance.dwn.protocols.query).toHaveBeenCalledWith({
+        message: {
+          filter: {
+            protocol: 'https://identity-iovf.xyz',
+          },
+        },
+      });
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Error querying protocols', queryError);
+    });
+  });
+
+  describe('getDWNAgentDid', () => {
+    it('should return the agent DID if the callerToken is authorized', async () => {
+      (service as any).web5Instance = new MockWeb5();
+
+      const authorizedCallerToken = AUTHORIZED_CALLER_TOKEN;
+      (service as any).authorizedCallerToken = authorizedCallerToken;
+
+      const result = await service.getDWNAgentDid(authorizedCallerToken);
+
+      expect(result).toBe((service as any).web5Instance.agent.agentDid);
+    });
+
+    it('should throw an error if the callerToken is unauthorized', async () => {
+      (service as any).web5Instance = new MockWeb5();
+
+      const unauthorizedCallerToken = Symbol('UnauthorizedCallerToken');
+      (service as any).authorizedCallerToken = AUTHORIZED_CALLER_TOKEN;
+
+      await expect(service.getDWNAgentDid(unauthorizedCallerToken)).rejects.toThrow('Unauthorized access. Cannot access to dwn agent did');
+    });
+  });
+
+  describe('saveCredentialtoDWN', () => {
+    it('should throw an error if holderDid is undefined', async () => {
+      const result = await service.saveCredentialtoDWN(undefined, 'signedVc', 'credentialSchema');
+
+      expect(result.success).toBe(false);
+      expect(result.result).toBeNull();
+      expect(result.error).toBe('holderDid cannot be undefined.');
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        `An error occurred while trying to save credential for holder undefined to DWN node`,
+        expect.any(Error),
+      );
+    });
+
+    it('should throw an error if signedVc is undefined', async () => {
+      const result = await service.saveCredentialtoDWN('holderDid', undefined, 'credentialSchema');
+
+        expect(result.success).toBe(false);
+        expect(result.result).toBeNull();
+        expect(result.error).toBe('signedVc cannot be undefined.');
+        expect(loggerErrorSpy).toHaveBeenCalledWith(
+          `An error occurred while trying to save credential for holder holderDid to DWN node`,
+          expect.any(Error),
+        );
+    });
+
+    it('should throw an error if credentialSchema is undefined', async () => {
+     const result =  await service.saveCredentialtoDWN('holderDid', 'signedVc', undefined);
+      
+        expect(result.success).toBe(false);
+        expect(result.result).toBeNull();
+        expect(result.error).toBe('credentialSchema cannot be undefined.');
+        expect(loggerErrorSpy).toHaveBeenCalledWith(
+          `An error occurred while trying to save credential for holder holderDid to DWN node`,
+          expect.any(Error),
+        );
+        
+    });
+
+    it('should return success if credential is saved successfully', async () => {
+      const mockWeb5Instance = new MockWeb5();
+      (service as any).web5Instance = mockWeb5Instance;
+
+      const res = {
+        status: { code: 202, detail: 'Accepted' },
+        record: { id: 'record-id' },
+      };
+
+      mockWeb5Instance.dwn.records.create.mockResolvedValue(res);
+
+      const result = await service.saveCredentialtoDWN('holderDid', 'signedVc', 'credentialSchema');
+
+      expect(result).toEqual({ success: true, result: res.record, error: null });
+      expect(loggerDebugSpy).toHaveBeenCalledWith('Credential has been successfully written to DWN node');
+    });
+
+    it('should return failure if credential is not saved successfully', async () => {
+      const mockWeb5Instance = new MockWeb5();
+      (service as any).web5Instance = mockWeb5Instance;
+
+      const res = {
+        status: { code: 400, detail: 'Bad Request' },
+        record: null,
+      };
+
+      mockWeb5Instance.dwn.records.create.mockResolvedValue(res);
+
+      const result = await service.saveCredentialtoDWN('holderDid', 'signedVc', 'credentialSchema');
+
+      expect(result).toEqual({ success: false, result: null, error: res.status.detail });
+      expect(loggerDebugSpy).toHaveBeenCalledWith('Credential has not been written to DWN node. Detail: Bad Request');
+    });
+
+    it('should log an error and return failure if an exception occurs', async () => {
+      const mockWeb5Instance = new MockWeb5();
+      (service as any).web5Instance = mockWeb5Instance;
+
+      const error = new Error('Test error');
+      mockWeb5Instance.dwn.records.create.mockRejectedValue(error);
+
+      const result = await service.saveCredentialtoDWN('holderDid', 'signedVc', 'credentialSchema');
+
+      expect(result).toEqual({ success: false, result: null, error: error.message });
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'An error occurred while trying to save credential for holder holderDid to DWN node',
+        error,
+      );
+    });
+  });
+
+  describe('fetchAndParseCredentials', () => {
+    it('should fetch and parse credentials correctly', async () => {
+      const mockRecord = {
+        data: {
+          text: jest.fn().mockResolvedValue('encodedJwtCredential'),
+        },
+      } as unknown as Record;
+
+      const mockRecordsQueryResponse = {
+        records: [mockRecord],
+      } as RecordsQueryResponse;
+
+      const parsedCredential = { credential: 'parsedCredential' };
+      (VerifiableCredential.parseJwt as jest.Mock).mockReturnValue(parsedCredential);
+
+      const result = await service.fetchAndParseCredentials(mockRecordsQueryResponse);
+
+      expect(mockRecord.data.text).toHaveBeenCalled();
+      expect(VerifiableCredential.parseJwt).toHaveBeenCalledWith({ vcJwt: 'encodedJwtCredential' });
+      expect(result).toEqual([
+        {
+          vcJwt: 'encodedJwtCredential',
+          verifiableCredential: parsedCredential,
+        },
+      ]);
+    });
+
+    it('should handle errors during parsing', async () => {
+      const mockRecord = {
+        data: {
+          text: jest.fn().mockResolvedValue('encodedJwtCredential'),
+        },
+      } as unknown as Record;
+
+      const mockRecordsQueryResponse = {
+        records: [mockRecord],
+      } as RecordsQueryResponse;
+
+      const error = new Error('Parse error');
+      (VerifiableCredential.parseJwt as jest.Mock).mockImplementation(() => {
+        throw error;
+      });
+
+      await expect(service.fetchAndParseCredentials(mockRecordsQueryResponse)).rejects.toThrow(error);
+
+      expect(mockRecord.data.text).toHaveBeenCalled();
+      expect(VerifiableCredential.parseJwt).toHaveBeenCalledWith({ vcJwt: 'encodedJwtCredential' });
+    });
+  });
+
 });
