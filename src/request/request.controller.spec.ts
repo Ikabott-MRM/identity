@@ -46,6 +46,7 @@ describe('RequestController', () => {
         'test-id',
         'approve',
         identifiableData,
+        null
       );
       expect(service.approveRequest).toHaveBeenCalledWith(
         'test-id',
@@ -66,7 +67,8 @@ describe('RequestController', () => {
         name: 'John',
         lastname: 'Doe',
         category: 'A',
-      });
+      },
+    null);
       expect(service.rejectRequest).toHaveBeenCalledWith('test-id');
       expect(result).toEqual(
         sendResponse(
@@ -86,6 +88,7 @@ describe('RequestController', () => {
           lastname: 'Doe',
           category: 'A',
         },
+        null
       );
       expect(result).toEqual(
         sendResponse({}, 400, 'Action should be either "approve" or "reject".'),

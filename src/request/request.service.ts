@@ -79,7 +79,7 @@ export class RequestService {
     return { request };
   }
 
-  async approveRequest(id: string, identifiable_data: IdentifiableData) {
+  async approveRequest(id: string, identifiable_data: IdentifiableData, expDate:string) {
     const tx = await this.knex.transaction();
 
     try {
@@ -88,6 +88,7 @@ export class RequestService {
       const subject_did = request.subject_did;
       const issuance = await this.issuerService.issueCredential(
         identifiable_data,
+        expDate,
         'DriversLicense',
         subject_did,
       );

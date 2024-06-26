@@ -190,6 +190,7 @@ export class IssuerAgentService implements OnModuleInit {
    */
   async issueCredential(
     data: any,
+    expDate:string,
     schemaId: string,
     subjectDid: string,
   ): Promise<{
@@ -210,14 +211,16 @@ export class IssuerAgentService implements OnModuleInit {
         data: mappedData,
       };
 
-      if (
-        schema.type.includes('https://identity-iovf.xyz/schemas/driversLicense')
-      ) {
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getFullYear() + 5); // Add 5 years
+      // if (
+      //   schema.type.includes('https://identity-iovf.xyz/schemas/driversLicense')
+      // ) {
+      if(Boolean(expDate)){
+        const expirationDate = new Date(expDate);
+        // expirationDate.setDate(expirationDate.getFullYear() + 5); // Add 5 years
         expirationISOString = expirationDate.toISOString();
         credentialData.expirationDate = expirationISOString;
       }
+      // }
 
       this.logger.debug(`credential is being created`);
       const vc = await VerifiableCredential.create({
