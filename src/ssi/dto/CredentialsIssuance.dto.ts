@@ -35,7 +35,10 @@ export class IssueCredentialDto {
   @IsNotEmpty()
   subjectDid: string;
 
-  @ApiProperty({ description: 'The date the credential will be expired. If no date is provided, no exp is set for the jwt' })
+  @ApiProperty({
+    description:
+      'The date the credential will be expired. If no date is provided, no exp is set for the jwt',
+  })
   @IsDateString()
-  expDate: string
+  expDate: string;
 }

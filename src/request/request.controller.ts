@@ -68,7 +68,7 @@ export class RequestController {
         request = await this.requestService.approveRequest(
           id,
           identifiableData,
-          expDate
+          expDate,
         );
       } else if (action === 'reject') {
         request = await this.requestService.rejectRequest(id);

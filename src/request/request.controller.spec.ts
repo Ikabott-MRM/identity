@@ -46,7 +46,7 @@ describe('RequestController', () => {
         'test-id',
         'approve',
         identifiableData,
-        null
+        null,
       );
       expect(service.approveRequest).toHaveBeenCalledWith(
         'test-id',
@@ -63,12 +63,16 @@ describe('RequestController', () => {
     });
 
     it('should reject the request', async () => {
-      const result = await controller.handleAction('test-id', 'reject', {
-        name: 'John',
-        lastname: 'Doe',
-        category: 'A',
-      },
-    null);
+      const result = await controller.handleAction(
+        'test-id',
+        'reject',
+        {
+          name: 'John',
+          lastname: 'Doe',
+          category: 'A',
+        },
+        null,
+      );
       expect(service.rejectRequest).toHaveBeenCalledWith('test-id');
       expect(result).toEqual(
         sendResponse(
@@ -88,7 +92,7 @@ describe('RequestController', () => {
           lastname: 'Doe',
           category: 'A',
         },
-        null
+        null,
       );
       expect(result).toEqual(
         sendResponse({}, 400, 'Action should be either "approve" or "reject".'),

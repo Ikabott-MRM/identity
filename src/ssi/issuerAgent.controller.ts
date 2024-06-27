@@ -135,7 +135,7 @@ export class IssuerAgentController {
         400,
         `subjectDid must be provided in the body of the request.`,
       );
-      
+
     const result = await this.issuerAgentService.issueCredential(
       data,
       expDate,

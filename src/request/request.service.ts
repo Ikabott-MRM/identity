@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Knex } from 'knex';
 import { IssuerAgentService } from '../ssi/issuerAgent.service';
@@ -51,7 +46,9 @@ export class RequestService {
       document_url: request.document_url,
     };
     await this.knex.insert(data).into('request');
-    this.logger.debug(`Request with id ${uuid} has been successfully created and saved to db`);
+    this.logger.debug(
+      `Request with id ${uuid} has been successfully created and saved to db`,
+    );
     return data;
   }
 
@@ -80,7 +77,11 @@ export class RequestService {
     return { request };
   }
 
-  async approveRequest(id: string, identifiable_data: IdentifiableData, expDate:string) {
+  async approveRequest(
+    id: string,
+    identifiable_data: IdentifiableData,
+    expDate: string,
+  ) {
     const tx = await this.knex.transaction();
 
     try {
@@ -94,7 +95,10 @@ export class RequestService {
         subject_did,
       );
       if (!issuance.success) {
-        this.logger.error(`an error occurred while trying to issue credential for request with id ${id}`,issuance.error);
+        this.logger.error(
+          `an error occurred while trying to issue credential for request with id ${id}`,
+          issuance.error,
+        );
         throw new Error(issuance.error);
       }
       await tx('request')
@@ -107,7 +111,10 @@ export class RequestService {
         status: RequestStatus.APPROVED,
       };
     } catch (error) {
-      this.logger.error(`an error occurred while trying to approve request with id ${id}`,error.stack);
+      this.logger.error(
+        `an error occurred while trying to approve request with id ${id}`,
+        error.stack,
+      );
       await tx.rollback();
       throw error;
     }
@@ -126,7 +133,10 @@ export class RequestService {
       this.logger.debug(`request with id ${id} has been successfully rejected`);
       return { status: RequestStatus.REJECTED };
     } catch (error) {
-      this.logger.error(`an error occurred while trying to reject request with id ${id}`,error.stack);
+      this.logger.error(
+        `an error occurred while trying to reject request with id ${id}`,
+        error.stack,
+      );
       await tx.rollback();
       throw error;
     }

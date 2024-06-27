@@ -191,7 +191,7 @@ export class IssuerAgentService implements OnModuleInit {
    */
   async issueCredential(
     data: any,
-    expDate:string,
+    expDate: string,
     schemaId: string,
     subjectDid: string,
   ): Promise<{
@@ -212,7 +212,7 @@ export class IssuerAgentService implements OnModuleInit {
         data: mappedData,
       };
 
-      if(Boolean(expDate)){
+      if (Boolean(expDate)) {
         const expirationDate = new Date(expDate);
         expirationISOString = expirationDate.toISOString();
         credentialData.expirationDate = expirationISOString;
