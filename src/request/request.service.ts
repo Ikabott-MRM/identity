@@ -47,7 +47,7 @@ export class RequestService {
     };
     await this.knex.insert(data).into('request');
     this.logger.debug(
-      `Request with id ${uuid} has been successfully created and saved to db`,
+      `Request with id ${uuid} has been successfully created and saved to db.`,
     );
     return data;
   }
@@ -67,11 +67,11 @@ export class RequestService {
   async getRequestAndValidate(tx: Knex.Transaction, id: string): Promise<any> {
     const request = await tx('request').where({ id }).first();
     if (!request) {
-      this.logger.debug(`Request with id ${id} not found`);
-      throw new NotFoundException('Request not found');
+      this.logger.debug(`Request with id ${id} not found.`);
+      throw new NotFoundException('Request not found.');
     }
     if (request.status !== RequestStatus.PENDING) {
-      this.logger.debug(`Request with id ${id} already processed`);
+      this.logger.debug(`Request with id ${id} already processed.`);
       throw new RequestAlreadyProcessedError();
     }
     return { request };
@@ -96,7 +96,7 @@ export class RequestService {
       );
       if (!issuance.success) {
         this.logger.error(
-          `an error occurred while trying to issue credential for request with id ${id}`,
+          `An error occurred while trying to issue credential for request with id ${id}.`,
           issuance.error,
         );
         throw new Error(issuance.error);
@@ -105,14 +105,14 @@ export class RequestService {
         .where({ id: id })
         .update({ status: RequestStatus.APPROVED });
       await tx.commit();
-      this.logger.debug(`request with id ${id} has been successfully approved`);
+      this.logger.debug(`Request with id ${id} has been successfully approved.`);
       return {
         ...request,
         status: RequestStatus.APPROVED,
       };
     } catch (error) {
       this.logger.error(
-        `an error occurred while trying to approve request with id ${id}`,
+        `An error occurred while trying to approve request with id ${id}.`,
         error.stack,
       );
       await tx.rollback();
@@ -130,11 +130,11 @@ export class RequestService {
         .where({ id })
         .update({ status: RequestStatus.REJECTED });
       await tx.commit();
-      this.logger.debug(`request with id ${id} has been successfully rejected`);
+      this.logger.debug(`Request with id ${id} has been successfully rejected.`);
       return { status: RequestStatus.REJECTED };
     } catch (error) {
       this.logger.error(
-        `an error occurred while trying to reject request with id ${id}`,
+        `An error occurred while trying to reject request with id ${id}.`,
         error.stack,
       );
       await tx.rollback();

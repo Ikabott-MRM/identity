@@ -37,7 +37,7 @@ export class IssueCredentialDto {
 
   @ApiProperty({
     description:
-      'The date the credential will be expired. If no date is provided, no exp is set for the jwt',
+      'The date in which the credential will expire. If no date is provided, no expiration will be set for the JWT token.',
   })
   @IsDateString()
   expDate: string;
