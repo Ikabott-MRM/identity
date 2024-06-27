@@ -184,6 +184,7 @@ export class IssuerAgentService implements OnModuleInit {
 
   /**
    * @param data data that is going to be used to form the credential claims
+   * @param expDate expiration date that is going to be used for setting the expiration of the jwt
    * @param schemaId id of the schema associated to the credential that is going to be offered where mapping rules and credential properties are defined
    * @param subjectDid DID of the entity that the credential is being issued to
    * @returns A VC JWT; a secure URL-safe string representation of a credential, ideal for storage or transmission between two parties
@@ -211,17 +212,11 @@ export class IssuerAgentService implements OnModuleInit {
         data: mappedData,
       };
 
-      // if (
-      //   schema.type.includes('https://identity-iovf.xyz/schemas/driversLicense')
-      // ) {
       if(Boolean(expDate)){
         const expirationDate = new Date(expDate);
-        // expirationDate.setDate(expirationDate.getFullYear() + 5); // Add 5 years
         expirationISOString = expirationDate.toISOString();
         credentialData.expirationDate = expirationISOString;
       }
-      // }
-
       this.logger.debug(`credential is being created`);
       const vc = await VerifiableCredential.create({
         type: credentialData.type,
