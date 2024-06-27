@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Knex } from 'knex';
 import { IssuerAgentService } from '../ssi/issuerAgent.service';
@@ -51,6 +46,9 @@ export class RequestService {
       document_url: request.document_url,
     };
     await this.knex.insert(data).into('request');
+    this.logger.debug(
+      `Request with id ${uuid} has been successfully created and saved to db.`,
+    );
     return data;
   }
 
@@ -69,17 +67,21 @@ export class RequestService {
   async getRequestAndValidate(tx: Knex.Transaction, id: string): Promise<any> {
     const request = await tx('request').where({ id }).first();
     if (!request) {
-      this.logger.debug('Request not found');
-      throw new NotFoundException('Request not found');
+      this.logger.debug(`Request with id ${id} not found.`);
+      throw new NotFoundException('Request not found.');
     }
     if (request.status !== RequestStatus.PENDING) {
-      this.logger.debug('Request already processed');
+      this.logger.debug(`Request with id ${id} already processed.`);
       throw new RequestAlreadyProcessedError();
     }
     return { request };
   }
 
-  async approveRequest(id: string, identifiable_data: IdentifiableData) {
+  async approveRequest(
+    id: string,
+    identifiable_data: IdentifiableData,
+    expDate: string,
+  ) {
     const tx = await this.knex.transaction();
 
     try {
@@ -88,22 +90,31 @@ export class RequestService {
       const subject_did = request.subject_did;
       const issuance = await this.issuerService.issueCredential(
         identifiable_data,
+        expDate,
         'DriversLicense',
         subject_did,
       );
       if (!issuance.success) {
-        this.logger.error(issuance.error);
+        this.logger.error(
+          `An error occurred while trying to issue credential for request with id ${id}.`,
+          issuance.error,
+        );
         throw new Error(issuance.error);
       }
       await tx('request')
         .where({ id: id })
         .update({ status: RequestStatus.APPROVED });
       await tx.commit();
+      this.logger.debug(`Request with id ${id} has been successfully approved.`);
       return {
         ...request,
         status: RequestStatus.APPROVED,
       };
     } catch (error) {
+      this.logger.error(
+        `An error occurred while trying to approve request with id ${id}.`,
+        error.stack,
+      );
       await tx.rollback();
       throw error;
     }
@@ -119,8 +130,13 @@ export class RequestService {
         .where({ id })
         .update({ status: RequestStatus.REJECTED });
       await tx.commit();
+      this.logger.debug(`Request with id ${id} has been successfully rejected.`);
       return { status: RequestStatus.REJECTED };
     } catch (error) {
+      this.logger.error(
+        `An error occurred while trying to reject request with id ${id}.`,
+        error.stack,
+      );
       await tx.rollback();
       throw error;
     }

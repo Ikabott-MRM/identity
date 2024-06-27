@@ -40,6 +40,7 @@ export class RequestController {
     @Param('id') id: string,
     @Body('action') action: 'approve' | 'reject',
     @Body('identifiable_data') identifiableData: IdentifiableData,
+    @Body('exp_date') expDate: string,
   ) {
     let request;
     try {
@@ -67,6 +68,7 @@ export class RequestController {
         request = await this.requestService.approveRequest(
           id,
           identifiableData,
+          expDate,
         );
       } else if (action === 'reject') {
         request = await this.requestService.rejectRequest(id);

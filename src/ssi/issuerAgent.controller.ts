@@ -121,7 +121,7 @@ export class IssuerAgentController {
   })
   @Post('credential')
   async issueCredential(@Body() issueCredentialDto: IssueCredentialDto) {
-    const { data, schemaId, subjectDid } = issueCredentialDto;
+    const { data, schemaId, subjectDid, expDate } = issueCredentialDto;
 
     if (!schemaId)
       return sendResponse(
@@ -135,8 +135,10 @@ export class IssuerAgentController {
         400,
         `subjectDid must be provided in the body of the request.`,
       );
+
     const result = await this.issuerAgentService.issueCredential(
       data,
+      expDate,
       schemaId,
       subjectDid,
     );

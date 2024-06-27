@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsObject, IsString } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsObject, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CredentialOfferDto {
@@ -34,4 +34,11 @@ export class IssueCredentialDto {
   @IsString()
   @IsNotEmpty()
   subjectDid: string;
+
+  @ApiProperty({
+    description:
+      'The date in which the credential will expire. If no date is provided, no expiration will be set for the JWT token.',
+  })
+  @IsDateString()
+  expDate: string;
 }
