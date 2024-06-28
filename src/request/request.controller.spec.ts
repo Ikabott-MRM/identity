@@ -10,7 +10,9 @@ describe('RequestController', () => {
   const mockRequestService = {
     approveRequest: jest.fn().mockResolvedValue({ status: 'approved' }),
     rejectRequest: jest.fn().mockResolvedValue({ status: 'rejected' }),
-    createRequest: jest.fn().mockResolvedValue({ id: '12345' }),
+    createRequest: jest
+      .fn()
+      .mockResolvedValue({ id: '12345', created_at: new Date() }),
     getRequests: jest.fn().mockResolvedValue([]),
     getRequestsWithStatus: jest.fn().mockResolvedValue([]),
   };
@@ -113,8 +115,14 @@ describe('RequestController', () => {
         document_url: mockFile.path,
       });
       expect(result).toEqual(
-        sendResponse({ id: '12345' }, 200, 'Request created successfully.'),
+        sendResponse(
+          { id: '12345', created_at: expect.any(Date) },
+          200,
+          'Request created successfully.',
+        ),
       );
+      expect(result.data.created_at).toBeDefined();
+      expect(result.data.created_at).toBeInstanceOf(Date);
     });
 
     it('should throw an error for large file size', async () => {

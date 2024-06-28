@@ -46,10 +46,17 @@ export class RequestService {
       document_url: request.document_url,
     };
     await this.knex.insert(data).into('request');
+
+    const createdRequest = await this.knex('request')
+      .where({ id: data.id })
+      .first();
+
     this.logger.debug(
       `Request with id ${uuid} has been successfully created and saved to db.`,
     );
-    return data;
+
+    return createdRequest;
+
   }
 
   async getRequests() {
