@@ -53,6 +53,14 @@ export class RequestController {
           );
         }
 
+        if (!Boolean(expDate)) {
+          return sendResponse(
+            null,
+            400,
+            `Expiration date is required for approving a drivers license.`,
+          );
+        }
+
         const requiredFields = ['name', 'lastname', 'category'];
 
         for (const field of requiredFields) {
