@@ -38,13 +38,21 @@ export class RequestService {
   private readonly logger = new Logger(RequestService.name);
 
   async createRequest(request: VerificationRequest) {
+    const code = Math.random().toString(36).substring(6);
+    const exists = await this.knex('request').where({ code }).first();
+    if (exists) {
+      return this.createRequest(request);
+    }
     const uuid = randomUUID();
+
     const data = {
       id: request.id ?? uuid,
+      code,
       schema_id: request.schema_id,
       subject_did: request.subject_did,
       document_url: request.document_url,
     };
+
     await this.knex.insert(data).into('request');
 
     const createdRequest = await this.knex('request')
@@ -56,7 +64,6 @@ export class RequestService {
     );
 
     return createdRequest;
-
   }
 
   async getRequests() {
@@ -112,7 +119,9 @@ export class RequestService {
         .where({ id: id })
         .update({ status: RequestStatus.APPROVED });
       await tx.commit();
-      this.logger.debug(`Request with id ${id} has been successfully approved.`);
+      this.logger.debug(
+        `Request with id ${id} has been successfully approved.`,
+      );
       return {
         ...request,
         status: RequestStatus.APPROVED,
@@ -137,7 +146,9 @@ export class RequestService {
         .where({ id })
         .update({ status: RequestStatus.REJECTED });
       await tx.commit();
-      this.logger.debug(`Request with id ${id} has been successfully rejected.`);
+      this.logger.debug(
+        `Request with id ${id} has been successfully rejected.`,
+      );
       return { status: RequestStatus.REJECTED };
     } catch (error) {
       this.logger.error(
