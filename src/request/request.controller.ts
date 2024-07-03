@@ -10,6 +10,7 @@ import {
   Get,
   Query,
   NotFoundException,
+  FileTypeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { sendResponse } from '../helpers/functions';
@@ -24,6 +25,7 @@ import { ApiOkResponse, ApiResponse } from '@nestjs/swagger';
 @Controller('requests')
 export class RequestController {
   static readonly MAX_FILE_SIZE = 1048576;
+  static readonly ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
 
   constructor(private requestService: RequestService) {}
 
@@ -159,6 +161,9 @@ export class RequestController {
         validators: [
           new MaxFileSizeValidator({
             maxSize: RequestController.MAX_FILE_SIZE,
+          }),
+          new FileTypeValidator({
+            fileType: `.(${RequestController.ALLOWED_IMAGE_EXTENSIONS.join('|')})`,
           }),
         ],
       }),
