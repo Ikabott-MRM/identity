@@ -24,7 +24,7 @@ import { ApiOkResponse, ApiResponse } from '@nestjs/swagger';
 
 @Controller('requests')
 export class RequestController {
-  static readonly MAX_FILE_SIZE = 1048576;
+  static readonly MAX_FILE_SIZE = 3145728;
   static readonly ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
 
   constructor(private requestService: RequestService) {}
