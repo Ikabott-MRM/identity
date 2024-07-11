@@ -9,12 +9,13 @@ import {
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { sendResponse } from 'src/helpers/functions';
+import { sendErrorResponse, sendResponse } from 'src/helpers/functions';
 import { IssuerAgentService } from './issuerAgent.service';
 import {
   CredentialOfferDto,
   IssueCredentialDto,
 } from './dto/CredentialsIssuance.dto';
+import { RequestError } from '../helpers/errors';
 
 @ApiTags('issuerAgent')
 @Controller('issuerAgent')
@@ -55,7 +56,7 @@ export class IssuerAgentController {
       this.logger.debug('Created DID');
       return sendResponse(result.result, 201, 'did created');
     }
-    return sendResponse(null, 500, result.error);
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
 
   @ApiOperation({
@@ -95,7 +96,7 @@ export class IssuerAgentController {
         'Credential Offer successfully created and retrieved',
       );
     }
-    return sendResponse(null, 500, result.error);
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
 
   @ApiOperation({
@@ -125,13 +126,13 @@ export class IssuerAgentController {
 
     if (!schemaId)
       return sendResponse(
-        null,
+        RequestError.SCHEMA_ID_MISSING,
         400,
         `schemaId must be provided in the body of the request.`,
       );
     if (!subjectDid)
       return sendResponse(
-        null,
+        RequestError.SUBJECT_DID_MISSING,
         400,
         `subjectDid must be provided in the body of the request.`,
       );
@@ -147,7 +148,7 @@ export class IssuerAgentController {
       this.logger.debug('VC successfully issued');
       return sendResponse(result.result, 200, 'vc successfully issued');
     }
-    return sendResponse(null, 500, result.error);
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
 
   @ApiOperation({
@@ -173,14 +174,14 @@ export class IssuerAgentController {
     @Body('subjectDid') subjectDid: string,
   ) {
     if (!offerId)
-      return sendResponse(
-        null,
+      return sendErrorResponse(
+        RequestError.OFFER_ID_MISSING,
         400,
         `offerId must be provided in the body of the request.`,
       );
     if (!subjectDid)
-      return sendResponse(
-        null,
+      return sendErrorResponse(
+        RequestError.SUBJECT_DID_MISSING,
         400,
         `subjectDid must be provided in the body of the request.`,
       );
@@ -193,7 +194,7 @@ export class IssuerAgentController {
       this.logger.debug('VC successfully issued');
       return sendResponse(result.result, 200, 'vc successfully issued');
     }
-    return sendResponse(null, 500, result.error);
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
 
   @ApiOperation({
@@ -232,8 +233,8 @@ export class IssuerAgentController {
     @Query('pdId') pdId: string,
   ) {
     if (!pdId)
-      return sendResponse(
-        null,
+      return sendErrorResponse(
+        RequestError.PD_ID_MISSING,
         400,
         `pdId cannot be undefined. A value must be passed as query parameter`,
       );
@@ -248,7 +249,7 @@ export class IssuerAgentController {
       return sendResponse(result.result, 200, null);
     }
 
-    return sendResponse(null, 500, result.error);
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
 
   @ApiOperation({
@@ -295,14 +296,14 @@ export class IssuerAgentController {
     @Query('pdId') pdId: string,
   ) {
     if (!pdId)
-      return sendResponse(
-        null,
+      return sendErrorResponse(
+        RequestError.PD_ID_MISSING,
         400,
         `pdId cannot be undefined. A value must be passed as query parameter`,
       );
     if (!signedPresentation)
-      return sendResponse(
-        null,
+      return sendErrorResponse(
+        RequestError.SIGNED_PRESENTATION_MISSING,
         400,
         `signedPresentation cannot be undefined. A value must be passed as query parameter`,
       );
@@ -319,7 +320,7 @@ export class IssuerAgentController {
       return sendResponse(result.result, 200, null);
     }
 
-    return sendResponse(null, 500, result.error);
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
 
   @ApiOperation({
@@ -346,6 +347,6 @@ export class IssuerAgentController {
       this.logger.debug(`Issuer's PK successfully retrieved`);
       return sendResponse(result.result, 200, null);
     }
-    return sendResponse(null, 500, result.error);
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
 }

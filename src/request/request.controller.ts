@@ -13,7 +13,7 @@ import {
   FileTypeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { sendResponse } from '../helpers/functions';
+import { sendErrorResponse, sendResponse } from '../helpers/functions';
 import {
   IdentifiableData,
   RequestAlreadyProcessedError,
@@ -21,6 +21,7 @@ import {
   RequestStatus,
 } from './request.service';
 import { ApiOkResponse, ApiResponse } from '@nestjs/swagger';
+import { RequestError } from '../helpers/errors';
 
 @Controller('requests')
 export class RequestController {
@@ -48,16 +49,16 @@ export class RequestController {
     try {
       if (action === 'approve') {
         if (!identifiableData) {
-          return sendResponse(
-            null,
+          return sendErrorResponse(
+            RequestError.IDENTIFIABLE_DATA_MISSING,
             400,
             `Param "identifiable_data" is required.`,
           );
         }
 
         if (!Boolean(expDate)) {
-          return sendResponse(
-            null,
+          return sendErrorResponse(
+            RequestError.EXPIRATION_DATE_REQUIRED,
             400,
             `Expiration date is required for approving a drivers license.`,
           );
@@ -67,8 +68,8 @@ export class RequestController {
 
         for (const field of requiredFields) {
           if (!identifiableData[field]) {
-            return sendResponse(
-              null,
+            return sendErrorResponse(
+              RequestError.IDENTIFIABLE_DATA_FIELD_MISSING,
               400,
               `Field ${field} is required in identifiable_data.`,
             );
@@ -83,8 +84,8 @@ export class RequestController {
       } else if (action === 'reject') {
         request = await this.requestService.rejectRequest(id);
       } else {
-        return sendResponse(
-          {},
+        return sendErrorResponse(
+          RequestError.ACTION_INVALID,
           400,
           'Action should be either "approve" or "reject".',
         );
@@ -97,13 +98,21 @@ export class RequestController {
       );
     } catch (error) {
       if (error instanceof RequestAlreadyProcessedError) {
-        return sendResponse({}, 409, 'Request already processed.');
+        return sendErrorResponse(
+          RequestError.REQUEST_ALREADY_PROCESSED,
+          409,
+          'Request already processed.',
+        );
       } else if (error instanceof NotFoundException) {
-        return sendResponse({}, 404, 'Request not found.');
+        return sendErrorResponse(
+          RequestError.REQUEST_NOT_FOUND,
+          404,
+          'Request not found.',
+        );
       }
 
-      return sendResponse(
-        {},
+      return sendErrorResponse(
+        RequestError.UNEXPECTED_ERROR,
         error.status || 500,
         error.message || 'An unexpected error occurred.',
       );
@@ -123,8 +132,8 @@ export class RequestController {
     ];
 
     if (status && !validStatuses.includes(status)) {
-      return sendResponse(
-        {},
+      return sendErrorResponse(
+        RequestError.STATUS_INVALID,
         400,
         `Invalid status. Status should be one of: ${validStatuses.join(', ')}`,
       );
