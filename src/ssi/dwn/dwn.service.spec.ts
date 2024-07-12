@@ -74,6 +74,7 @@ describe('DWNService', () => {
       },
       records: {
         create: jest.fn(),
+        query: jest.fn(),
       }
     };
   }
@@ -385,6 +386,129 @@ describe('DWNService', () => {
 
       expect(mockRecord.data.text).toHaveBeenCalled();
       expect(VerifiableCredential.parseJwt).toHaveBeenCalledWith({ vcJwt: 'encodedJwtCredential' });
+    });
+  });
+
+  describe('queryCredentialsFromDWN', () => {
+    let mockWeb5Instance: MockWeb5;
+  
+    beforeEach(() => {
+      mockWeb5Instance = new MockWeb5();
+      (service as any).web5Instance = mockWeb5Instance;
+    });
+  
+    it('should throw an error if holderDid is undefined', async () => {
+      const result = await service.queryCredentialsFromDWN(undefined);
+  
+      expect(result.success).toBe(false);
+      expect(result.result).toBeNull();
+      expect(result.error).toBe('holderDid cannot be undefined.');
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'An error occurred while trying to query credentials of holder undefined from DWN node',
+        new Error('holderDid cannot be undefined.'),
+      );
+    });
+  
+    it('should successfully retrieve credentials', async () => {
+      const mockRecordsQueryResponse = {
+        status: { code: 200 },
+        records: [
+          {
+            data: {
+              text: jest.fn().mockResolvedValue('mockedRecord'),
+            },
+          },
+        ],
+      } as unknown as RecordsQueryResponse;
+  
+      mockWeb5Instance.dwn.records.query.mockResolvedValue(mockRecordsQueryResponse);
+  
+      const parsedCredential = { credential: 'parsedCredential' };
+      (VerifiableCredential.parseJwt as jest.Mock).mockReturnValue(parsedCredential);
+  
+      const result = await service.queryCredentialsFromDWN('holderDid');
+  
+      expect(mockWeb5Instance.dwn.records.query).toHaveBeenCalledWith({
+        message: {
+          filter: {
+            protocol: 'https://identity-iovf.xyz',
+            recipient: 'holderDid',
+          },
+        },
+      });
+  
+      expect(result).toEqual({
+        success: true,
+        result: [
+          {
+            vcJwt: 'mockedRecord',
+            verifiableCredential: parsedCredential,
+          },
+        ],
+        error: null,
+      });
+  
+      expect(loggerLogSpy).toHaveBeenCalledWith(
+        'credentials with holder holderDid have been successfully retrieved ',
+      );
+    });
+  
+    it('should handle DWN node errors', async () => {
+      const mockErrorResponse = {
+        status: { code: 400, detail: 'Bad Request' },
+        records: [],
+      } as unknown as RecordsQueryResponse;
+  
+      mockWeb5Instance.dwn.records.query.mockResolvedValue(mockErrorResponse);
+  
+      const result = await service.queryCredentialsFromDWN('holderDid');
+  
+      expect(mockWeb5Instance.dwn.records.query).toHaveBeenCalledWith({
+        message: {
+          filter: {
+            protocol: 'https://identity-iovf.xyz',
+            recipient: 'holderDid',
+          },
+        },
+      });
+  
+      expect(result).toEqual({
+        success: false,
+        result: null,
+        error: 'Bad Request',
+      });
+  
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'An error occurred while trying to query credentials of holder holderDid from DWN node',
+        'Bad Request',
+      );
+    });
+  
+    it('should handle exceptions during the process', async () => {
+      const error = new Error('Test error');
+      mockWeb5Instance.dwn.records.query.mockRejectedValue(error);
+  
+      const result = await service.queryCredentialsFromDWN('holderDid');
+  
+      expect(mockWeb5Instance.dwn.records.query).toHaveBeenCalledWith({
+        message: {
+          filter: {
+            protocol: 'https://identity-iovf.xyz',
+            recipient: 'holderDid',
+          },
+        },
+      });
+  
+      expect(result).toEqual({
+        success: false,
+        result: null,
+        error: 'Test error',
+      });
+  
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'An error occurred while trying to query credentials of holder holderDid from DWN node',
+        error,
+      );
     });
   });
 
