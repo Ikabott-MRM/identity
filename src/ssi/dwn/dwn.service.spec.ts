@@ -4,7 +4,6 @@ import { Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import { DWNService } from './dwn.service';
 import { Web5 } from '@web5/api';
-import { BearerDid } from '@web5/dids';
 import { LocalKeyManager } from '@web5/crypto';
 import { Record, RecordsQueryResponse } from '@web5/api';
 import { VerifiableCredential } from '@web5/credentials';
@@ -79,7 +78,6 @@ describe('DWNService', () => {
     };
   }
 
-  // Mock the Web5 connect method
   (Web5.connect as jest.Mock).mockResolvedValue({
     web5: new MockWeb5(),
     did: 'test-did',

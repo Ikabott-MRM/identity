@@ -7,7 +7,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
-import { sendErrorResponse, sendResponse } from 'src/helpers/functions';
+import { sendErrorResponse, sendResponse } from '../../helpers/functions';
 import { DWNService } from './dwn.service';
 import { RequestError } from '../../helpers/errors';
 
