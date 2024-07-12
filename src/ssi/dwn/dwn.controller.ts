@@ -43,8 +43,8 @@ export class DWNController {
   })
   async credentials(@Query('holderDid') holderDid: string) {
     if (!holderDid)
-      return sendResponse(
-        null,
+      return sendErrorResponse(
+        RequestError.HOLDER_DID_MISSING,
         400,
         `holderDid cannot be undefined. A value must be passed as query parameter.`,
       );
