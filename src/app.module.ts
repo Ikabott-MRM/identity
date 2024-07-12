@@ -9,6 +9,8 @@ import { DWNModule } from './ssi/dwn/dwn.module';
 import { AUTHORIZED_CALLER_TOKEN } from './ssi/dwn/authorized-caller.provider';
 import { DWNController } from './ssi/dwn/dwn.controller';
 import { RequestModule } from './request/request.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import * as Joi from 'joi';
 
 const ENV = process.env.NODE_ENV;
@@ -35,6 +37,13 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     HttpModule,
     DWNModule,
     RequestModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'documents'),
+      serveRoot: '/documents',
+      serveStaticOptions: {
+        index: false,
+      },
+    }),
   ],
   controllers: [IssuerAgentController, DWNController],
   providers: [

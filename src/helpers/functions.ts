@@ -1,7 +1,8 @@
 import { HttpStatus } from '@nestjs/common';
 import { IResponseData, ResponseData } from './interfaces';
+import { RequestError } from './errors';
 
-export const sendResponse = <T>(
+export const sendResponse = <T extends Exclude<any, RequestError>>(
   data: T,
   statusCode: HttpStatus,
   message: string,
@@ -10,6 +11,20 @@ export const sendResponse = <T>(
   res.statusCode = statusCode;
   res.message = message;
   return res;
+};
+
+export const sendErrorResponse = (
+  code: RequestError,
+  status: number,
+  message: string,
+) => {
+  return {
+    status,
+    error: {
+      code,
+      message,
+    },
+  };
 };
 
 function getModelValue(obj, path) {

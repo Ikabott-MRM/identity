@@ -10,54 +10,102 @@ import {
   Get,
   Query,
   NotFoundException,
+  FileTypeValidator,
+  HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { sendResponse } from '../helpers/functions';
+import { sendErrorResponse, sendResponse } from '../helpers/functions';
 import {
-  IdentifiableData,
   RequestAlreadyProcessedError,
   RequestService,
   RequestStatus,
 } from './request.service';
-import { ApiOkResponse, ApiResponse } from '@nestjs/swagger';
+import { ActionPayloadDto } from 'src/ssi/dto/ActionPayload.dto';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+import { RequestError } from '../helpers/errors';
+
+@ApiTags('requests')
 @Controller('requests')
 export class RequestController {
-  static readonly MAX_FILE_SIZE = 1048576;
+  static readonly MAX_FILE_SIZE = 3145728;
+  static readonly ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
 
   constructor(private requestService: RequestService) {}
 
+  @Post(':id/action')
+  @ApiOperation({
+    summary: 'It approves or rejects a request',
+  })
+  @HttpCode(200)
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description:
+      'Identifier of the request for which an action is going to be applied.',
+    schema: { type: 'string' },
+  })
+  @ApiBody({ type: ActionPayloadDto, description: 'Action payload' })
   @ApiResponse({
     status: 400,
-    description: 'Bad request.',
+    description:
+      'Bad request.Message field on response will provide a more accurate description of it.',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Request already processed.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Request not found.',
+  })
+  @ApiResponse({
+    status: 500,
+    description:
+      'Internal server error. Message field on response will provide a more accurate description of it',
   })
   @ApiOkResponse({
-    status: 201,
+    status: 200,
     description: 'Request approved or rejected successfully.',
   })
-  @Post(':id/action')
   async handleAction(
+    @Body() actionPayloadDto: ActionPayloadDto,
     @Param('id') id: string,
-    @Body('action') action: 'approve' | 'reject',
-    @Body('identifiable_data') identifiableData: IdentifiableData,
   ) {
     let request;
     try {
-      if (action === 'approve') {
-        if (!identifiableData) {
-          return sendResponse(
-            null,
+      if (actionPayloadDto.action === 'approve') {
+        if (!actionPayloadDto.identifiable_data) {
+          return sendErrorResponse(
+            RequestError.IDENTIFIABLE_DATA_MISSING,
             400,
             `Param "identifiable_data" is required.`,
+          );
+        }
+
+        if (!Boolean(actionPayloadDto.exp_date)) {
+          return sendErrorResponse(
+            RequestError.EXPIRATION_DATE_REQUIRED,
+            400,
+            `Expiration date is required for approving a drivers license.`,
           );
         }
 
         const requiredFields = ['name', 'lastname', 'category'];
 
         for (const field of requiredFields) {
-          if (!identifiableData[field]) {
-            return sendResponse(
-              null,
+          if (!actionPayloadDto.identifiable_data[field]) {
+            return sendErrorResponse(
+              RequestError.IDENTIFIABLE_DATA_FIELD_MISSING,
               400,
               `Field ${field} is required in identifiable_data.`,
             );
@@ -66,13 +114,14 @@ export class RequestController {
 
         request = await this.requestService.approveRequest(
           id,
-          identifiableData,
+          actionPayloadDto.identifiable_data,
+          actionPayloadDto.exp_date,
         );
-      } else if (action === 'reject') {
+      } else if (actionPayloadDto.action === 'reject') {
         request = await this.requestService.rejectRequest(id);
       } else {
-        return sendResponse(
-          {},
+        return sendErrorResponse(
+          RequestError.ACTION_INVALID,
           400,
           'Action should be either "approve" or "reject".',
         );
@@ -81,17 +130,25 @@ export class RequestController {
       return sendResponse(
         request,
         200,
-        `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully.`,
+        `Request ${actionPayloadDto.action === 'approve' ? 'approved' : 'rejected'} successfully.`,
       );
     } catch (error) {
       if (error instanceof RequestAlreadyProcessedError) {
-        return sendResponse({}, 409, 'Request already processed.');
+        return sendErrorResponse(
+          RequestError.REQUEST_ALREADY_PROCESSED,
+          409,
+          'Request already processed.',
+        );
       } else if (error instanceof NotFoundException) {
-        return sendResponse({}, 404, 'Request not found.');
+        return sendErrorResponse(
+          RequestError.REQUEST_NOT_FOUND,
+          404,
+          'Request not found.',
+        );
       }
 
-      return sendResponse(
-        {},
+      return sendErrorResponse(
+        RequestError.UNEXPECTED_ERROR,
         error.status || 500,
         error.message || 'An unexpected error occurred.',
       );
@@ -99,6 +156,28 @@ export class RequestController {
   }
 
   @Get('/')
+  @ApiOperation({
+    summary:
+      'It retrieves all requests. If query param "status" is provided, it will filter them by "status"',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description:
+      'If set, is the status that is going to be used for filtering the requests.',
+    schema: { type: 'string' },
+    enum: ['pending', 'approved', 'rejected'],
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Bad request.Message field on response will provide a more accurate description of it.',
+  })
+  @ApiResponse({
+    status: 500,
+    description:
+      'Internal server error. Message field on response will provide a more accurate description of it',
+  })
   @ApiOkResponse({
     status: 200,
     description: 'Requests retrieved successfully.',
@@ -111,8 +190,8 @@ export class RequestController {
     ];
 
     if (status && !validStatuses.includes(status)) {
-      return sendResponse(
-        {},
+      return sendErrorResponse(
+        RequestError.STATUS_INVALID,
         400,
         `Invalid status. Status should be one of: ${validStatuses.join(', ')}`,
       );
@@ -128,6 +207,22 @@ export class RequestController {
   }
 
   @Get(':did/requests')
+  @ApiOperation({
+    summary:
+      'It retrieves all requests associated to the DID passed as path parameter.',
+  })
+  @ApiParam({
+    name: 'did',
+    required: true,
+    description:
+      'Decentralized Identifier of the user for who the requests are being fetched.',
+    schema: { type: 'string' },
+  })
+  @ApiResponse({
+    status: 500,
+    description:
+      'Internal server error. Message field on response will provide a more accurate description of it',
+  })
   @ApiOkResponse({
     status: 200,
     description: 'Requests retrieved successfully.',
@@ -138,6 +233,41 @@ export class RequestController {
   }
 
   @Post(':did/request')
+  @ApiOperation({
+    summary:
+      'It creates a request associated to the DID passed as path parameter and using the uploaded file .',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'File upload',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File to upload',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiParam({
+    name: 'did',
+    required: true,
+    description:
+      'Decentralized Identifier of the user for who the request is being created.',
+    schema: { type: 'string' },
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Bad request.Message field on response will provide a more accurate description of it.',
+  })
+  @ApiOkResponse({
+    status: 201,
+    description: 'Request created successfully.',
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       dest: 'documents/',
@@ -149,6 +279,9 @@ export class RequestController {
         validators: [
           new MaxFileSizeValidator({
             maxSize: RequestController.MAX_FILE_SIZE,
+          }),
+          new FileTypeValidator({
+            fileType: `.(${RequestController.ALLOWED_IMAGE_EXTENSIONS.join('|')})`,
           }),
         ],
       }),
@@ -164,6 +297,6 @@ export class RequestController {
 
     const request = await this.requestService.createRequest(data);
 
-    return sendResponse(request, 200, 'Request created successfully.');
+    return sendResponse(request, 201, 'Request created successfully.');
   }
 }

@@ -5,7 +5,7 @@ import { AUTHORIZED_CALLER_TOKEN } from './authorized-caller.provider';
 import { BearerDid } from '@web5/dids';
 import { VerifiableCredential } from '@web5/credentials';
 
-interface CredentialQueryResultObject {
+export interface CredentialQueryResultObject {
   verifiableCredential: VerifiableCredential;
   vcJwt: string;
 }
