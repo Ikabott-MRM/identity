@@ -125,13 +125,13 @@ export class IssuerAgentController {
     const { data, schemaId, subjectDid, expDate } = issueCredentialDto;
 
     if (!schemaId)
-      return sendResponse(
+      return sendErrorResponse(
         RequestError.SCHEMA_ID_MISSING,
         400,
         `schemaId must be provided in the body of the request.`,
       );
     if (!subjectDid)
-      return sendResponse(
+      return sendErrorResponse(
         RequestError.SUBJECT_DID_MISSING,
         400,
         `subjectDid must be provided in the body of the request.`,
