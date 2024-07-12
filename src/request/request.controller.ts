@@ -31,9 +31,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-@ApiTags('requests')
+
 import { RequestError } from '../helpers/errors';
 
+@ApiTags('requests')
 @Controller('requests')
 export class RequestController {
   static readonly MAX_FILE_SIZE = 3145728;
