@@ -7,8 +7,9 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
-import { sendResponse } from 'src/helpers/functions';
+import { sendErrorResponse, sendResponse } from 'src/helpers/functions';
 import { DWNService } from './dwn.service';
+import { RequestError } from '../../helpers/errors';
 
 @ApiTags('dwn')
 @Controller('dwn')
@@ -55,6 +56,6 @@ export class DWNController {
       );
       return sendResponse(result.result, 200, null);
     }
-    return sendResponse(null, 500, result.error);
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
 }
