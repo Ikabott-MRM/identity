@@ -107,6 +107,7 @@
       "\\.module\\.ts$",
       "src/config/*",
       "src/main.ts",
+      "src/ssi/dto/*",
       "src/ssi/inMemoryRepositories/*"
     ]
   }
