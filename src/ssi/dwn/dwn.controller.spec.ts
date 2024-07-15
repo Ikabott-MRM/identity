@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DWNController } from './dwn.controller';
 import { DWNService } from './dwn.service';
-import { Logger } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { RequestError } from '../../helpers/errors';
 import { sendErrorResponse, sendResponse } from '../../helpers/functions';
 
@@ -41,18 +41,7 @@ describe('DWNController', () => {
 
   describe('credentials', () => {
     it('should return error if holderDid is not provided', async () => {
-      const response = await controller.credentials(undefined);
-
-      expect(sendErrorResponse).toHaveBeenCalledWith(
-        RequestError.HOLDER_DID_MISSING,
-        400,
-        'holderDid cannot be undefined. A value must be passed as query parameter.',
-      );
-      expect(response).toBe(sendErrorResponse(
-        RequestError.HOLDER_DID_MISSING,
-        400,
-        'holderDid cannot be undefined. A value must be passed as query parameter.',
-      ));
+      await expect(controller.credentials(undefined)).rejects.toThrow(new BadRequestException('holderDid cannot be undefined. A value must be passed as query parameter.'));
     });
 
     it('should return VCs if service call is successful', async () => {

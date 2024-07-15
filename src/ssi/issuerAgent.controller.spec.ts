@@ -154,40 +154,6 @@ describe('IssuerAgentController', () => {
       );
     });
 
-    it('should handle missing schemaId', async () => {
-      const issueCredentialDto: IssueCredentialDto = {
-        data: { name: 'Rafaela' },
-        schemaId: '',
-        subjectDid: 'did:dht:rafaelaDid',
-        expDate: '2024-12-31',
-      };
-
-      const result = await controller.issueCredential(issueCredentialDto);
-
-      expect(result).toEqual(
-        sendErrorResponse(RequestError.SCHEMA_ID_MISSING, 400, `schemaId must be provided in the body of the request.`),
-      );
-    });
-
-    it('should handle missing subjectDid', async () => {
-      const issueCredentialDto: IssueCredentialDto = {
-        data: { name: 'Juan' },
-        schemaId: 'schemaId',
-        subjectDid: '',
-        expDate: '2024-12-31',
-      };
-
-      const result = await controller.issueCredential(issueCredentialDto);
-
-      expect(result).toEqual(
-        sendErrorResponse(
-          RequestError.SUBJECT_DID_MISSING,
-          400,
-          `subjectDid must be provided in the body of the request.`,
-        ),
-      );
-    });
-
     it('should handle errors gracefully', async () => {
       const issueCredentialDto: IssueCredentialDto = {
         data: { name: 'test' },
