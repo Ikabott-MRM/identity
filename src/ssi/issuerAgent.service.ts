@@ -3,7 +3,6 @@ import { BearerDid, DidDht } from '@web5/dids';
 import { VerifiableCredential, PresentationExchange } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
 import { mapDataWithRules } from '../helpers/functions';
-import { PresentationsDefinitions } from './inMemoryRepositories/presentations-definitions-in-memory';
 import { DWNService } from './dwn/dwn.service';
 import { AUTHORIZED_CALLER_TOKEN } from './dwn/authorized-caller.provider';
 import { Jwk } from '@web5/crypto';
@@ -15,7 +14,6 @@ export class IssuerAgentService implements OnModuleInit {
 
   constructor(
     private readonly credentialsRepository: CredentialsSchemasInMemoryRepository,
-    private readonly presentationsDefinitions: PresentationsDefinitions,
     private readonly dwnService: DWNService,
     @Inject(AUTHORIZED_CALLER_TOKEN) private readonly dwnServiceToken: symbol,
   ) {}

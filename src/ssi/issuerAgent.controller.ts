@@ -8,7 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { sendErrorResponse, sendResponse } from 'src/helpers/functions';
+import { sendErrorResponse, sendResponse } from '../helpers/functions';
 import { IssuerAgentService } from './issuerAgent.service';
 import { IssueCredentialDto } from './dto/CredentialsIssuance.dto';
 import { RequestError } from '../helpers/errors';
@@ -46,7 +46,7 @@ export class IssuerAgentController {
 
     if (result?.success) {
       this.logger.debug('Created DID.');
-      return sendResponse(result.result, 201, 'did successfully created');
+      return sendResponse(result.result, 201, 'DID successfully created.');
     }
     return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
