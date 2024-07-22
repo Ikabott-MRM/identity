@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOkResponse,
@@ -7,7 +7,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
-import { sendErrorResponse, sendResponse } from 'src/helpers/functions';
+import { sendErrorResponse, sendResponse } from '../../helpers/functions';
 import { DWNService } from './dwn.service';
 import { RequestError } from '../../helpers/errors';
 
@@ -43,9 +43,7 @@ export class DWNController {
   })
   async credentials(@Query('holderDid') holderDid: string) {
     if (!holderDid)
-      return sendErrorResponse(
-        RequestError.HOLDER_DID_MISSING,
-        400,
+      throw new BadRequestException(
         `holderDid cannot be undefined. A value must be passed as query parameter.`,
       );
     const result = await this.dwnService.queryCredentialsFromDWN(holderDid);

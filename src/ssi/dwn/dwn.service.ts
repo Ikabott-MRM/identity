@@ -80,7 +80,7 @@ export class DWNService {
 
       this.logger.log('Protocol configured', configureStatus, protocol);
     } catch (error) {
-      console.error('Error loading JSON file:', error);
+      this.logger.error('Error loading JSON file:', error);
     }
   }
 

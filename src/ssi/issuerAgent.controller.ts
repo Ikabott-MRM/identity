@@ -8,7 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { sendErrorResponse, sendResponse } from 'src/helpers/functions';
+import { sendErrorResponse, sendResponse } from '../helpers/functions';
 import { IssuerAgentService } from './issuerAgent.service';
 import { IssueCredentialDto } from './dto/CredentialsIssuance.dto';
 import { RequestError } from '../helpers/errors';
@@ -46,7 +46,7 @@ export class IssuerAgentController {
 
     if (result?.success) {
       this.logger.debug('Created DID.');
-      return sendResponse(result.result, 201, 'did successfully created');
+      return sendResponse(result.result, 201, 'DID successfully created.');
     }
     return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }
@@ -76,19 +76,6 @@ export class IssuerAgentController {
   })
   async issueCredential(@Body() issueCredentialDto: IssueCredentialDto) {
     const { data, schemaId, subjectDid, expDate } = issueCredentialDto;
-
-    if (!schemaId)
-      return sendErrorResponse(
-        RequestError.SCHEMA_ID_MISSING,
-        400,
-        `schemaId must be provided in the body of the request.`,
-      );
-    if (!subjectDid)
-      return sendErrorResponse(
-        RequestError.SUBJECT_DID_MISSING,
-        400,
-        `subjectDid must be provided in the body of the request.`,
-      );
 
     const result = await this.issuerAgentService.issueCredential(
       data,
