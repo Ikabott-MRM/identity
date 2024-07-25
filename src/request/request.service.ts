@@ -3,6 +3,12 @@ import { randomUUID } from 'crypto';
 import { Knex } from 'knex';
 import { IssuerAgentService } from '../ssi/issuerAgent.service';
 
+export interface RequestFilter {
+  status?: RequestStatus;
+  schema_id?: string;
+  subject_did?: string;
+}
+
 interface VerificationRequest {
   id?: string;
   schema_id: string;
@@ -66,8 +72,22 @@ export class RequestService {
     return createdRequest;
   }
 
-  async getRequests() {
-    return this.knex.select('*').from('request');
+  async getRequests(filter: RequestFilter = {}) {
+    let query = this.knex.select('*').from('request');
+
+    if (filter.status) {
+      query = query.where('status', filter.status);
+    }
+
+    if (filter.schema_id) {
+      query = query.where('schema_id', filter.schema_id);
+    }
+
+    if (filter.subject_did) {
+      query = query.where('subject_did', filter.subject_did);
+    }
+
+    return query;
   }
 
   async getRequestsWithStatus(status: RequestStatus) {

@@ -17,6 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { sendErrorResponse, sendResponse } from '../helpers/functions';
 import {
   RequestAlreadyProcessedError,
+  RequestFilter,
   RequestService,
   RequestStatus,
 } from './request.service';
@@ -158,51 +159,59 @@ export class RequestController {
   @Get('/')
   @ApiOperation({
     summary:
-      'It retrieves all requests. If query param "status" is provided, it will filter them by "status"',
+      'Retrieves requests with optional filters for status, schema_id, and subject_did.',
   })
   @ApiQuery({
     name: 'status',
     required: false,
-    description:
-      'If set, is the status that is going to be used for filtering the requests.',
+    description: 'Filter requests by status.',
     schema: { type: 'string' },
     enum: ['pending', 'approved', 'rejected'],
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Bad request.Message field on response will provide a more accurate description of it.',
+  @ApiQuery({
+    name: 'schema_id',
+    required: false,
+    description: 'Filter requests by schema ID.',
+    schema: { type: 'string' },
   })
-  @ApiResponse({
-    status: 500,
-    description:
-      'Internal server error. Message field on response will provide a more accurate description of it',
+  @ApiQuery({
+    name: 'subject_did',
+    required: false,
+    description: 'Filter requests by subject DID.',
+    schema: { type: 'string' },
   })
-  @ApiOkResponse({
-    status: 200,
-    description: 'Requests retrieved successfully.',
-  })
-  async getRequests(@Query('status') status: RequestStatus) {
-    const validStatuses = [
-      RequestStatus.PENDING,
-      RequestStatus.APPROVED,
-      RequestStatus.REJECTED,
-    ];
-
-    if (status && !validStatuses.includes(status)) {
-      return sendErrorResponse(
-        RequestError.STATUS_INVALID,
-        400,
-        `Invalid status. Status should be one of: ${validStatuses.join(', ')}`,
-      );
-    }
+  async getRequests(
+    @Query('status') status?: RequestStatus,
+    @Query('schema_id') schema_id?: string,
+    @Query('subject_did') subject_did?: string,
+  ) {
+    const filter: RequestFilter = {};
 
     if (status) {
-      const requests = await this.requestService.getRequestsWithStatus(status);
-      return sendResponse(requests, 200, 'Requests retrieved successfully.');
+      const validStatuses = [
+        RequestStatus.PENDING,
+        RequestStatus.APPROVED,
+        RequestStatus.REJECTED,
+      ];
+      if (!validStatuses.includes(status)) {
+        return sendErrorResponse(
+          RequestError.STATUS_INVALID,
+          400,
+          `Invalid status. Status should be one of: ${validStatuses.join(', ')}`,
+        );
+      }
+      filter.status = status;
     }
 
-    const requests = await this.requestService.getRequests();
+    if (schema_id) {
+      filter.schema_id = schema_id;
+    }
+
+    if (subject_did) {
+      filter.subject_did = subject_did;
+    }
+
+    const requests = await this.requestService.getRequests(filter);
     return sendResponse(requests, 200, 'Requests retrieved successfully.');
   }
 
