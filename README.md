@@ -1,60 +1,80 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"></a>
-</p>
+# Identity
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
 
-  <p align="center">The backend for the IOVF Identity platform for building decentralized identities and verifiable claims.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+IOV Foundation's Identity API allows governments to handle Decentralized Identifiers (DIDs) and Self-Sovereign Identity (SSI). Designed for scale.
 
-## Description
 
-Using IOVF Identity, we can generate decentralized identities and verifiable claims for governments.
+## Getting Started
 
-## Installation
+### Prerequisites
 
-```bash
-$ npm install
-```
+- Node.js (version compatible with NestJS 10)
+- npm
+- Docker
 
-## Running the app
+### Installation
 
-```bash
-# development
-$ npm run start
+1. Clone the repository:
+`git clone https://github.com/IOV-Foundation/identity`
 
-# watch mode
-$ npm run start:dev
+2. Install dependencies:
+`npm install`
 
-# production mode
-$ npm run start:prod
-```
+### Running the application
 
-## Test
+- To run the MySQL database
+`docker-compose up -d database`
 
-```bash
-# unit tests
-$ npm run test
+- To run migrations
+This is needed to start the project for the first time.
+`npx knex migrate:up`
 
-# e2e tests
-$ npm run test:e2e
+- For development:
+`npm run start:dev`
 
-# test coverage
-$ npm run test:cov
-```
+- For production:
+`npm run build`
+`npm run start:prod`
 
+## Scripts
+- `npm run build`: Build the application
+- `npm run format`: Format code using Prettier
+- `npm run start`: Start the application
+- `npm run start:dev`: Start the application in watch mode
+- `npm run start:debug`: Start the application in debug mode
+- `npm run start:prod`: Start the production build
+- `npm run lint`: Lint and fix files
+- `npm test`: Run tests
+- `npm run test:watch`: Run tests in watch mode
+- `npm run test:cov`: Run tests with coverage
+- `npm run test:debug`: Debug tests
+- `npm run test:e2e`: Run end-to-end tests
+
+## Features
+- Self-sovereign identity
+    - DID Creation
+    - Creation of credentials via templates
+        - Driver License
+        - More coming soon
+    - Credential requests by end users
+    - Credential approval or rejection
+
+## Technology Stack
+
+- NestJS
+- TypeScript
+- [TBD](https://www.tbd.website/)
+- MySQL
+- Jest for testing
+
+## Contributing
+
+Our goal is to continuously improve. We develop IDA openly on GitHub and welcome contributions from the open source community. Whether you're fixing bugs, suggesting improvements, or adding new features, your input is valuable.
+
+## License
+
+Apache License 2.0.
+
+## Contact
+For information purposes: info@iovf.org
+For support purposes: support@iovf.org
