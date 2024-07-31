@@ -12,6 +12,7 @@ import {
   NotFoundException,
   FileTypeValidator,
   HttpCode,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { sendErrorResponse, sendResponse } from '../helpers/functions';
@@ -152,6 +153,58 @@ export class RequestController {
         RequestError.UNEXPECTED_ERROR,
         error.status || 500,
         error.message || 'An unexpected error occurred.',
+      );
+    }
+  }
+
+  @Delete(':did/pending')
+  @ApiOperation({
+    summary: 'Delete all pending requests associated with a specific DID',
+  })
+  @ApiParam({
+    name: 'did',
+    required: true,
+    description:
+      'Decentralized Identifier of the user whose pending requests are to be deleted',
+    schema: { type: 'string' },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Pending requests deleted successfully',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+  })
+  @HttpCode(200)
+  async deletePendingRequestsForDid(@Param('did') did: string) {
+    try {
+      const requests = await this.requestService.getRequestsForSubject(did);
+
+      const pendingRequests = requests.filter(
+        (request) => request.status === RequestStatus.PENDING,
+      );
+
+      if (pendingRequests.length === 0) {
+        return sendResponse(
+          null,
+          200,
+          'No pending requests found for deletion',
+        );
+      }
+
+      await this.requestService.deleteRequestsForSubject(did);
+
+      return sendResponse(
+        null,
+        200,
+        `Successfully deleted ${pendingRequests.length} pending requests for DID: ${did}`,
+      );
+    } catch (error) {
+      return sendErrorResponse(
+        RequestError.UNEXPECTED_ERROR,
+        500,
+        'An error occurred while deleting pending requests',
       );
     }
   }

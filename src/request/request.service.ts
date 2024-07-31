@@ -111,6 +111,12 @@ export class RequestService {
     return { request };
   }
 
+  async deleteRequestsForSubject(subject_did: string) {
+    return this.knex('request')
+      .where({ subject_did, status: RequestStatus.PENDING })
+      .del();
+  }
+
   async approveRequest(
     id: string,
     identifiable_data: IdentifiableData,
