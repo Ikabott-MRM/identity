@@ -9,7 +9,7 @@ export interface RequestFilter {
   subject_did?: string;
 }
 
-interface VerificationRequest {
+export interface VerificationRequest {
   id?: string;
   schema_id: string;
   subject_did: string;
@@ -186,3 +186,4 @@ export class RequestService {
     }
   }
 }
+

@@ -22,7 +22,7 @@ import {
   RequestService,
   RequestStatus,
 } from './request.service';
-import { ActionPayloadDto } from 'src/ssi/dto/ActionPayload.dto';
+import { ActionPayloadDto } from '../ssi/dto/ActionPayload.dto';
 import {
   ApiBody,
   ApiConsumes,

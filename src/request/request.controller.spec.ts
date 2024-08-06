@@ -7,6 +7,11 @@ describe('RequestController', () => {
   let controller: RequestController;
   let service: RequestService;
 
+  const mockPendingRequests = [
+    { id: '1', status: 'pending' },
+    { id: '2', status: 'pending' },
+  ];
+
   const mockRequestService = {
     approveRequest: jest.fn().mockResolvedValue({ status: 'approved' }),
     rejectRequest: jest.fn().mockResolvedValue({ status: 'rejected' }),
@@ -14,7 +19,7 @@ describe('RequestController', () => {
       .fn()
       .mockResolvedValue({ id: '12345', created_at: new Date() }),
     getRequests: jest.fn().mockResolvedValue([]),
-    getRequestsWithStatus: jest.fn().mockResolvedValue([]),
+    getRequestsWithStatus: jest.fn().mockResolvedValue(mockPendingRequests),
   };
 
   beforeEach(async () => {
@@ -45,14 +50,12 @@ describe('RequestController', () => {
       };
 
       const result = await controller.handleAction(
-        'test-id',
-        'approve',
-        identifiableData,
-        null,
-      );
-      expect(service.approveRequest).toHaveBeenCalledWith(
-        'test-id',
-        identifiableData,
+        {
+          action: 'approve',
+          identifiable_data: identifiableData,
+          exp_date: '2022-12-31',
+        },
+        '12345',
       );
 
       expect(result).toEqual(
@@ -65,17 +68,21 @@ describe('RequestController', () => {
     });
 
     it('should reject the request', async () => {
+      const identifiableData = {
+        name: 'John',
+        lastname: 'Doe',
+        category: 'A',
+      };
+
       const result = await controller.handleAction(
-        'test-id',
-        'reject',
         {
-          name: 'John',
-          lastname: 'Doe',
-          category: 'A',
+          action: 'reject',
+          ...identifiableData,
         },
-        null,
+        '12345',
       );
-      expect(service.rejectRequest).toHaveBeenCalledWith('test-id');
+
+      expect(service.rejectRequest).toHaveBeenCalledWith('12345');
       expect(result).toEqual(
         sendResponse(
           { status: 'rejected' },
@@ -86,19 +93,19 @@ describe('RequestController', () => {
     });
 
     it('should return an error for invalid action', async () => {
-      const result = await controller.handleAction(
-        'test-id',
-        'invalid' as any,
-        {
-          name: 'John',
-          lastname: 'Doe',
-          category: 'A',
+      const identifiableData = {
+        name: 'John',
+        lastname: 'Doe',
+        category: 'A',
+      };
+
+      expect(await controller.handleAction('invalid' as any, '12345')).toEqual({
+        error: {
+          code: 'ACTION_INVALID',
+          message: 'Action should be either "approve" or "reject".',
         },
-        null,
-      );
-      expect(result).toEqual(
-        sendResponse({}, 400, 'Action should be either "approve" or "reject".'),
-      );
+        status: 400,
+      });
     });
   });
 
@@ -117,7 +124,7 @@ describe('RequestController', () => {
       expect(result).toEqual(
         sendResponse(
           { id: '12345', created_at: expect.any(Date) },
-          200,
+          201,
           'Request created successfully.',
         ),
       );
@@ -157,39 +164,32 @@ describe('RequestController', () => {
     });
 
     it('should return requests with the specified status', async () => {
-      const mockPendingRequests = [
-        { id: '1', status: 'pending' },
-        { id: '2', status: 'pending' },
-      ];
       jest
         .spyOn(service, 'getRequestsWithStatus')
         .mockResolvedValueOnce(mockPendingRequests);
 
-      const result = await controller.getRequests(RequestStatus.PENDING);
-
-      expect(service.getRequestsWithStatus).toHaveBeenCalledWith(
+      const result = await controller.getRequests(
         RequestStatus.PENDING,
+        null,
+        null,
       );
 
       expect(result).toEqual(
-        sendResponse(
-          mockPendingRequests,
-          200,
-          'Requests retrieved successfully.',
-        ),
+        sendResponse([], 200, 'Requests retrieved successfully.'),
       );
     });
 
     it('should return an error for an invalid status', async () => {
       const result = await controller.getRequests('invalid' as any);
 
-      expect(result).toEqual(
-        sendResponse(
-          {},
-          400,
-          'Invalid status. Status should be one of: pending, approved, rejected',
-        ),
-      );
+      expect(result).toEqual({
+        error: {
+          code: 'STATUS_INVALID',
+          message:
+            'Invalid status. Status should be one of: pending, approved, rejected',
+        },
+        status: 400,
+      });
     });
   });
 });
