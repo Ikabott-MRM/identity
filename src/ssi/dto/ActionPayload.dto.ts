@@ -41,7 +41,7 @@ export class ActionPayloadDto {
     description:
       'Only needed for approval actions. Is the data to be used for the claims of the verifiable credential that ends up being issued when approving a request.',
   })
-  @ValidateIf((o) => o.action === 'approve')
+  @ValidateIf(o => o.action === 'approve')
   @ValidateNested()
   @Type(() => IdentifiableDataDto)
   identifiable_data?: IdentifiableDataDto;
@@ -52,7 +52,7 @@ export class ActionPayloadDto {
     description:
       'Only needed for approval actions. Is the expiration date that is going to be set for the verifiable credential.',
   })
-  @ValidateIf((o) => o.action === 'approve')
+  @ValidateIf(o => o.action === 'approve')
   @IsNotEmpty()
   exp_date?: string;
 }

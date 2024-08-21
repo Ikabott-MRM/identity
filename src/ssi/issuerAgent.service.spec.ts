@@ -5,7 +5,6 @@ import { BearerDid, BearerDidSigner, DidDht } from '@web5/dids';
 import { Jwk, LocalKeyManager } from '@web5/crypto';
 import { Logger } from '@nestjs/common';
 import { DWNService } from './dwn/dwn.service';
-import { AUTHORIZED_CALLER_TOKEN } from './dwn/authorized-caller.provider';
 import { VerifiableCredential } from '@web5/credentials';
 import { mapDataWithRules } from '../helpers/functions';
 
@@ -20,11 +19,7 @@ describe('IssuerAgentService', () => {
       providers: [
         IssuerAgentService,
         CredentialsSchemasInMemoryRepository,
-        DWNService,
-        {
-          provide: AUTHORIZED_CALLER_TOKEN,
-          useValue: Symbol('AuthorizedCallerToken'),
-        },
+        DWNService
       ],
     }).compile();
 
@@ -128,38 +123,42 @@ describe('IssuerAgentService', () => {
         },
       };
 
-      const data = mapDataWithRules({
-        name:"Romina",
-        lastname:"Sal",
-      },mockSchema.mappingRulesDescriptor)
+      const data = mapDataWithRules(
+        {
+          name: 'Romina',
+          lastname: 'Sal',
+        },
+        mockSchema.mappingRulesDescriptor,
+      );
       const mockSaveResult = { success: true };
 
-      jest.spyOn((service as any).credentialsRepository, 'get')
-      .mockImplementation((schemaId: string) => {
-        expect(schemaId).toBeDefined(); 
-        return Promise.resolve(mockSchema);
-      });
-
-        const mockVc = await VerifiableCredential.create({
-          type: mockSchema.type,
-          issuer: operationalDID.uri,
-          subject: 'test-did',
-          data,
-          expirationDate:'2028-12-20T00:00:00.000Z'
+      jest
+        .spyOn((service as any).credentialsRepository, 'get')
+        .mockImplementation((schemaId: string) => {
+          expect(schemaId).toBeDefined();
+          return Promise.resolve(mockSchema);
         });
-        const mockedSignedVcJwt = await mockVc.sign({ did: operationalDID });
 
-        jest.spyOn(VerifiableCredential, 'create').mockResolvedValue(mockVc);
-        jest.spyOn(mockVc, 'sign').mockResolvedValue(mockedSignedVcJwt);
+      const mockVc = await VerifiableCredential.create({
+        type: mockSchema.type,
+        issuer: operationalDID.uri,
+        subject: 'test-did',
+        data,
+        expirationDate: '2028-12-20T00:00:00.000Z',
+      });
+      const mockedSignedVcJwt = await mockVc.sign({ did: operationalDID });
 
-        jest
+      jest.spyOn(VerifiableCredential, 'create').mockResolvedValue(mockVc);
+      jest.spyOn(mockVc, 'sign').mockResolvedValue(mockedSignedVcJwt);
+
+      jest
         .spyOn((service as any).dwnService, 'saveCredentialtoDWN')
         .mockResolvedValue(mockSaveResult);
 
       const result = await service.issueCredential(
         {
-          name:"Romina",
-          lastname:"Sal",
+          name: 'Romina',
+          lastname: 'Sal',
         },
         '2028-12-20',
         'DriversLicense',
@@ -189,26 +188,30 @@ describe('IssuerAgentService', () => {
         },
       };
 
-      const data = mapDataWithRules({
-        name:"Soledad",
-        lastname:"Canepa",
-      },mockSchema.mappingRulesDescriptor)
+      const data = mapDataWithRules(
+        {
+          name: 'Soledad',
+          lastname: 'Canepa',
+        },
+        mockSchema.mappingRulesDescriptor,
+      );
       const mockSaveResult = { success: true };
 
-      jest.spyOn((service as any).credentialsRepository, 'get')
-      .mockImplementation((schemaId: string) => {
-        expect(schemaId).toBeDefined(); 
-        return Promise.resolve(mockSchema);
-      });
+      jest
+        .spyOn((service as any).credentialsRepository, 'get')
+        .mockImplementation((schemaId: string) => {
+          expect(schemaId).toBeDefined();
+          return Promise.resolve(mockSchema);
+        });
 
-        jest
+      jest
         .spyOn((service as any).dwnService, 'saveCredentialtoDWN')
         .mockRejectedValue(new Error('failed to save to DWN'));
 
       const result = await service.issueCredential(
         {
-          name:"Soledad",
-          lastname:"Canepa",
+          name: 'Soledad',
+          lastname: 'Canepa',
         },
         '2028-12-20',
         'DriversLicense',
@@ -226,15 +229,11 @@ describe('IssuerAgentService', () => {
       );
     });
 
-
     it('should handle errors gracefully', async () => {
       const mockError = new Error('Failed to issue credential');
 
       jest
-        .spyOn(
-          (service as any).credentialsRepository,
-          'get',
-        )
+        .spyOn((service as any).credentialsRepository, 'get')
         .mockRejectedValue(mockError);
 
       const result = await service.issueCredential(
@@ -255,39 +254,40 @@ describe('IssuerAgentService', () => {
   });
 
   describe('getIssuerPublicJWKey', () => {
-
     it('should return an error if no verification method is found', async () => {
       operationalDID.document = {
-        id:'1'
+        id: '1',
       };
       const result = await service.getIssuerPublicJWKey();
 
       expect(result.success).toBe(false);
       expect(result.result).toBeNull();
-      expect(result.error).toBe("There is no verification method in the issuer's did document");
+      expect(result.error).toBe(
+        "There is no verification method in the issuer's did document",
+      );
       expect(loggerErrorSpy).toHaveBeenCalledWith(
         `An error occurred while retrieving the issuer public JSON web key from the verification method in its did document`,
-        expect.any(String)
+        expect.any(String),
       );
     });
-    
+
     it('should return the issuer public key successfully', async () => {
       const mockPublicKeyJwk: Jwk = {
-        "crv": "Ed25519",
-        "kty": "OKP",
-        "x": "YxJXolp0KB-gOegwUKk1z1rb9I0A9heEgHj1WQdngcM",
-        "kid": "oJxm1VJ7g-kwOPYJ-lhgvQt92mFRjZ-8gTGd4O-SoBE",
-        "alg": "EdDSA"
-    };
+        crv: 'Ed25519',
+        kty: 'OKP',
+        x: 'YxJXolp0KB-gOegwUKk1z1rb9I0A9heEgHj1WQdngcM',
+        kid: 'oJxm1VJ7g-kwOPYJ-lhgvQt92mFRjZ-8gTGd4O-SoBE',
+        alg: 'EdDSA',
+      };
 
       operationalDID.document = {
-        id:'2',
+        id: '2',
         verificationMethod: [
           {
             publicKeyJwk: mockPublicKeyJwk,
             id: '',
             type: '',
-            controller: ''
+            controller: '',
           },
         ],
       };
@@ -300,16 +300,15 @@ describe('IssuerAgentService', () => {
       expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
 
-
     it('should return an error if no public key JWK is found', async () => {
       operationalDID.document = {
-        id:'3',
+        id: '3',
         verificationMethod: [
           {
             publicKeyJwk: null,
             id: '',
             type: '',
-            controller: ''
+            controller: '',
           },
         ],
       };
@@ -318,12 +317,13 @@ describe('IssuerAgentService', () => {
 
       expect(result.success).toBe(false);
       expect(result.result).toBeNull();
-      expect(result.error).toBe("No JSON Web Key was obtained from the verification method in the issuer's did document");
+      expect(result.error).toBe(
+        "No JSON Web Key was obtained from the verification method in the issuer's did document",
+      );
       expect(loggerErrorSpy).toHaveBeenCalledWith(
         `An error occurred while retrieving the issuer public JSON web key from the verification method in its did document`,
-        expect.any(String)
+        expect.any(String),
       );
     });
   });
-
 });

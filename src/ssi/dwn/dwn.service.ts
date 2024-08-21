@@ -148,7 +148,7 @@ export class DWNService {
   async fetchAndParseCredentials(
     res: RecordsQueryResponse,
   ): Promise<CredentialQueryResultObject[]> {
-    const credentialPromises = res.records.map(async (record) => {
+    const credentialPromises = res.records.map(async record => {
       const encodedCredential = await record.data.text();
       const parsedCredential = VerifiableCredential.parseJwt({
         vcJwt: encodedCredential,

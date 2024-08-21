@@ -5,7 +5,11 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { IssueCredentialDto } from './dto/CredentialsIssuance.dto';
 import { RequestError } from '../helpers/errors';
-import { mapDataWithRules, sendErrorResponse, sendResponse } from '../helpers/functions';
+import {
+  mapDataWithRules,
+  sendErrorResponse,
+  sendResponse,
+} from '../helpers/functions';
 import { BearerDid } from '@web5/dids';
 import { Jwk, LocalKeyManager } from '@web5/crypto';
 import { VerifiableCredential } from '@web5/credentials';
@@ -19,11 +23,10 @@ describe('IssuerAgentController', () => {
   let testDid: BearerDid;
   let operationalDID: BearerDid;
 
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [IssuerAgentController],
-      imports:[DWNModule],
+      imports: [DWNModule],
       providers: [
         IssuerAgentService,
         ConfigService,
@@ -39,33 +42,33 @@ describe('IssuerAgentController', () => {
     }).compile();
 
     const signerMock = {
-        algorithm: 'mockAlgorithm',
-        keyId: 'mockKeyId',
-        sign: jest.fn().mockResolvedValue(new Uint8Array()),
-        verify: jest.fn().mockResolvedValue(true),
-      };
+      algorithm: 'mockAlgorithm',
+      keyId: 'mockKeyId',
+      sign: jest.fn().mockResolvedValue(new Uint8Array()),
+      verify: jest.fn().mockResolvedValue(true),
+    };
 
     operationalDID = {
-        keyManager: new LocalKeyManager(),
-        export: jest.fn().mockResolvedValue({
-          uri: 'did:dht:operationalDid',
-        }),
+      keyManager: new LocalKeyManager(),
+      export: jest.fn().mockResolvedValue({
         uri: 'did:dht:operationalDid',
-        document: undefined,
-        metadata: undefined,
-        getSigner: jest.fn().mockResolvedValue(signerMock),
-      };
+      }),
+      uri: 'did:dht:operationalDid',
+      document: undefined,
+      metadata: undefined,
+      getSigner: jest.fn().mockResolvedValue(signerMock),
+    };
 
     testDid = {
-        keyManager: new LocalKeyManager(),
-        export: jest.fn().mockResolvedValue({
-          uri: 'did:dht:testDid',
-        }),
+      keyManager: new LocalKeyManager(),
+      export: jest.fn().mockResolvedValue({
         uri: 'did:dht:testDid',
-        document: undefined,
-        metadata: undefined,
-        getSigner: jest.fn(),
-      };
+      }),
+      uri: 'did:dht:testDid',
+      document: undefined,
+      metadata: undefined,
+      getSigner: jest.fn(),
+    };
 
     controller = module.get<IssuerAgentController>(IssuerAgentController);
     service = module.get<IssuerAgentService>(IssuerAgentService);
@@ -79,21 +82,29 @@ describe('IssuerAgentController', () => {
   describe('createDID', () => {
     it('should create and export a DID successfully', async () => {
       jest.spyOn(configService, 'get').mockReturnValue('TBD');
-      jest.spyOn(service, 'createAndExportTBDIdentity').mockResolvedValue({ success: true, result: testDid, error:null });
+      jest
+        .spyOn(service, 'createAndExportTBDIdentity')
+        .mockResolvedValue({ success: true, result: testDid, error: null });
 
       const result = await controller.createDID();
 
-      expect(result).toEqual(sendResponse(testDid, 201, 'DID successfully created.'));
+      expect(result).toEqual(
+        sendResponse(testDid, 201, 'DID successfully created.'),
+      );
       expect(service.createAndExportTBDIdentity).toHaveBeenCalled();
     });
 
     it('should handle errors gracefully', async () => {
       jest.spyOn(configService, 'get').mockReturnValue('TBD');
-      jest.spyOn(service, 'createAndExportTBDIdentity').mockResolvedValue({ success: false, result:null, error: 'error' });
+      jest
+        .spyOn(service, 'createAndExportTBDIdentity')
+        .mockResolvedValue({ success: false, result: null, error: 'error' });
 
       const result = await controller.createDID();
 
-      expect(result).toEqual(sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, 'error'));
+      expect(result).toEqual(
+        sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, 'error'),
+      );
       expect(service.createAndExportTBDIdentity).toHaveBeenCalled();
     });
   });
@@ -102,9 +113,9 @@ describe('IssuerAgentController', () => {
     it('should issue a credential successfully', async () => {
       const issueCredentialDto: IssueCredentialDto = {
         data: {
-            name:"Romina",
-            lastname:"Sal",
-          },
+          name: 'Romina',
+          lastname: 'Sal',
+        },
         schemaId: 'DriversLicense',
         subjectDid: 'did:dht:rominaDid',
         expDate: '2024-12-31',
@@ -120,32 +131,41 @@ describe('IssuerAgentController', () => {
         },
       };
 
-      const data = mapDataWithRules({
-        name:"Soledad",
-        lastname:"Canepa",
-      },mockSchema.mappingRulesDescriptor)
+      const data = mapDataWithRules(
+        {
+          name: 'Soledad',
+          lastname: 'Canepa',
+        },
+        mockSchema.mappingRulesDescriptor,
+      );
 
-      jest.spyOn((service as any).credentialsRepository, 'get')
-      .mockImplementation((schemaId: string) => {
-        expect(schemaId).toBeDefined(); 
-        return Promise.resolve(mockSchema);
-      });
-
-        const mockVc = await VerifiableCredential.create({
-          type: mockSchema.type,
-          issuer: operationalDID.uri,
-          subject: 'test-did',
-          data,
-          expirationDate:'2028-12-20T00:00:00.000Z'
+      jest
+        .spyOn((service as any).credentialsRepository, 'get')
+        .mockImplementation((schemaId: string) => {
+          expect(schemaId).toBeDefined();
+          return Promise.resolve(mockSchema);
         });
-        const mockedSignedVcJwt = await mockVc.sign({ did: operationalDID });
 
+      const mockVc = await VerifiableCredential.create({
+        type: mockSchema.type,
+        issuer: operationalDID.uri,
+        subject: 'test-did',
+        data,
+        expirationDate: '2028-12-20T00:00:00.000Z',
+      });
+      const mockedSignedVcJwt = await mockVc.sign({ did: operationalDID });
 
-      jest.spyOn(service, 'issueCredential').mockResolvedValue({ success: true, result: mockedSignedVcJwt, error:null });
+      jest.spyOn(service, 'issueCredential').mockResolvedValue({
+        success: true,
+        result: mockedSignedVcJwt,
+        error: null,
+      });
 
       const result = await controller.issueCredential(issueCredentialDto);
 
-      expect(result).toEqual(sendResponse(mockedSignedVcJwt, 200, 'VC successfully issued.'));
+      expect(result).toEqual(
+        sendResponse(mockedSignedVcJwt, 200, 'VC successfully issued.'),
+      );
       expect(service.issueCredential).toHaveBeenCalledWith(
         issueCredentialDto.data,
         issueCredentialDto.expDate,
@@ -162,11 +182,15 @@ describe('IssuerAgentController', () => {
         expDate: '2024-12-31',
       };
 
-      jest.spyOn(service, 'issueCredential').mockResolvedValue({ success: false, result:null, error: 'error' });
+      jest
+        .spyOn(service, 'issueCredential')
+        .mockResolvedValue({ success: false, result: null, error: 'error' });
 
       const result = await controller.issueCredential(issueCredentialDto);
 
-      expect(result).toEqual(sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, 'error'));
+      expect(result).toEqual(
+        sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, 'error'),
+      );
       expect(service.issueCredential).toHaveBeenCalledWith(
         issueCredentialDto.data,
         issueCredentialDto.expDate,
@@ -186,7 +210,11 @@ describe('IssuerAgentController', () => {
         alg: 'EdDSA',
       };
 
-      jest.spyOn(service, 'getIssuerPublicJWKey').mockResolvedValue({ success: true, result: mockPublicKeyJwk, error:null });
+      jest.spyOn(service, 'getIssuerPublicJWKey').mockResolvedValue({
+        success: true,
+        result: mockPublicKeyJwk,
+        error: null,
+      });
 
       const result = await controller.getIssuerPublicJWKey();
 
@@ -195,11 +223,15 @@ describe('IssuerAgentController', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      jest.spyOn(service, 'getIssuerPublicJWKey').mockResolvedValue({ success: false, result:null, error: 'error' });
+      jest
+        .spyOn(service, 'getIssuerPublicJWKey')
+        .mockResolvedValue({ success: false, result: null, error: 'error' });
 
       const result = await controller.getIssuerPublicJWKey();
 
-      expect(result).toEqual(sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, 'error'));
+      expect(result).toEqual(
+        sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, 'error'),
+      );
       expect(service.getIssuerPublicJWKey).toHaveBeenCalled();
     });
   });

@@ -21,7 +21,7 @@ export class CredentialsSchemasInMemoryRepository {
 
   async get(schemaId: any): Promise<Schema> {
     const schema = this.credentialsSchemas.find(
-      (schema) => schema.id === schemaId,
+      schema => schema.id === schemaId,
     );
     if (!schema) {
       throw new Error(`Schema with ID ${schemaId} not found`);
