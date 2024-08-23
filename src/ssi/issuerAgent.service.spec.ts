@@ -19,7 +19,7 @@ describe('IssuerAgentService', () => {
       providers: [
         IssuerAgentService,
         CredentialsSchemasInMemoryRepository,
-        DWNService
+        DWNService,
       ],
     }).compile();
 

@@ -19,35 +19,42 @@ export class IssuerAgentService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    if (!this.operationalDID) {
-      this.logger.debug(
-        'Verifying if there is an encrypted file in order to try to recover previous issuer.',
-      );
-      let issuerPortableDidString = await this.encryptionService.loadDidFile();
-
-      if (Boolean(issuerPortableDidString)) {
-        const issuerPortableDid = JSON.parse(issuerPortableDidString);
-
-        this.operationalDID = await DidDht.import({
-          portableDid: issuerPortableDid,
-        });
-
-        this.logger.log(`Issuer DID has been successfully recovered.`);
-      } else {
-        this.logger.log(
-          `Issuer has never been ran before. Issuer is being initialized for the first time.`,
+    try {
+      if (!this.operationalDID) {
+        this.logger.debug(
+          'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
         );
-        this.operationalDID = (await this.createAndExportTBDIdentity()).result;
-        const portableDid =  await this.operationalDID.export();
-        const issuerPortableDid = JSON.stringify(
-          portableDid,
-          null,
-          2,
-        );
-        await this.encryptionService.createDidFile(issuerPortableDid);
+        let issuerPortableDidString =
+          await this.encryptionService.loadDidFile();
+
+        if (Boolean(issuerPortableDidString)) {
+          const issuerPortableDid = JSON.parse(issuerPortableDidString);
+
+          this.operationalDID = await DidDht.import({
+            portableDid: issuerPortableDid,
+          });
+
+          this.logger.log(`Issuer DID successfully recovered.`);
+        } else {
+          this.logger.log(
+            `Issuer has never been run before. Initializing issuer for the first time.`,
+          );
+          this.operationalDID = (
+            await this.createAndExportTBDIdentity()
+          ).result;
+          const portableDid = await this.operationalDID.export();
+          const issuerPortableDid = JSON.stringify(portableDid, null, 2);
+          await this.encryptionService.createDidFile(issuerPortableDid);
+        }
+        this.logger.debug(`operational DID of agent:`);
+        this.logger.debug(this.operationalDID.uri);
       }
-      this.logger.debug(`operational DID of agent:`);
-      this.logger.debug(this.operationalDID.uri);
+    } catch (err) {
+      this.logger.error(
+        `An error occurred while trying to initialize issuerAgent service`,
+        err.stack,
+      );
+      throw err;
     }
   }
 
@@ -155,7 +162,6 @@ export class IssuerAgentService implements OnModuleInit {
   }
 
   /**
-   *
    * @returns issuer's public key in JWK format
    */
   async getIssuerPublicJWKey(): Promise<{

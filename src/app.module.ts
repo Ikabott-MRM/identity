@@ -12,6 +12,8 @@ import { RequestModule } from './request/request.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import * as Joi from 'joi';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { createTransport } from 'nodemailer';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -31,6 +33,17 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         DB_USER: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
       }),
+    }),
+    MailerModule.forRoot({
+      transport: {
+        host: 'smtp.gmail.com',
+        secure: true,
+        port: 465,
+        auth: {
+          user: 'iovfida@gmail.com',
+          pass: 'knmxpvfidqnhgdhx',
+        },
+      },
     }),
     KnexModule,
     IssuerAgentModule,

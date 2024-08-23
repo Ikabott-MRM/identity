@@ -64,3 +64,6 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 documents/*
+
+#encrypted portable did
+/src/ssi/persistence/encryptedPortableDid.txt

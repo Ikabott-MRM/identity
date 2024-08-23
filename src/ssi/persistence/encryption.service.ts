@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as readline from 'readline';
+import { EmailService } from './email/email.service';
 
 @Injectable()
 export class EncryptionService {
@@ -9,6 +10,8 @@ export class EncryptionService {
   private readonly logger = new Logger(EncryptionService.name);
   private readonly encryptedDidFile =
     'src/ssi/persistence/encryptedPortableDid.txt';
+
+  constructor(private readonly emailService: EmailService) {}
 
   private async promptForUserInput(question: string): Promise<string> {
     const rl = readline.createInterface({
@@ -25,7 +28,7 @@ export class EncryptionService {
   }
   private async promptForPasswordAndSaltForDecryption(): Promise<void> {
     const password = await this.promptForUserInput(
-      'Enter the encryption password you choose the first time you started the issuer:\n',
+      'Enter the encryption password you chose the first time you started the issuer:\n',
     );
 
     const salt = await this.promptForUserInput(
@@ -40,15 +43,32 @@ export class EncryptionService {
     emailAddress: string;
   }> {
     const password = await this.promptForUserInput(
-      'Enter the encryption password.\nPlease store this password somewhere securely as it will be the only way for you to recover the issuer in case you need to restart it in the future.\nThis password WILL NOT be stored anywhere in the system.: ',
+      'Enter the encryption password.\nPlease store this password securely, as it will be the only way to recover the issuer in case you need to restart it in the future.\nThis password WILL NOT be stored anywhere in the system.:\n',
     );
 
-    const emailAddress = await this.promptForUserInput(
-      'Enter your email address. We will send you the encrypted file and the salt used for its encryption.\nWith the salt and the encryption key only you know, you will be able to decrypt the file is needed.',
+    let isValidEmailAddress = false;
+    let attempts = 1;
+    do {
+      let emailAddress = await this.promptForUserInput(
+        attempts == 1
+          ? 'Enter your email address. We will send you the encrypted file and the salt used for its encryption.\nWith the salt and the encryption key that only you know, you will be able to decrypt the file needed.\n'
+          : 'The email address you entered is invalid. Please enter your email address again:\n',
+      );
+
+      let isValidEmailAddress =
+        this.emailService.isValidEmailAddress(emailAddress);
+      attempts++;
+
+      if (isValidEmailAddress) {
+        const salt = crypto.randomBytes(16).toString('hex');
+        this.encryptionKey = crypto.scryptSync(password, salt, 32);
+        return { salt, emailAddress };
+      }
+    } while (!isValidEmailAddress && attempts <= 3);
+
+    throw new Error(
+      'Maximum attempts to enter a valid email address have been reached. The issuer will not be initialized. Please resolve this issue before attempting to start it again.',
     );
-    const salt = crypto.randomBytes(16).toString('hex');
-    this.encryptionKey = crypto.scryptSync(password, salt, 32);
-    return { salt, emailAddress };
   }
 
   private async encryptData(data: string): Promise<void> {
@@ -58,9 +78,6 @@ export class EncryptionService {
       if (!this.encryptionKey) {
         throw new Error('Encryption key is not defined.');
       }
-
-      //TODO borrar!! lo uso mientras no tengo que me mande a mi mail
-      console.log(`salt es ${salt}`);
 
       const iv = crypto.randomBytes(16);
       const cipher = crypto.createCipheriv(
@@ -77,11 +94,14 @@ export class EncryptionService {
         encryptedData: encrypted,
       };
 
-      //TODO aca habria que mandar el mail con la salt y file content
+      this.emailService.sendMail(emailAddress, {
+        salt,
+        encryptedContent: fileContent,
+      });
       fs.writeFileSync(this.encryptedDidFile, JSON.stringify(fileContent));
     } catch (err) {
       this.logger.error(
-        `An error occurred while trying to encryp issuer DID.`,
+        `An error occurred while trying to encrypt issuer DID.`,
         err.stack,
       );
       throw err;
