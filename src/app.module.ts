@@ -13,7 +13,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import * as Joi from 'joi';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { createTransport } from 'nodemailer';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -32,16 +31,23 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         DB_HOST: Joi.string().required(),
         DB_USER: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
+        // check if mailer environment variables are set
+        TRANSPORT_HOST: Joi.string().required(),
+        MAIL_USER: Joi.string().required(),
+        MAIL_PASSWORD: Joi.string().required(),
       }),
+      validationOptions: {
+        abortEarly: true,
+      },
     }),
     MailerModule.forRoot({
       transport: {
-        host: 'smtp.gmail.com',
+        host: process.env.TRANSPORT_HOST,
         secure: true,
         port: 465,
         auth: {
-          user: 'iovfida@gmail.com',
-          pass: 'knmxpvfidqnhgdhx',
+          user: process.env.MAIL_USER,
+          pass: process.env. MAIL_PASSWORD,
         },
       },
     }),
