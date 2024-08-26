@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { BearerDid, DidDht } from '@web5/dids';
 import { VerifiableCredential } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
@@ -36,8 +36,10 @@ export class IssuerAgentService implements OnModuleInit {
 
           this.logger.log(`Issuer DID successfully recovered.`);
         } else {
+          //TODO boorre la parte de uqe nunca fue inicializaod pq puede pasar que se desea resetearlo
+          //loggear esa eleccion en el loadDidFIle cno el prompt
           this.logger.log(
-            `Issuer has never been run before. Initializing issuer for the first time.`,
+            `Initializing issuer for the first time.`,
           );
           this.operationalDID = (
             await this.createAndExportTBDIdentity()

@@ -32,7 +32,7 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         DB_USER: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
         // check if mailer environment variables are set
-        TRANSPORT_HOST: Joi.string().required(),
+        MAILER_TRANSPORT_HOST: Joi.string().required(),
         MAIL_USER: Joi.string().required(),
         MAIL_PASSWORD: Joi.string().required(),
       }),
@@ -42,7 +42,7 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     }),
     MailerModule.forRoot({
       transport: {
-        host: process.env.TRANSPORT_HOST,
+        host: process.env.MAILER_TRANSPORT_HOST,
         secure: true,
         port: 465,
         auth: {

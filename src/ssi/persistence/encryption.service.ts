@@ -26,13 +26,20 @@ export class EncryptionService {
       });
     });
   }
+
+  private async confirmIssuerRecovery(): Promise<boolean> {
+    const userInput = await this.promptForUserInput('Do you want to try recovering the issuer? (Y/N):\n');
+    return userInput.trim().toUpperCase() === 'Y';
+}
+
+
   private async promptForPasswordAndSaltForDecryption(): Promise<void> {
     const password = await this.promptForUserInput(
       'Enter the encryption password you chose the first time you started the issuer:\n',
     );
 
     const salt = await this.promptForUserInput(
-      'Enter the encryption salt that you previously received by email: \n',
+      'Enter the encryption salt that you previously received by email:\n',
     );
 
     this.encryptionKey = crypto.scryptSync(password, salt, 32);
@@ -71,7 +78,7 @@ export class EncryptionService {
     );
   }
 
-  private async encryptData(data: string): Promise<void> {
+  async createDidFile(data: string): Promise<void> {
     try {
       const { salt, emailAddress } =
         await this.promptForPasswordAndEmailForEncryption();
@@ -108,9 +115,12 @@ export class EncryptionService {
     }
   }
 
-  private async decryptFile(): Promise<string> {
+  async loadDidFile(): Promise<string> {
     try {
       if (!fs.existsSync(this.encryptedDidFile)) return null;
+
+      const recoverIssuer = await this.confirmIssuerRecovery();
+      if(!recoverIssuer) return null; 
 
       await this.promptForPasswordAndSaltForDecryption();
       if (!this.encryptionKey) {
@@ -140,13 +150,5 @@ export class EncryptionService {
       );
       throw err;
     }
-  }
-
-  async createDidFile(data: string): Promise<void> {
-    await this.encryptData(data);
-  }
-
-  async loadDidFile(): Promise<string> {
-    return await this.decryptFile();
   }
 }
