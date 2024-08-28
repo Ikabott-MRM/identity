@@ -36,6 +36,24 @@ This is needed to start the project for the first time.
 `npm run build`
 `npm run start:prod`
 
+## About persistence 
+
+To encrypt the portable DID, the Node.js crypto module is used with the AES (Advanced Encryption Standard) algorithm in CTR mode (aes-256-ctr).
+
+The password entered by the user to encrypt/decrypt the file will not be stored anywhere in the system. Each time the backend is started, it will check if a file containing the encrypted portable DID exists.
+
+If this file exists, a user will need to enter the password used the first time the issuer was initialized, along with the salt used to derive the encryption key, which was sent to their email when the issuer was first set up. Using this password and salt, the encryption key will be derived again and used to decrypt the file containing the portable DID.
+
+If the file does not exist, the user will be prompted to enter a password (with an explanation that it will not be stored in the system and should be kept secure) and an email address to send the encrypted file and the salt. With the encrypted file, knowledge of the algorithm used, and the salt, the user will be able to decrypt the file externally if needed.
+
+For sending emails, the MailerModule is used. In this case, emails are sent from a Gmail account. To configure the mail transport, the following environment variables were added, defining the transport host, the user (the account from which emails will be sent), and the password for that account:
+
+- MAILER_TRANSPORT_HOST='smtp.gmail.com'
+- MAIL_USER='*******@gmail.com'
+- MAIL_PASSWORD='*************'
+
+It is important to note that when using Gmail as the mail server, the password used is not the usual login password for the account. A specific "APP PASSWORD" needs to be created for the account, which allows its use in external applications like this one.
+
 ## Scripts
 - `npm run build`: Build the application
 - `npm run format`: Format code using Prettier

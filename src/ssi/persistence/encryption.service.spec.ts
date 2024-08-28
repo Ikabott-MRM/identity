@@ -226,6 +226,7 @@ describe('EncryptionService', () => {
       jest
         .spyOn(service as any, 'promptForUserInput')
         .mockImplementationOnce(async () => 'ra'); // for email
+        
       //making it fail for the third time
       jest
         .spyOn(emailService, 'isValidEmailAddress')
