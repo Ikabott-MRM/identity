@@ -1,11 +1,11 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { BearerDid, DidDht } from '@web5/dids';
-import { VerifiableCredential, PresentationExchange } from '@web5/credentials';
+import { VerifiableCredential } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
 import { mapDataWithRules } from '../helpers/functions';
 import { DWNService } from './dwn/dwn.service';
-import { AUTHORIZED_CALLER_TOKEN } from './dwn/authorized-caller.provider';
 import { Jwk } from '@web5/crypto';
+import { EncryptionService } from './persistence/encryption.service';
 
 @Injectable()
 export class IssuerAgentService implements OnModuleInit {
@@ -15,18 +15,44 @@ export class IssuerAgentService implements OnModuleInit {
   constructor(
     private readonly credentialsRepository: CredentialsSchemasInMemoryRepository,
     private readonly dwnService: DWNService,
-    @Inject(AUTHORIZED_CALLER_TOKEN) private readonly dwnServiceToken: symbol,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   async onModuleInit() {
-    // Check if DID already exists
-    if (!this.operationalDID) {
-      this.logger.debug(`issuer agent getting initialized:`);
+    try {
+      if (!this.operationalDID) {
+        this.logger.debug(
+          'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
+        );
+        let issuerPortableDidString =
+          await this.encryptionService.loadDidFile();
 
-      this.operationalDID = (await this.createAndExportTBDIdentity()).result;
+        if (Boolean(issuerPortableDidString)) {
+          const issuerPortableDid = JSON.parse(issuerPortableDidString);
 
-      this.logger.debug(`operational DID of agent:`);
-      this.logger.debug(this.operationalDID.uri);
+          this.operationalDID = await DidDht.import({
+            portableDid: issuerPortableDid,
+          });
+
+          this.logger.log(`Issuer DID successfully recovered.`);
+        } else {
+          this.logger.log(`Initializing issuer for the first time.`);
+          this.operationalDID = (
+            await this.createAndExportTBDIdentity()
+          ).result;
+          const portableDid = await this.operationalDID.export();
+          const issuerPortableDid = JSON.stringify(portableDid, null, 2);
+          await this.encryptionService.createDidFile(issuerPortableDid);
+        }
+        this.logger.debug(`operational DID of agent:`);
+        this.logger.debug(this.operationalDID.uri);
+      }
+    } catch (err) {
+      this.logger.error(
+        `An error occurred while trying to initialize issuerAgent service`,
+        err.stack,
+      );
+      throw err;
     }
   }
 
@@ -44,11 +70,6 @@ export class IssuerAgentService implements OnModuleInit {
       this.logger.log(`A dht did is about to be created`);
       const didDht = await DidDht.create();
       this.logger.log(`A dht did has been succesfully created`);
-
-      const portableDid = await didDht.export();
-      /**
-       * TODO se haria el save del exported did. se va a confirmar storage
-       */
       return {
         success: true,
         result: didDht,
@@ -139,7 +160,6 @@ export class IssuerAgentService implements OnModuleInit {
   }
 
   /**
-   *
    * @returns issuer's public key in JWK format
    */
   async getIssuerPublicJWKey(): Promise<{

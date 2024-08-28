@@ -182,7 +182,7 @@ export class RequestController {
       const requests = await this.requestService.getRequestsForSubject(did);
 
       const pendingRequests = requests.filter(
-        (request) => request.status === RequestStatus.PENDING,
+        request => request.status === RequestStatus.PENDING,
       );
 
       if (pendingRequests.length === 0) {

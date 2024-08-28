@@ -5,30 +5,43 @@ import { BearerDid, BearerDidSigner, DidDht } from '@web5/dids';
 import { Jwk, LocalKeyManager } from '@web5/crypto';
 import { Logger } from '@nestjs/common';
 import { DWNService } from './dwn/dwn.service';
-import { AUTHORIZED_CALLER_TOKEN } from './dwn/authorized-caller.provider';
 import { VerifiableCredential } from '@web5/credentials';
 import { mapDataWithRules } from '../helpers/functions';
+import { EncryptionService } from './persistence/encryption.service';
+import { EmailService } from './persistence/email/email.service';
+import { MailerService } from '@nestjs-modules/mailer';
+import * as fs from 'fs';
+import * as crypto from 'crypto';
 
 describe('IssuerAgentService', () => {
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
   let service: IssuerAgentService;
   let operationalDID: BearerDid;
+  let encryptionService: EncryptionService;
+  let emailService: EmailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        IssuerAgentService,
         CredentialsSchemasInMemoryRepository,
         DWNService,
+        EmailService,
         {
-          provide: AUTHORIZED_CALLER_TOKEN,
-          useValue: Symbol('AuthorizedCallerToken'),
+          provide: MailerService,
+          useValue: {
+            sendMail: jest.fn(),
+          },
         },
+        EncryptionService,
+        IssuerAgentService,
       ],
     }).compile();
 
     service = module.get<IssuerAgentService>(IssuerAgentService);
+    encryptionService = module.get<EncryptionService>(EncryptionService);
+    emailService = module.get<EmailService>(EmailService);
+
     jest.mock('../helpers/functions', () => ({
       mapDataWithRules: jest.fn(),
     }));
@@ -59,10 +72,149 @@ describe('IssuerAgentService', () => {
   afterEach(async () => {
     loggerErrorSpy.mockClear();
     loggerDebugSpy.mockClear();
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('onModuleInit', () => {
+    it('should initialize issuerAgent service by creating and encrypting a new DID', async () => {
+      (service as any).operationalDID = null;
+
+      //mock the result of crecreateAndExportTBDIdentity in order to be able to test how createDidFile is called
+      const mockBearerDid: BearerDid = {
+        keyManager: new LocalKeyManager(),
+        export: jest.fn().mockResolvedValue({
+          uri: 'did:dht:mockDid',
+        }),
+        uri: 'did:dht:mockDid',
+        document: undefined,
+        metadata: undefined,
+        getSigner: function (params?: {
+          methodId: string;
+        }): Promise<BearerDidSigner> {
+          throw new Error('Function not implemented.');
+        },
+      };
+
+      jest.spyOn(DidDht, 'create').mockResolvedValueOnce(mockBearerDid);
+
+      const mockPortableDid = await mockBearerDid.export();
+
+      jest
+        .spyOn(encryptionService as any, 'promptForUserInput')
+        .mockImplementationOnce(async () => 'strongpassword') // for password
+        .mockImplementationOnce(async () => 'user@example.com'); // for email
+
+      // Mock email validation to return true in order to have encriptionKey defined
+      jest.spyOn(emailService, 'isValidEmailAddress').mockReturnValueOnce(true);
+
+      //mock loadDidFile result in order to trigger the creation of a new did
+      jest.spyOn(encryptionService, 'loadDidFile').mockReturnValueOnce(null);
+      jest.spyOn(encryptionService, 'createDidFile');
+
+      await service.onModuleInit();
+
+      expect(encryptionService.loadDidFile).toHaveBeenCalled();
+      expect(encryptionService.createDidFile).toHaveBeenCalledWith(
+        JSON.stringify(mockPortableDid, null, 2),
+      );
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith(
+        'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
+      );
+    });
+
+    it('should initialize issuerAgent service by loading the encrypted DID', async () => {
+      (service as any).operationalDID = null;
+
+      //mock the result of crecreateAndExportTBDIdentity in order to be able to test how createDidFile is called
+      const mockBearerDid: BearerDid = {
+        keyManager: new LocalKeyManager(),
+        export: jest.fn().mockResolvedValue({
+          uri: 'did:dht:mockDid',
+        }),
+        uri: 'did:dht:mockDid',
+        document: undefined,
+        metadata: undefined,
+        getSigner: function (params?: {
+          methodId: string;
+        }): Promise<BearerDidSigner> {
+          throw new Error('Function not implemented.');
+        },
+      };
+
+      const mockPortableDid = await mockBearerDid.export();
+
+      const mockFileContent = {
+        iv: '416a3bf2ece77f548464d0c3eb53974d',
+        encryptedData:
+          '24709c8637ed0b54d2b2464a476fbf9df5e3acd64521820e5d351441608f0ab8',
+      };
+
+      jest.spyOn(DidDht, 'import').mockResolvedValueOnce(mockBearerDid);
+
+      jest
+        .spyOn(encryptionService as any, 'promptForUserInput')
+        .mockImplementationOnce(async () => 'strongpassword') // for password
+        .mockImplementationOnce(async () => 'user@example.com'); // for email
+
+      // Mock email validation to return true in order to have encriptionKey defined
+      jest.spyOn(emailService, 'isValidEmailAddress').mockReturnValueOnce(true);
+
+      //mock that did file exists and that user confirms recovery
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+      jest
+        .spyOn(encryptionService as any, 'confirmIssuerRecovery')
+        .mockResolvedValue(true);
+
+      jest
+        .spyOn(fs, 'readFileSync')
+        .mockReturnValue(JSON.stringify(mockFileContent));
+
+      jest.spyOn(crypto, 'createDecipheriv').mockReturnValue({
+        update: jest.fn().mockReturnValue(JSON.stringify(mockPortableDid)),
+        final: jest.fn().mockReturnValue(''),
+      } as any);
+
+      //mock loadDidFile result in order to trigger the creation of a new did
+      jest.spyOn(encryptionService, 'loadDidFile');
+      jest.spyOn(encryptionService, 'createDidFile');
+
+      await service.onModuleInit();
+
+      expect(encryptionService.loadDidFile).toHaveBeenCalled();
+      expect(encryptionService.createDidFile).not.toHaveBeenCalled();
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith(
+        'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
+      );
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith('operational DID of agent:');
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith(`${mockBearerDid.uri}`);
+    });
+
+    it('should fail initializing issuerAgent service due to loadDidFile throwing an error', async () => {
+      (service as any).operationalDID = null;
+
+      jest
+        .spyOn(encryptionService, 'loadDidFile')
+        .mockRejectedValueOnce(new Error('Simulated error'));
+      await expect(service.onModuleInit()).rejects.toThrow('Simulated error');
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith(
+        'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
+      );
+
+      expect(loggerErrorSpy).toHaveBeenNthCalledWith(
+        1,
+        `An error occurred while trying to initialize issuerAgent service`,
+        expect.any(String),
+      );
+    });
   });
 
   describe('method for creating and exporting a TBD Identity', () => {
@@ -128,38 +280,42 @@ describe('IssuerAgentService', () => {
         },
       };
 
-      const data = mapDataWithRules({
-        name:"Romina",
-        lastname:"Sal",
-      },mockSchema.mappingRulesDescriptor)
+      const data = mapDataWithRules(
+        {
+          name: 'Romina',
+          lastname: 'Sal',
+        },
+        mockSchema.mappingRulesDescriptor,
+      );
       const mockSaveResult = { success: true };
 
-      jest.spyOn((service as any).credentialsRepository, 'get')
-      .mockImplementation((schemaId: string) => {
-        expect(schemaId).toBeDefined(); 
-        return Promise.resolve(mockSchema);
-      });
-
-        const mockVc = await VerifiableCredential.create({
-          type: mockSchema.type,
-          issuer: operationalDID.uri,
-          subject: 'test-did',
-          data,
-          expirationDate:'2028-12-20T00:00:00.000Z'
+      jest
+        .spyOn((service as any).credentialsRepository, 'get')
+        .mockImplementation((schemaId: string) => {
+          expect(schemaId).toBeDefined();
+          return Promise.resolve(mockSchema);
         });
-        const mockedSignedVcJwt = await mockVc.sign({ did: operationalDID });
 
-        jest.spyOn(VerifiableCredential, 'create').mockResolvedValue(mockVc);
-        jest.spyOn(mockVc, 'sign').mockResolvedValue(mockedSignedVcJwt);
+      const mockVc = await VerifiableCredential.create({
+        type: mockSchema.type,
+        issuer: operationalDID.uri,
+        subject: 'test-did',
+        data,
+        expirationDate: '2028-12-20T00:00:00.000Z',
+      });
+      const mockedSignedVcJwt = await mockVc.sign({ did: operationalDID });
 
-        jest
+      jest.spyOn(VerifiableCredential, 'create').mockResolvedValue(mockVc);
+      jest.spyOn(mockVc, 'sign').mockResolvedValue(mockedSignedVcJwt);
+
+      jest
         .spyOn((service as any).dwnService, 'saveCredentialtoDWN')
         .mockResolvedValue(mockSaveResult);
 
       const result = await service.issueCredential(
         {
-          name:"Romina",
-          lastname:"Sal",
+          name: 'Romina',
+          lastname: 'Sal',
         },
         '2028-12-20',
         'DriversLicense',
@@ -189,26 +345,30 @@ describe('IssuerAgentService', () => {
         },
       };
 
-      const data = mapDataWithRules({
-        name:"Soledad",
-        lastname:"Canepa",
-      },mockSchema.mappingRulesDescriptor)
+      const data = mapDataWithRules(
+        {
+          name: 'Soledad',
+          lastname: 'Canepa',
+        },
+        mockSchema.mappingRulesDescriptor,
+      );
       const mockSaveResult = { success: true };
 
-      jest.spyOn((service as any).credentialsRepository, 'get')
-      .mockImplementation((schemaId: string) => {
-        expect(schemaId).toBeDefined(); 
-        return Promise.resolve(mockSchema);
-      });
+      jest
+        .spyOn((service as any).credentialsRepository, 'get')
+        .mockImplementation((schemaId: string) => {
+          expect(schemaId).toBeDefined();
+          return Promise.resolve(mockSchema);
+        });
 
-        jest
+      jest
         .spyOn((service as any).dwnService, 'saveCredentialtoDWN')
         .mockRejectedValue(new Error('failed to save to DWN'));
 
       const result = await service.issueCredential(
         {
-          name:"Soledad",
-          lastname:"Canepa",
+          name: 'Soledad',
+          lastname: 'Canepa',
         },
         '2028-12-20',
         'DriversLicense',
@@ -226,15 +386,11 @@ describe('IssuerAgentService', () => {
       );
     });
 
-
     it('should handle errors gracefully', async () => {
       const mockError = new Error('Failed to issue credential');
 
       jest
-        .spyOn(
-          (service as any).credentialsRepository,
-          'get',
-        )
+        .spyOn((service as any).credentialsRepository, 'get')
         .mockRejectedValue(mockError);
 
       const result = await service.issueCredential(
@@ -255,39 +411,40 @@ describe('IssuerAgentService', () => {
   });
 
   describe('getIssuerPublicJWKey', () => {
-
     it('should return an error if no verification method is found', async () => {
       operationalDID.document = {
-        id:'1'
+        id: '1',
       };
       const result = await service.getIssuerPublicJWKey();
 
       expect(result.success).toBe(false);
       expect(result.result).toBeNull();
-      expect(result.error).toBe("There is no verification method in the issuer's did document");
+      expect(result.error).toBe(
+        "There is no verification method in the issuer's did document",
+      );
       expect(loggerErrorSpy).toHaveBeenCalledWith(
         `An error occurred while retrieving the issuer public JSON web key from the verification method in its did document`,
-        expect.any(String)
+        expect.any(String),
       );
     });
-    
+
     it('should return the issuer public key successfully', async () => {
       const mockPublicKeyJwk: Jwk = {
-        "crv": "Ed25519",
-        "kty": "OKP",
-        "x": "YxJXolp0KB-gOegwUKk1z1rb9I0A9heEgHj1WQdngcM",
-        "kid": "oJxm1VJ7g-kwOPYJ-lhgvQt92mFRjZ-8gTGd4O-SoBE",
-        "alg": "EdDSA"
-    };
+        crv: 'Ed25519',
+        kty: 'OKP',
+        x: 'YxJXolp0KB-gOegwUKk1z1rb9I0A9heEgHj1WQdngcM',
+        kid: 'oJxm1VJ7g-kwOPYJ-lhgvQt92mFRjZ-8gTGd4O-SoBE',
+        alg: 'EdDSA',
+      };
 
       operationalDID.document = {
-        id:'2',
+        id: '2',
         verificationMethod: [
           {
             publicKeyJwk: mockPublicKeyJwk,
             id: '',
             type: '',
-            controller: ''
+            controller: '',
           },
         ],
       };
@@ -300,16 +457,15 @@ describe('IssuerAgentService', () => {
       expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
 
-
     it('should return an error if no public key JWK is found', async () => {
       operationalDID.document = {
-        id:'3',
+        id: '3',
         verificationMethod: [
           {
             publicKeyJwk: null,
             id: '',
             type: '',
-            controller: ''
+            controller: '',
           },
         ],
       };
@@ -318,12 +474,13 @@ describe('IssuerAgentService', () => {
 
       expect(result.success).toBe(false);
       expect(result.result).toBeNull();
-      expect(result.error).toBe("No JSON Web Key was obtained from the verification method in the issuer's did document");
+      expect(result.error).toBe(
+        "No JSON Web Key was obtained from the verification method in the issuer's did document",
+      );
       expect(loggerErrorSpy).toHaveBeenCalledWith(
         `An error occurred while retrieving the issuer public JSON web key from the verification method in its did document`,
-        expect.any(String)
+        expect.any(String),
       );
     });
   });
-
 });
