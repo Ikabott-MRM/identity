@@ -36,11 +36,7 @@ export class IssuerAgentService implements OnModuleInit {
 
           this.logger.log(`Issuer DID successfully recovered.`);
         } else {
-          //TODO boorre la parte de uqe nunca fue inicializaod pq puede pasar que se desea resetearlo
-          //loggear esa eleccion en el loadDidFIle cno el prompt
-          this.logger.log(
-            `Initializing issuer for the first time.`,
-          );
+          this.logger.log(`Initializing issuer for the first time.`);
           this.operationalDID = (
             await this.createAndExportTBDIdentity()
           ).result;

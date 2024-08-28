@@ -15,6 +15,9 @@ import { Jwk, LocalKeyManager } from '@web5/crypto';
 import { VerifiableCredential } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
 import { DWNModule } from './dwn/dwn.module';
+import { EncryptionService } from './persistence/encryption.service';
+import { EmailService } from './persistence/email/email.service';
+import { MailerService } from '@nestjs-modules/mailer';
 
 describe('IssuerAgentController', () => {
   let controller: IssuerAgentController;
@@ -28,6 +31,14 @@ describe('IssuerAgentController', () => {
       controllers: [IssuerAgentController],
       imports: [DWNModule],
       providers: [
+        EmailService,
+        {
+          provide: MailerService,
+          useValue: {
+            sendMail: jest.fn(),
+          },
+        },
+        EncryptionService,
         IssuerAgentService,
         ConfigService,
         CredentialsSchemasInMemoryRepository,

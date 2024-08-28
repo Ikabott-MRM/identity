@@ -1,7 +1,6 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Record, RecordsQueryResponse, Web5 } from '@web5/api';
 import * as fs from 'fs';
-import { AUTHORIZED_CALLER_TOKEN } from './authorized-caller.provider';
 import { BearerDid } from '@web5/dids';
 import { VerifiableCredential } from '@web5/credentials';
 
@@ -14,11 +13,6 @@ export interface CredentialQueryResultObject {
 export class DWNService {
   private readonly logger = new Logger(DWNService.name);
   private web5Instance: Web5;
-
-  constructor(
-    @Inject(AUTHORIZED_CALLER_TOKEN)
-    private readonly authorizedCallerToken: symbol,
-  ) {}
 
   async onModuleInit() {
     try {
@@ -82,14 +76,6 @@ export class DWNService {
     } catch (error) {
       this.logger.error('Error loading JSON file:', error);
     }
-  }
-
-  async getDWNAgentDid(callerToken: symbol): Promise<BearerDid> {
-    if (callerToken === this.authorizedCallerToken) {
-      return this.web5Instance.agent.agentDid;
-    }
-
-    throw new Error('Unauthorized access. Cannot access to dwn agent did');
   }
 
   async saveCredentialtoDWN(

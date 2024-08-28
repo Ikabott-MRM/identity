@@ -6,7 +6,6 @@ import { HttpModule } from '@nestjs/axios';
 import { IssuerAgentController } from './ssi/issuerAgent.controller';
 import { IssuerAgentModule } from './ssi/issuerAgent.module';
 import { DWNModule } from './ssi/dwn/dwn.module';
-import { AUTHORIZED_CALLER_TOKEN } from './ssi/dwn/authorized-caller.provider';
 import { DWNController } from './ssi/dwn/dwn.controller';
 import { RequestModule } from './request/request.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -47,7 +46,7 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         port: 465,
         auth: {
           user: process.env.MAIL_USER,
-          pass: process.env. MAIL_PASSWORD,
+          pass: process.env.MAIL_PASSWORD,
         },
       },
     }),
@@ -65,12 +64,6 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     }),
   ],
   controllers: [IssuerAgentController, DWNController],
-  providers: [
-    Logger,
-    {
-      provide: AUTHORIZED_CALLER_TOKEN,
-      useValue: Symbol('AUTHORIZED_CALLER_TOKEN'),
-    },
-  ],
+  providers: [Logger],
 })
 export class AppModule {}

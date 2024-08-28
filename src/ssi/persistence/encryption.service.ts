@@ -28,10 +28,11 @@ export class EncryptionService {
   }
 
   private async confirmIssuerRecovery(): Promise<boolean> {
-    const userInput = await this.promptForUserInput('Do you want to try recovering the issuer? (Y/N):\n');
+    const userInput = await this.promptForUserInput(
+      'Do you want to try recovering the issuer? (Y/N):\n',
+    );
     return userInput.trim().toUpperCase() === 'Y';
-}
-
+  }
 
   private async promptForPasswordAndSaltForDecryption(): Promise<void> {
     const password = await this.promptForUserInput(
@@ -82,9 +83,6 @@ export class EncryptionService {
     try {
       const { salt, emailAddress } =
         await this.promptForPasswordAndEmailForEncryption();
-      if (!this.encryptionKey) {
-        throw new Error('Encryption key is not defined.');
-      }
 
       const iv = crypto.randomBytes(16);
       const cipher = crypto.createCipheriv(
@@ -120,12 +118,14 @@ export class EncryptionService {
       if (!fs.existsSync(this.encryptedDidFile)) return null;
 
       const recoverIssuer = await this.confirmIssuerRecovery();
-      if(!recoverIssuer) return null; 
+      if (!recoverIssuer) {
+        this.logger.log(
+          'Recovery of the originally initialized issuer has been declined by the user. The encrypted file will be overwritten.',
+        );
+        return null;
+      }
 
       await this.promptForPasswordAndSaltForDecryption();
-      if (!this.encryptionKey) {
-        throw new Error('Encryption key is not defined.');
-      }
 
       const fileContent = JSON.parse(
         fs.readFileSync(this.encryptedDidFile, 'utf8'),

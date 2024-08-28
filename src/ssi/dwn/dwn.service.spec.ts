@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AUTHORIZED_CALLER_TOKEN } from './authorized-caller.provider';
 import { Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import { DWNService } from './dwn.service';
@@ -85,13 +84,7 @@ describe('DWNService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        DWNService,
-        {
-          provide: AUTHORIZED_CALLER_TOKEN,
-          useValue: Symbol('AuthorizedCallerToken'),
-        },
-      ],
+      providers: [DWNService],
     }).compile();
 
     service = module.get<DWNService>(DWNService);
@@ -243,30 +236,6 @@ describe('DWNService', () => {
         'Error querying protocols',
         queryError,
       );
-    });
-  });
-
-  describe('getDWNAgentDid', () => {
-    it('should return the agent DID if the callerToken is authorized', async () => {
-      (service as any).web5Instance = new MockWeb5();
-
-      const authorizedCallerToken = AUTHORIZED_CALLER_TOKEN;
-      (service as any).authorizedCallerToken = authorizedCallerToken;
-
-      const result = await service.getDWNAgentDid(authorizedCallerToken);
-
-      expect(result).toBe((service as any).web5Instance.agent.agentDid);
-    });
-
-    it('should throw an error if the callerToken is unauthorized', async () => {
-      (service as any).web5Instance = new MockWeb5();
-
-      const unauthorizedCallerToken = Symbol('UnauthorizedCallerToken');
-      (service as any).authorizedCallerToken = AUTHORIZED_CALLER_TOKEN;
-
-      await expect(
-        service.getDWNAgentDid(unauthorizedCallerToken),
-      ).rejects.toThrow('Unauthorized access. Cannot access to dwn agent did');
     });
   });
 

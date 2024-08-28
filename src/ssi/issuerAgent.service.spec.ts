@@ -7,23 +7,41 @@ import { Logger } from '@nestjs/common';
 import { DWNService } from './dwn/dwn.service';
 import { VerifiableCredential } from '@web5/credentials';
 import { mapDataWithRules } from '../helpers/functions';
+import { EncryptionService } from './persistence/encryption.service';
+import { EmailService } from './persistence/email/email.service';
+import { MailerService } from '@nestjs-modules/mailer';
+import * as fs from 'fs';
+import * as crypto from 'crypto';
 
 describe('IssuerAgentService', () => {
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
   let service: IssuerAgentService;
   let operationalDID: BearerDid;
+  let encryptionService: EncryptionService;
+  let emailService: EmailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        IssuerAgentService,
         CredentialsSchemasInMemoryRepository,
         DWNService,
+        EmailService,
+        {
+          provide: MailerService,
+          useValue: {
+            sendMail: jest.fn(),
+          },
+        },
+        EncryptionService,
+        IssuerAgentService,
       ],
     }).compile();
 
     service = module.get<IssuerAgentService>(IssuerAgentService);
+    encryptionService = module.get<EncryptionService>(EncryptionService);
+    emailService = module.get<EmailService>(EmailService);
+
     jest.mock('../helpers/functions', () => ({
       mapDataWithRules: jest.fn(),
     }));
@@ -54,10 +72,149 @@ describe('IssuerAgentService', () => {
   afterEach(async () => {
     loggerErrorSpy.mockClear();
     loggerDebugSpy.mockClear();
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('onModuleInit', () => {
+    it('should initialize issuerAgent service by creating and encrypting a new DID', async () => {
+      (service as any).operationalDID = null;
+
+      //mock the result of crecreateAndExportTBDIdentity in order to be able to test how createDidFile is called
+      const mockBearerDid: BearerDid = {
+        keyManager: new LocalKeyManager(),
+        export: jest.fn().mockResolvedValue({
+          uri: 'did:dht:mockDid',
+        }),
+        uri: 'did:dht:mockDid',
+        document: undefined,
+        metadata: undefined,
+        getSigner: function (params?: {
+          methodId: string;
+        }): Promise<BearerDidSigner> {
+          throw new Error('Function not implemented.');
+        },
+      };
+
+      jest.spyOn(DidDht, 'create').mockResolvedValueOnce(mockBearerDid);
+
+      const mockPortableDid = await mockBearerDid.export();
+
+      jest
+        .spyOn(encryptionService as any, 'promptForUserInput')
+        .mockImplementationOnce(async () => 'strongpassword') // for password
+        .mockImplementationOnce(async () => 'user@example.com'); // for email
+
+      // Mock email validation to return true in order to have encriptionKey defined
+      jest.spyOn(emailService, 'isValidEmailAddress').mockReturnValueOnce(true);
+
+      //mock loadDidFile result in order to trigger the creation of a new did
+      jest.spyOn(encryptionService, 'loadDidFile').mockReturnValueOnce(null);
+      jest.spyOn(encryptionService, 'createDidFile');
+
+      await service.onModuleInit();
+
+      expect(encryptionService.loadDidFile).toHaveBeenCalled();
+      expect(encryptionService.createDidFile).toHaveBeenCalledWith(
+        JSON.stringify(mockPortableDid, null, 2),
+      );
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith(
+        'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
+      );
+    });
+
+    it('should initialize issuerAgent service by loading the encrypted DID', async () => {
+      (service as any).operationalDID = null;
+
+      //mock the result of crecreateAndExportTBDIdentity in order to be able to test how createDidFile is called
+      const mockBearerDid: BearerDid = {
+        keyManager: new LocalKeyManager(),
+        export: jest.fn().mockResolvedValue({
+          uri: 'did:dht:mockDid',
+        }),
+        uri: 'did:dht:mockDid',
+        document: undefined,
+        metadata: undefined,
+        getSigner: function (params?: {
+          methodId: string;
+        }): Promise<BearerDidSigner> {
+          throw new Error('Function not implemented.');
+        },
+      };
+
+      const mockPortableDid = await mockBearerDid.export();
+
+      const mockFileContent = {
+        iv: '416a3bf2ece77f548464d0c3eb53974d',
+        encryptedData:
+          '24709c8637ed0b54d2b2464a476fbf9df5e3acd64521820e5d351441608f0ab8',
+      };
+
+      jest.spyOn(DidDht, 'import').mockResolvedValueOnce(mockBearerDid);
+
+      jest
+        .spyOn(encryptionService as any, 'promptForUserInput')
+        .mockImplementationOnce(async () => 'strongpassword') // for password
+        .mockImplementationOnce(async () => 'user@example.com'); // for email
+
+      // Mock email validation to return true in order to have encriptionKey defined
+      jest.spyOn(emailService, 'isValidEmailAddress').mockReturnValueOnce(true);
+
+      //mock that did file exists and that user confirms recovery
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+      jest
+        .spyOn(encryptionService as any, 'confirmIssuerRecovery')
+        .mockResolvedValue(true);
+
+      jest
+        .spyOn(fs, 'readFileSync')
+        .mockReturnValue(JSON.stringify(mockFileContent));
+
+      jest.spyOn(crypto, 'createDecipheriv').mockReturnValue({
+        update: jest.fn().mockReturnValue(JSON.stringify(mockPortableDid)),
+        final: jest.fn().mockReturnValue(''),
+      } as any);
+
+      //mock loadDidFile result in order to trigger the creation of a new did
+      jest.spyOn(encryptionService, 'loadDidFile');
+      jest.spyOn(encryptionService, 'createDidFile');
+
+      await service.onModuleInit();
+
+      expect(encryptionService.loadDidFile).toHaveBeenCalled();
+      expect(encryptionService.createDidFile).not.toHaveBeenCalled();
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith(
+        'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
+      );
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith('operational DID of agent:');
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith(`${mockBearerDid.uri}`);
+    });
+
+    it('should fail initializing issuerAgent service due to loadDidFile throwing an error', async () => {
+      (service as any).operationalDID = null;
+
+      jest
+        .spyOn(encryptionService, 'loadDidFile')
+        .mockRejectedValueOnce(new Error('Simulated error'));
+      await expect(service.onModuleInit()).rejects.toThrow('Simulated error');
+
+      expect(loggerDebugSpy).toHaveBeenCalledWith(
+        'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
+      );
+
+      expect(loggerErrorSpy).toHaveBeenNthCalledWith(
+        1,
+        `An error occurred while trying to initialize issuerAgent service`,
+        expect.any(String),
+      );
+    });
   });
 
   describe('method for creating and exporting a TBD Identity', () => {
