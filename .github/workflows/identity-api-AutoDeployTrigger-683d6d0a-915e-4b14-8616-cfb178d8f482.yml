@@ -46,5 +46,9 @@ jobs:
           imageToBuild: identitycace.azurecr.io/identity-api:${{ github.sha }}
           _buildArgumentsKey_: |
             _buildArgumentsValues_
+          environmentVariables: |
+            PWD=${{ secrets.PWD }}
+            SALT=${{ secrets.SALT }}
+            MAIL=${{ secrets.MAIL }}
 
 
