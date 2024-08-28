@@ -36,7 +36,7 @@ This is needed to start the project for the first time.
 `npm run build`
 `npm run start:prod`
 
-## About persistence 
+## About how issuer persistence is handled
 
 To encrypt the portable DID, the Node.js crypto module is used with the AES (Advanced Encryption Standard) algorithm in CTR mode (aes-256-ctr).
 
