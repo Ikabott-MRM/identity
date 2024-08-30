@@ -47,8 +47,8 @@ jobs:
           _buildArgumentsKey_: |
             _buildArgumentsValues_
           environmentVariables: |
-            PWD=${{ secrets.PWD }}
+            SECRET_PWD=${{ secrets.SECRET_PWD }}
             SALT=${{ secrets.SALT }}
-            MAIL=${{ secrets.MAIL }}
+            MAIL_ADDRESS=${{ secrets.MAIL_ADDRESS }}
 
 
