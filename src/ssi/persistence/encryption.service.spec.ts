@@ -226,7 +226,7 @@ describe('EncryptionService', () => {
       jest
         .spyOn(service as any, 'promptForUserInput')
         .mockImplementationOnce(async () => 'ra'); // for email
-        
+
       //making it fail for the third time
       jest
         .spyOn(emailService, 'isValidEmailAddress')
@@ -259,7 +259,6 @@ describe('EncryptionService', () => {
         encryptedData: 'encryptedData',
       };
       const mockDecryptedData = 'decryptedData';
-
       // Mock the methods
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest
@@ -318,6 +317,9 @@ describe('EncryptionService', () => {
     });
 
     it('should return null if the user declines to recover the issuer', async () => {
+        delete process.env.SALT;
+        delete process.env.SECRET_PWD;
+
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest
         .spyOn(service as any, 'confirmIssuerRecovery')

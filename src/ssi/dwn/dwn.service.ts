@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Record, RecordsQueryResponse, Web5 } from '@web5/api';
+
 import * as fs from 'fs';
 import { VerifiableCredential } from '@web5/credentials';
 
