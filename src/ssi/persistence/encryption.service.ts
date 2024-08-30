@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as readline from 'readline';
 import { EmailService } from './email/email.service';
+require('dotenv').config();
 
 @Injectable()
 export class EncryptionService {
@@ -35,13 +36,17 @@ export class EncryptionService {
   }
 
   private async promptForPasswordAndSaltForDecryption(): Promise<void> {
-    const password = await this.promptForUserInput(
-      'Enter the encryption password you chose the first time you started the issuer:\n',
-    );
+    const password =
+      process.env.SECRET_PWD ??
+      (await this.promptForUserInput(
+        'Enter the encryption password you chose the first time you started the issuer:\n',
+      ));
 
-    const salt = await this.promptForUserInput(
-      'Enter the encryption salt that you previously received by email:\n',
-    );
+    const salt =
+      process.env.SALT ??
+      (await this.promptForUserInput(
+        'Enter the encryption salt that you previously received by email:\n',
+      ));
 
     this.encryptionKey = crypto.scryptSync(password, salt, 32);
   }
@@ -50,18 +55,22 @@ export class EncryptionService {
     salt: string;
     emailAddress: string;
   }> {
-    const password = await this.promptForUserInput(
-      'Enter the encryption password.\nPlease store this password securely, as it will be the only way to recover the issuer in case you need to restart it in the future.\nThis password WILL NOT be stored anywhere in the system.:\n',
-    );
+    const password =
+      process.env.SECRET_PWD ??
+      (await this.promptForUserInput(
+        'Enter the encryption password.\nPlease store this password securely, as it will be the only way to recover the issuer in case you need to restart it in the future.\nThis password WILL NOT be stored anywhere in the system.:\n',
+      ));
 
     let isValidEmailAddress = false;
     let attempts = 1;
     do {
-      let emailAddress = await this.promptForUserInput(
-        attempts == 1
-          ? 'Enter your email address. We will send you the encrypted file and the salt used for its encryption.\nWith the salt and the encryption key that only you know, you will be able to decrypt the file needed.\n'
-          : 'The email address you entered is invalid. Please enter your email address again:\n',
-      );
+      let emailAddress =
+        process.env.MAIL_ADDRESS ??
+        (await this.promptForUserInput(
+          attempts == 1
+            ? 'Enter your email address. We will send you the encrypted file and the salt used for its encryption.\nWith the salt and the encryption key that only you know, you will be able to decrypt the file needed.\n'
+            : 'The email address you entered is invalid. Please enter your email address again:\n',
+        ));
 
       let isValidEmailAddress =
         this.emailService.isValidEmailAddress(emailAddress);
@@ -117,10 +126,12 @@ export class EncryptionService {
     try {
       if (!fs.existsSync(this.encryptedDidFile)) return null;
 
-      const recoverIssuer = await this.confirmIssuerRecovery();
+      const recoverIssuer =
+        (Boolean(process.env.SALT) && Boolean(process.env.SECRET_PWD)) ? true :
+        (await this.confirmIssuerRecovery());
       if (!recoverIssuer) {
         this.logger.log(
-          'Recovery of the originally initialized issuer has been declined by the user. The encrypted file will be overwritten.',
+          'Recovery of the originally initialized issuer has been declined by the user, or the necessary environment variables are not set. The encrypted file will be overwritten.',
         );
         return null;
       }
