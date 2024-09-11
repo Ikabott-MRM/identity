@@ -14,4 +14,7 @@ export default () => ({
     dwn: process.env.DWN_URL,
     ssiProjectName: process.env.SSI_PROJECT_NAME || 'TBD',
   },
+  apiKeys: {
+    cacheTTL: parseInt(process.env.CACHE_TTL) || 360000,
+  },
 });

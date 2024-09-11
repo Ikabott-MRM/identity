@@ -38,6 +38,8 @@ describe('EncryptionService', () => {
 
   afterEach(async () => {
     jest.clearAllMocks();
+    delete process.env.SALT;
+    delete process.env.SECRET_PWD;
   });
 
   it('should be defined', () => {
