@@ -38,6 +38,8 @@ describe('EncryptionService', () => {
 
   afterEach(async () => {
     jest.clearAllMocks();
+    delete process.env.SALT;
+    delete process.env.SECRET_PWD;
   });
 
   it('should be defined', () => {
@@ -317,8 +319,8 @@ describe('EncryptionService', () => {
     });
 
     it('should return null if the user declines to recover the issuer', async () => {
-        delete process.env.SALT;
-        delete process.env.SECRET_PWD;
+      delete process.env.SALT;
+      delete process.env.SECRET_PWD;
 
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest

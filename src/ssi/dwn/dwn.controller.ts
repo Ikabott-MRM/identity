@@ -5,6 +5,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiQuery,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import { sendErrorResponse, sendResponse } from '../../helpers/functions';
@@ -12,6 +13,7 @@ import { DWNService } from './dwn.service';
 import { RequestError } from '../../helpers/errors';
 
 @ApiTags('dwn')
+@ApiSecurity('api-key')
 @Controller('dwn')
 export class DWNController {
   private readonly logger: Logger = new Logger(DWNController.name);

@@ -12,6 +12,10 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import * as Joi from 'joi';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { ApiKeyAuthGuard } from './auth/guards/api-key-auth.guard';
+import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
+import { AuthModule } from './auth/auth.module';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -50,11 +54,13 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         },
       },
     }),
+    ScheduleModule.forRoot(),
     KnexModule,
     IssuerAgentModule,
     HttpModule,
     DWNModule,
     RequestModule,
+    AuthModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'documents'),
       serveRoot: '/documents',
@@ -64,6 +70,12 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     }),
   ],
   controllers: [IssuerAgentController, DWNController],
-  providers: [Logger],
+  providers: [
+    Logger,
+    {
+      provide: APP_GUARD,
+      useClass: ApiKeyAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

@@ -31,12 +31,14 @@ import {
   ApiParam,
   ApiQuery,
   ApiResponse,
+  ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
 
 import { RequestError } from '../helpers/errors';
 
 @ApiTags('requests')
+// @ApiSecurity('api-key')
 @Controller('requests')
 export class RequestController {
   static readonly MAX_FILE_SIZE = 3145728;

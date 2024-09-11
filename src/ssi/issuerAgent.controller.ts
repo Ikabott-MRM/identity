@@ -5,6 +5,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBody,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -14,6 +15,7 @@ import { IssueCredentialDto } from './dto/CredentialsIssuance.dto';
 import { RequestError } from '../helpers/errors';
 
 @ApiTags('issuerAgent')
+@ApiSecurity('api-key')
 @Controller('issuerAgent')
 export class IssuerAgentController {
   private readonly logger: Logger = new Logger(IssuerAgentController.name);

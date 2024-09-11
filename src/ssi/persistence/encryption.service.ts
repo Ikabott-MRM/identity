@@ -127,8 +127,9 @@ export class EncryptionService {
       if (!fs.existsSync(this.encryptedDidFile)) return null;
 
       const recoverIssuer =
-        (Boolean(process.env.SALT) && Boolean(process.env.SECRET_PWD)) ? true :
-        (await this.confirmIssuerRecovery());
+        Boolean(process.env.SALT) && Boolean(process.env.SECRET_PWD)
+          ? true
+          : await this.confirmIssuerRecovery();
       if (!recoverIssuer) {
         this.logger.log(
           'Recovery of the originally initialized issuer has been declined by the user, or the necessary environment variables are not set. The encrypted file will be overwritten.',

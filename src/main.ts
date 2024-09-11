@@ -27,7 +27,9 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Identity API')
     .setVersion('1.0')
+    .addApiKey({ type: 'apiKey', name: 'api_key', in: 'header' }, 'api-key')
     .build();
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
