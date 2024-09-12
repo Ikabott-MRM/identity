@@ -51,8 +51,7 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  //TODO definir cada cuanto quiero que se actualicen
-  @Cron(CronExpression.EVERY_30_SECONDS)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async updateActiveApiKeys() {
     this.logger.log('Updating active api-keys...');
     this.activeApiKeys = new Set(await this.apiKeysService.getHashedApiKeys());
