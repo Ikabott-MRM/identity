@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { BearerDid, DidDht } from '@web5/dids';
+import { BearerDid, DidDht, PortableDid } from '@web5/dids';
 import { VerifiableCredential } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
 import { mapDataWithRules } from '../helpers/functions';
@@ -37,12 +37,14 @@ export class IssuerAgentService implements OnModuleInit {
           this.logger.log(`Issuer DID successfully recovered.`);
         } else {
           this.logger.log(`Initializing issuer for the first time.`);
-          this.operationalDID = (
+          const portableDid = (
             await this.createAndExportTBDIdentity()
           ).result;
-          const portableDid = await this.operationalDID.export();
           const issuerPortableDid = JSON.stringify(portableDid, null, 2);
           await this.encryptionService.createDidFile(issuerPortableDid);
+          this.operationalDID = await DidDht.import({
+            portableDid:portableDid,
+          });
         }
         this.logger.debug(`operational DID of agent:`);
         this.logger.debug(this.operationalDID.uri);
@@ -62,17 +64,18 @@ export class IssuerAgentService implements OnModuleInit {
    */
   async createAndExportTBDIdentity(): Promise<{
     success: boolean;
-    result: BearerDid | null;
+    result: PortableDid | null;
     error: string | null;
   }> {
     try {
       // Creates a DID using the DHT method and publishes the DID Document to the DHT
       this.logger.log(`A dht did is about to be created`);
       const didDht = await DidDht.create();
+      const portableDid = await didDht.export();
       this.logger.log(`A dht did has been succesfully created`);
       return {
         success: true,
-        result: didDht,
+        result: portableDid,
         error: null,
       };
     } catch (error) {

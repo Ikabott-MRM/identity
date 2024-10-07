@@ -100,6 +100,7 @@ describe('IssuerAgentService', () => {
       };
 
       jest.spyOn(DidDht, 'create').mockResolvedValueOnce(mockBearerDid);
+      jest.spyOn(DidDht, 'import').mockResolvedValueOnce(mockBearerDid);
 
       const mockPortableDid = await mockBearerDid.export();
 
