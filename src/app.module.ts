@@ -16,6 +16,7 @@ import { ApiKeyAuthGuard } from './auth/guards/api-key-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
+import { EmailController } from './ssi/persistence/email/email.controller';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -69,7 +70,7 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
       },
     }),
   ],
-  controllers: [IssuerAgentController, DWNController],
+  controllers: [IssuerAgentController, DWNController, EmailController],
   providers: [
     Logger,
     {
