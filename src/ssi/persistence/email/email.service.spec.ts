@@ -84,6 +84,57 @@ describe('EmailService', () => {
     });
   });
 
+  describe('sendMailWithAttachment', () => {
+    it('should send an email with json file attached and log that it has been sent', async () => {
+      const mockEmail = 'user@example.com';
+
+      const mockJsonContent = {
+        "salt":"salt",
+        "iv":"iv",
+        "encryptedData":"hola"
+    }
+      const jsonFile = {
+        filename: 'backedUpDid.json',
+        content: JSON.stringify(mockJsonContent),
+        contentType: 'application/json',
+      };
+  
+
+      await emailService.sendEmailWithAttachment(mockEmail, mockJsonContent,'12345');
+
+      expect(mailerService.sendMail).toHaveBeenCalledWith({
+        to: mockEmail,
+        subject: 'Your DID Has Been Backed Up',
+        html: expect.any(String),
+        attachments: [jsonFile],
+      });
+
+    });
+
+    it('should log an error if sending an email fails', async () => {
+      const mockEmail = 'user@example.com';
+      const mockJsonContent = {
+        "salt":"salt",
+        "iv":"iv",
+        "encryptedData":"hola"
+    }
+
+      const mockError = new Error('Email sending failed');
+
+      jest.spyOn(mailerService, 'sendMail').mockRejectedValueOnce(mockError);
+
+      expect(await emailService.sendEmailWithAttachment(mockEmail, mockJsonContent,'12345')).toStrictEqual(
+        {"success": false, "code": null, "error": 'Email sending failed'}
+      );
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        `An error occurred while trying to send backed up DID to ${mockEmail}:`,
+        mockError.stack,
+      );
+    });
+  });
+
+
   describe('isValidEmailAddress', () => {
     it('should return true for a valid email address', () => {
       const validEmail = 'user@example.com';
@@ -93,6 +144,81 @@ describe('EmailService', () => {
     it('should return false for an invalid email address', () => {
       const invalidEmail = 'invalid-email@';
       expect(emailService.isValidEmailAddress(invalidEmail)).toBe(false);
+    });
+  });
+
+  describe('checkEmailResponse', () => {
+  
+    it('should return success true and no error for code 250', () => {
+      const info = {
+        response: '250 2.0.0 OK  1729197858 d9443c01a7336-20e5a75313csm564175ad.105 - gsmtp',
+      };
+      
+      const result = emailService.checkEmailResponse(info);
+      
+      expect(result.success).toBe(true);
+      expect(result.code).toBe(250);
+      expect(result.error).toBeNull();
+    });
+  
+    it('should return success false and error for code 550', () => {
+      const info = {
+        response: '550 5.1.1 Requested action not taken: mailbox unavailable',
+      };
+  
+      const result = emailService.checkEmailResponse(info);
+  
+      expect(result.success).toBe(false);
+      expect(result.code).toBe(550);
+      expect(result.error).toBe('Requested action not taken: mailbox unavailable');
+    });
+  
+    it('should return success false and error for code 421', () => {
+      const info = {
+        response: '421 4.4.2 Service not available',
+      };
+  
+      const result = emailService.checkEmailResponse(info);
+  
+      expect(result.success).toBe(false);
+      expect(result.code).toBe(421);
+      expect(result.error).toBe('Service not available');
+    });
+  
+    it('should return success false and error for code 450', () => {
+      const info = {
+        response: '450 4.2.0 Requested mail action not taken: mailbox unavailable',
+      };
+  
+      const result = emailService.checkEmailResponse(info);
+  
+      expect(result.success).toBe(false);
+      expect(result.code).toBe(450);
+      expect(result.error).toBe('Requested mail action not taken: mailbox unavailable');
+    });
+  
+    it('should handle codes >= 300 that are not specified in the switch', () => {
+      const info = {
+        response: '451 4.3.0 Temporary server failure x x - x',
+      };
+  
+      const result = emailService.checkEmailResponse(info);
+  
+      expect(result.success).toBe(false);
+      expect(result.code).toBe(451);
+      expect(result.error).toBe('Email failed to be sent: Temporary server failure');
+    });
+  
+    it('should return success false for unknown 3xx code with custom message', () => {
+      const info = {
+        response: '354 2.0.0 Start mail input x x - x',
+      };
+  
+      const result = emailService.checkEmailResponse(info);
+  
+      expect(result.success).toBe(false);
+      expect(result.code).toBe(354);
+      expect(result.error).toBe('Email failed to be sent: Start mail input');
     });
   });
 });
