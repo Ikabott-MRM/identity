@@ -34,6 +34,9 @@ jobs:
       - name: Create .env file
         run: echo "${{ secrets.DEV_ENV_FILE }}" > .env
 
+      - name: Debug .env content
+        run: cat .env
+
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
