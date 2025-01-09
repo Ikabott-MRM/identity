@@ -22,7 +22,8 @@ export class EmailController {
   @Post('/back-up')
   @ApiOperation({
     summary:
-    'It sends an email with the file needed for DID retrieval attached. The recipient is the email address provided by the user during the backup process in the app.'  })
+      'It sends an email with the file needed for DID retrieval attached. The recipient is the email address provided by the user during the backup process in the app.',
+  })
   @ApiOkResponse({
     status: 200,
     description: 'Email successfully sent.',
@@ -37,15 +38,19 @@ export class EmailController {
       'Internal server error. Message field on response will provide a more accurate description of it.',
   })
   async sendEmailWithAttachment(@Body() backUpEmail: BackupEmailDto) {
-   
-    const result = await this.emailService.sendEmailWithAttachment(backUpEmail.to,backUpEmail.jsonContent,backUpEmail.verificationCode);
+    const result = await this.emailService.sendEmailWithAttachment(
+      backUpEmail.to,
+      backUpEmail.jsonContent,
+      backUpEmail.verificationCode,
+    );
 
     if (result?.success) {
       this.logger.debug(
         `Email successfully sent to recipient with backup file attached.`,
       );
-    }if(result.code){
-      return {code: result.code, error:result.error};
+    }
+    if (result.code) {
+      return { code: result.code, error: result.error };
     }
     return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }

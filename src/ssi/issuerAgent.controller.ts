@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOkResponse,
@@ -6,6 +6,7 @@ import {
   ApiResponse,
   ApiBody,
   ApiSecurity,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -49,6 +50,44 @@ export class IssuerAgentController {
     if (result?.success) {
       this.logger.debug('Created DID.');
       return sendResponse(result.result, 201, 'DID successfully created.');
+    }
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
+  }
+
+  @Get('did')
+  @ApiOperation({
+    summary: 'It resolves a DID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'DID successfully resolved.',
+  })
+  @ApiResponse({
+    status: 500,
+    description:
+      'Internal server error. Message field on response will provide a more accurate description of it.',
+  })
+  /*it is defined as query param because did uri has special characters.
+  Query parameters are generally used for filtering or optional inputs and are not ideal for uniquely identifying resources*/
+  @ApiQuery({
+    name: 'didUri',
+    required: true,
+    description: 'didUri of the DID that is going to be resolved.',
+    schema: { type: 'string' },
+  })
+  async resolveDID(@Query('didUri') didUri: string) {
+    console.log(didUri)
+    const ssiProject = this.configService.get('ssi.ssiProjectName');
+    let result: any;
+    switch (ssiProject) {
+      case 'TBD':
+        result = await this.issuerAgentService.resolveTBDIdentity(didUri);
+        break;
+    }
+
+    if (result?.success) {
+      this.logger.debug(`resolved DID document for DID ${didUri}.`);
+      return sendResponse(result.result, 201, 'DID successfully resolved.');
     }
     return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
   }

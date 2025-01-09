@@ -1,11 +1,19 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { BearerDid, DidDht, PortableDid } from '@web5/dids';
+import {
+  BearerDid,
+  DidDht,
+  DidDhtDocument,
+  DidDhtUtils,
+  DidDocument,
+  PortableDid,
+} from '@web5/dids';
 import { VerifiableCredential } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
 import { mapDataWithRules } from '../helpers/functions';
 import { DWNService } from './dwn/dwn.service';
 import { Jwk } from '@web5/crypto';
 import { EncryptionService } from './persistence/encryption.service';
+import { Convert } from '@web5/common';
 
 @Injectable()
 export class IssuerAgentService implements OnModuleInit {
@@ -37,13 +45,11 @@ export class IssuerAgentService implements OnModuleInit {
           this.logger.log(`Issuer DID successfully recovered.`);
         } else {
           this.logger.log(`Initializing issuer for the first time.`);
-          const portableDid = (
-            await this.createAndExportTBDIdentity()
-          ).result;
+          const portableDid = (await this.createAndExportTBDIdentity()).result;
           const issuerPortableDid = JSON.stringify(portableDid, null, 2);
           await this.encryptionService.createDidFile(issuerPortableDid);
           this.operationalDID = await DidDht.import({
-            portableDid:portableDid,
+            portableDid: portableDid,
           });
         }
         this.logger.debug(`operational DID of agent:`);
@@ -68,9 +74,61 @@ export class IssuerAgentService implements OnModuleInit {
     error: string | null;
   }> {
     try {
+      const gatewayUri = 'http://did-dht.eastus.cloudapp.azure.com:8305'
       // Creates a DID using the DHT method and publishes the DID Document to the DHT
       this.logger.log(`A dht did is about to be created`);
-      const didDht = await DidDht.create();
+      const didDht = await DidDht.create({
+        options: { gatewayUri,
+          // publish:false
+         },
+      });
+
+      // this.logger.log(`A dht did was created but not published`);
+      // console.log(didDht.uri)
+
+      // const dnsPacket = await DidDhtDocument.toDnsPacket({
+      //   didDocument              : didDht.document,
+      //   didMetadata              : didDht.metadata,
+      //   authoritativeGatewayUris : ['http://did-dht.eastus.cloudapp.azure.com']
+      // });
+  
+      // this.logger.log(`A dht did dns packet was formed`);
+      // console.log(dnsPacket)
+
+      // // Create a signed BEP44 put message from the DNS packet.
+      // const bep44Message = await DidDhtUtils.createBep44PutMessage({
+      //   dnsPacket,
+      //   publicKeyBytes : DidDhtUtils.identifierToIdentityKeyBytes({ didUri: didDht.uri }),
+      //   signer         : await didDht.getSigner({ methodId: '0' })
+      // });
+
+      // this.logger.log(`A dht did bep44Message was formed`);
+      // console.log(bep44Message)
+
+      // const identifier = Convert.uint8Array(bep44Message.k).toBase32Z();
+
+    // Concatenate the gateway URI with the identifier to form the full URL.
+    // const url = new URL(identifier, gatewayUri).href;
+    // console.log(`url es ${url}`)
+    // // Construct the body of the request according to the Pkarr relay specification.
+    // const body = new Uint8Array(bep44Message.v.length + 72);
+    // body.set(bep44Message.sig, 0);
+    // new DataView(body.buffer).setBigUint64(bep44Message.sig.length, BigInt(bep44Message.seq));
+    // body.set(bep44Message.v, bep44Message.sig.length + 8);
+
+    // Transmit the Put request to the Pkarr relay and get the response.
+    // let response: Response;
+    // try {
+    //   response = await fetch(url, {
+    //     method  : 'PUT',
+    //     headers : { 'Content-Type': 'application/octet-stream' },
+    //     body
+    //   });
+
+    // } catch (error: any) {
+    //   console.log(error);
+    // }
+
       const portableDid = await didDht.export();
       this.logger.log(`A dht did has been succesfully created`);
       return {
@@ -81,6 +139,36 @@ export class IssuerAgentService implements OnModuleInit {
     } catch (error) {
       this.logger.error(
         `An error occurred while trying to create a DID`,
+        error.stack,
+      );
+      return { success: false, result: null, error: error.message };
+    }
+  }
+
+  /**
+   * @returns the DidDocument of the did passed as parameter
+   */
+  async resolveTBDIdentity(didUri: string): Promise<{
+    success: boolean;
+    result: DidDocument | null;
+    error: string | null;
+  }> {
+    try {
+      this.logger.log(`A dht did is about to be resolved`);
+      console.log(didUri)
+      const didResolution = await DidDhtDocument.get({
+        didUri,
+        gatewayUri: 'http://did-dht.eastus.cloudapp.azure.com:8305',
+      });
+      this.logger.log(`A dht did has been succesfully resolved`);
+      return {
+        success: true,
+        result: didResolution.didDocument,
+        error: null,
+      };
+    } catch (error) {
+      this.logger.error(
+        `An error occurred while trying to resolve a DID`,
         error.stack,
       );
       return { success: false, result: null, error: error.message };

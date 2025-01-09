@@ -42,22 +42,24 @@ export class EmailService {
     }
   }
 
-  async sendEmailWithAttachment(to: string, jsonContent: {
-    salt: string;
-    iv: string;
-    encryptedData: string;
-  }, verificationCode: string):Promise<{
+  async sendEmailWithAttachment(
+    to: string,
+    jsonContent: {
+      salt: string;
+      iv: string;
+      encryptedData: string;
+    },
+    verificationCode: string,
+  ): Promise<{
     success: boolean;
-    code:number;
+    code: number;
     error: string | null;
   }> {
-
     const jsonFile = {
       filename: 'backedUpDid.json',
       content: JSON.stringify(jsonContent),
       contentType: 'application/json',
     };
-
 
     const htmlMailContent = `
     <b>Important Information</b><br/><br/>
@@ -70,34 +72,38 @@ export class EmailService {
     <b>REMEMBER</b> that the password you used for the back up is not stored anywhere. It is up to you to keep it safe, and you will need it to retrieve your DID if you install the app again in the future.
   `;
 
-
-  const mailOptions = {
-    to: to,
-    subject: 'Your DID Has Been Backed Up',
-    attachments: [jsonFile],
-    html: htmlMailContent
-  };
+    const mailOptions = {
+      to: to,
+      subject: 'Your DID Has Been Backed Up',
+      attachments: [jsonFile],
+      html: htmlMailContent,
+    };
 
     try {
       const info = await this.mailerService.sendMail(mailOptions);
-  
-      const result = this.checkEmailResponse(info)
 
-      if(result.success){
-      this.logger.log(`Email with id:${info.messageId} has been sent to ${to}`);
-      }else{
+      const result = this.checkEmailResponse(info);
+
+      if (result.success) {
+        this.logger.log(
+          `Email with id:${info.messageId} has been sent to ${to}`,
+        );
+      } else {
         this.logger.log(`Email with id:${info.messageId} failed to be sent.`);
       }
       return {
         success: result.success,
-        code:result.code,
+        code: result.code,
         error: result.error,
       };
     } catch (error) {
-      this.logger.error(`An error occurred while trying to send backed up DID to ${to}:`, error.stack);
+      this.logger.error(
+        `An error occurred while trying to send backed up DID to ${to}:`,
+        error.stack,
+      );
       return {
         success: false,
-        code:null,
+        code: null,
         error: error.message,
       };
     }
@@ -114,11 +120,11 @@ export class EmailService {
       code: null as number,
       error: null as string | null,
     };
-  
+
     const statusCode = parseInt(info.response.split(' ')[0], 10);
-    const message = info.response.split(' ').slice(2,-4).join(' '); 
+    const message = info.response.split(' ').slice(2, -4).join(' ');
     result.code = statusCode;
-    
+
     switch (statusCode) {
       case 250:
         result.success = true;
@@ -143,8 +149,7 @@ export class EmailService {
         }
         break;
     }
-  
+
     return result;
   }
-
 }
