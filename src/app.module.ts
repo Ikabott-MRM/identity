@@ -27,14 +27,16 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
       envFilePath,
       isGlobal: true,
       load: [configuration],
-      // check if postgres environment variables are set
       validationSchema: Joi.object({
         NODE_ENV: Joi.string()
           .valid('development', 'production', 'test', 'provision')
           .default('development'),
+        // check if database environment variables are set
         DB_HOST: Joi.string().required(),
         DB_USER: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
+        //check if gatewayUri variable is set
+        GATEWAY_URI:Joi.string().required(),
         // check if mailer environment variables are set
         MAILER_TRANSPORT_HOST: Joi.string().required(),
         MAIL_USER: Joi.string().required(),

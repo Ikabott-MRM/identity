@@ -3,7 +3,6 @@ import {
   BearerDid,
   DidDht,
   DidDhtDocument,
-  DidDhtUtils,
   DidDocument,
   PortableDid,
 } from '@web5/dids';
@@ -13,18 +12,21 @@ import { mapDataWithRules } from '../helpers/functions';
 import { DWNService } from './dwn/dwn.service';
 import { Jwk } from '@web5/crypto';
 import { EncryptionService } from './persistence/encryption.service';
-import { Convert } from '@web5/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class IssuerAgentService implements OnModuleInit {
   private readonly logger = new Logger(IssuerAgentService.name);
   private operationalDID: BearerDid | null = null;
-
+  private gatewayUri: string;
   constructor(
     private readonly credentialsRepository: CredentialsSchemasInMemoryRepository,
     private readonly dwnService: DWNService,
     private readonly encryptionService: EncryptionService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.gatewayUri = this.configService.get('ssi.gatewayUri')
+  }
 
   async onModuleInit() {
     try {
@@ -74,60 +76,12 @@ export class IssuerAgentService implements OnModuleInit {
     error: string | null;
   }> {
     try {
-      const gatewayUri = 'http://did-dht.eastus.cloudapp.azure.com:8305'
-      // Creates a DID using the DHT method and publishes the DID Document to the DHT
+      // Creates a DID using the DHT method and publishes the DID Document to the DHT using gatewayUri provided through env variable
       this.logger.log(`A dht did is about to be created`);
       const didDht = await DidDht.create({
-        options: { gatewayUri,
-          // publish:false
+        options: { gatewayUri:this.gatewayUri,
          },
       });
-
-      // this.logger.log(`A dht did was created but not published`);
-      // console.log(didDht.uri)
-
-      // const dnsPacket = await DidDhtDocument.toDnsPacket({
-      //   didDocument              : didDht.document,
-      //   didMetadata              : didDht.metadata,
-      //   authoritativeGatewayUris : ['http://did-dht.eastus.cloudapp.azure.com']
-      // });
-  
-      // this.logger.log(`A dht did dns packet was formed`);
-      // console.log(dnsPacket)
-
-      // // Create a signed BEP44 put message from the DNS packet.
-      // const bep44Message = await DidDhtUtils.createBep44PutMessage({
-      //   dnsPacket,
-      //   publicKeyBytes : DidDhtUtils.identifierToIdentityKeyBytes({ didUri: didDht.uri }),
-      //   signer         : await didDht.getSigner({ methodId: '0' })
-      // });
-
-      // this.logger.log(`A dht did bep44Message was formed`);
-      // console.log(bep44Message)
-
-      // const identifier = Convert.uint8Array(bep44Message.k).toBase32Z();
-
-    // Concatenate the gateway URI with the identifier to form the full URL.
-    // const url = new URL(identifier, gatewayUri).href;
-    // console.log(`url es ${url}`)
-    // // Construct the body of the request according to the Pkarr relay specification.
-    // const body = new Uint8Array(bep44Message.v.length + 72);
-    // body.set(bep44Message.sig, 0);
-    // new DataView(body.buffer).setBigUint64(bep44Message.sig.length, BigInt(bep44Message.seq));
-    // body.set(bep44Message.v, bep44Message.sig.length + 8);
-
-    // Transmit the Put request to the Pkarr relay and get the response.
-    // let response: Response;
-    // try {
-    //   response = await fetch(url, {
-    //     method  : 'PUT',
-    //     headers : { 'Content-Type': 'application/octet-stream' },
-    //     body
-    //   });
-
-    // } catch (error: any) {
-    //   console.log(error);
-    // }
 
       const portableDid = await didDht.export();
       this.logger.log(`A dht did has been succesfully created`);
@@ -158,7 +112,7 @@ export class IssuerAgentService implements OnModuleInit {
       console.log(didUri)
       const didResolution = await DidDhtDocument.get({
         didUri,
-        gatewayUri: 'http://did-dht.eastus.cloudapp.azure.com:8305',
+        gatewayUri: this.gatewayUri,
       });
       this.logger.log(`A dht did has been succesfully resolved`);
       return {
