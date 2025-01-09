@@ -53,15 +53,14 @@ export class AuthService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_10_MINUTES)
   async updateActiveApiKeys() {
-    this.logger.log('Updating active api-keys...');
+    this.logger.log('Updating active API keys...');
     this.activeApiKeys = new Set(await this.apiKeysService.getHashedApiKeys());
     if (!Boolean(this.activeApiKeys.size)) {
       this.logger.warn(
-        `There are no active api-keys. Endpoints are currently unprotected.`,
-      );
+        `There are no active API keys. An API key must be added; otherwise, requests will be rejected with an UNAUTHORIZED error.`      );
     } else {
       this.logger.log(
-        `Active api-keys have been updated. Total active api-keys: ${this.activeApiKeys.size}`,
+        `Active API keys have been updated. Total active API keys: ${this.activeApiKeys.size}`,
       );
     }
 

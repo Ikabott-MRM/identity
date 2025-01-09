@@ -1,22 +1,32 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { BearerDid, DidDht, PortableDid } from '@web5/dids';
+import {
+  BearerDid,
+  DidDht,
+  DidDhtDocument,
+  DidDocument,
+  PortableDid,
+} from '@web5/dids';
 import { VerifiableCredential } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
 import { mapDataWithRules } from '../helpers/functions';
 import { DWNService } from './dwn/dwn.service';
 import { Jwk } from '@web5/crypto';
 import { EncryptionService } from './persistence/encryption.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class IssuerAgentService implements OnModuleInit {
   private readonly logger = new Logger(IssuerAgentService.name);
   private operationalDID: BearerDid | null = null;
-
+  private gatewayUri: string;
   constructor(
     private readonly credentialsRepository: CredentialsSchemasInMemoryRepository,
     private readonly dwnService: DWNService,
     private readonly encryptionService: EncryptionService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.gatewayUri = this.configService.get('ssi.gatewayUri')
+  }
 
   async onModuleInit() {
     try {
@@ -37,13 +47,11 @@ export class IssuerAgentService implements OnModuleInit {
           this.logger.log(`Issuer DID successfully recovered.`);
         } else {
           this.logger.log(`Initializing issuer for the first time.`);
-          const portableDid = (
-            await this.createAndExportTBDIdentity()
-          ).result;
+          const portableDid = (await this.createAndExportTBDIdentity()).result;
           const issuerPortableDid = JSON.stringify(portableDid, null, 2);
           await this.encryptionService.createDidFile(issuerPortableDid);
           this.operationalDID = await DidDht.import({
-            portableDid:portableDid,
+            portableDid: portableDid,
           });
         }
         this.logger.debug(`operational DID of agent:`);
@@ -68,9 +76,13 @@ export class IssuerAgentService implements OnModuleInit {
     error: string | null;
   }> {
     try {
-      // Creates a DID using the DHT method and publishes the DID Document to the DHT
+      // Creates a DID using the DHT method and publishes the DID Document to the DHT using gatewayUri provided through env variable
       this.logger.log(`A dht did is about to be created`);
-      const didDht = await DidDht.create();
+      const didDht = await DidDht.create({
+        options: { gatewayUri:this.gatewayUri,
+         },
+      });
+
       const portableDid = await didDht.export();
       this.logger.log(`A dht did has been succesfully created`);
       return {
@@ -81,6 +93,36 @@ export class IssuerAgentService implements OnModuleInit {
     } catch (error) {
       this.logger.error(
         `An error occurred while trying to create a DID`,
+        error.stack,
+      );
+      return { success: false, result: null, error: error.message };
+    }
+  }
+
+  /**
+   * @returns the DidDocument of the did passed as parameter
+   */
+  async resolveTBDIdentity(didUri: string): Promise<{
+    success: boolean;
+    result: DidDocument | null;
+    error: string | null;
+  }> {
+    try {
+      this.logger.log(`A dht did is about to be resolved`);
+      console.log(didUri)
+      const didResolution = await DidDhtDocument.get({
+        didUri,
+        gatewayUri: this.gatewayUri,
+      });
+      this.logger.log(`A dht did has been succesfully resolved`);
+      return {
+        success: true,
+        result: didResolution.didDocument,
+        error: null,
+      };
+    } catch (error) {
+      this.logger.error(
+        `An error occurred while trying to resolve a DID`,
         error.stack,
       );
       return { success: false, result: null, error: error.message };
