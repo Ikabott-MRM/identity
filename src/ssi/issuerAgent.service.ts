@@ -11,7 +11,7 @@ import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/cre
 import { mapDataWithRules } from '../helpers/functions';
 import { DWNService } from './dwn/dwn.service';
 import { Jwk } from '@web5/crypto';
-import { EncryptionService } from './persistence/encryption.service';
+import { PersistenceService } from './persistence/persistence.service';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -22,10 +22,10 @@ export class IssuerAgentService implements OnModuleInit {
   constructor(
     private readonly credentialsRepository: CredentialsSchemasInMemoryRepository,
     private readonly dwnService: DWNService,
-    private readonly encryptionService: EncryptionService,
+    private readonly persistenceService: PersistenceService,
     private readonly configService: ConfigService,
   ) {
-    this.gatewayUri = this.configService.get('ssi.gatewayUri')
+    this.gatewayUri = this.configService.get('ssi.gatewayUri');
   }
 
   async onModuleInit() {
@@ -35,7 +35,7 @@ export class IssuerAgentService implements OnModuleInit {
           'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
         );
         let issuerPortableDidString =
-          await this.encryptionService.loadDidFile();
+          await this.persistenceService.loadDidFile();
 
         if (Boolean(issuerPortableDidString)) {
           const issuerPortableDid = JSON.parse(issuerPortableDidString);
@@ -49,7 +49,7 @@ export class IssuerAgentService implements OnModuleInit {
           this.logger.log(`Initializing issuer for the first time.`);
           const portableDid = (await this.createAndExportTBDIdentity()).result;
           const issuerPortableDid = JSON.stringify(portableDid, null, 2);
-          await this.encryptionService.createDidFile(issuerPortableDid);
+          await this.persistenceService.createDidFile(issuerPortableDid);
           this.operationalDID = await DidDht.import({
             portableDid: portableDid,
           });
@@ -79,8 +79,7 @@ export class IssuerAgentService implements OnModuleInit {
       // Creates a DID using the DHT method and publishes the DID Document to the DHT using gatewayUri provided through env variable
       this.logger.log(`A dht did is about to be created`);
       const didDht = await DidDht.create({
-        options: { gatewayUri:this.gatewayUri,
-         },
+        options: { gatewayUri: this.gatewayUri },
       });
 
       const portableDid = await didDht.export();
@@ -109,7 +108,7 @@ export class IssuerAgentService implements OnModuleInit {
   }> {
     try {
       this.logger.log(`A dht did is about to be resolved`);
-      console.log(didUri)
+      console.log(didUri);
       const didResolution = await DidDhtDocument.get({
         didUri,
         gatewayUri: this.gatewayUri,

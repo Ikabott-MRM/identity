@@ -1,18 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as readline from 'readline';
 import { EmailService } from './email/email.service';
+import { EncryptionService } from '../../encryption/encryption.service';
 require('dotenv').config();
 
 @Injectable()
-export class EncryptionService {
+export class PersistenceService {
   private encryptionKey: Buffer | null = null;
-  private readonly logger = new Logger(EncryptionService.name);
+  private readonly logger = new Logger(PersistenceService.name);
   private readonly encryptedDidFile =
     'src/ssi/persistence/encryptedPortableDid.txt';
 
-  constructor(private readonly emailService: EmailService) {}
+  constructor(
+    private readonly emailService: EmailService,
+    private readonly encryptionService: EncryptionService,
+  ) {}
 
   private async promptForUserInput(question: string): Promise<string> {
     const rl = readline.createInterface({
@@ -48,7 +51,10 @@ export class EncryptionService {
         'Enter the encryption salt that you previously received by email:\n',
       ));
 
-    this.encryptionKey = crypto.scryptSync(password, salt, 32);
+    this.encryptionKey = this.encryptionService.deriveSymmmetricKeyFromPassword(
+      password,
+      salt,
+    );
   }
 
   private async promptForPasswordAndEmailForEncryption(): Promise<{
@@ -77,8 +83,12 @@ export class EncryptionService {
       attempts++;
 
       if (isValidEmailAddress) {
-        const salt = crypto.randomBytes(16).toString('hex');
-        this.encryptionKey = crypto.scryptSync(password, salt, 32);
+        const salt = this.encryptionService.generateSalt();
+        this.encryptionKey =
+          this.encryptionService.deriveSymmmetricKeyFromPassword(
+            password,
+            salt,
+          );
         return { salt, emailAddress };
       }
     } while (!isValidEmailAddress && attempts <= 3);
@@ -93,21 +103,10 @@ export class EncryptionService {
       const { salt, emailAddress } =
         await this.promptForPasswordAndEmailForEncryption();
 
-      const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv(
-        'aes-256-cbc',
+      const fileContent = await this.encryptionService.encryptContent(
+        data,
         this.encryptionKey,
-        iv,
       );
-
-      let encrypted = cipher.update(data, 'utf8', 'hex');
-      encrypted += cipher.final('hex');
-
-      const fileContent = {
-        iv: iv.toString('hex'),
-        encryptedData: encrypted,
-      };
-
       this.emailService.sendMail(emailAddress, {
         salt,
         encryptedContent: fileContent,
@@ -142,17 +141,12 @@ export class EncryptionService {
       const fileContent = JSON.parse(
         fs.readFileSync(this.encryptedDidFile, 'utf8'),
       );
-      const iv = Buffer.from(fileContent.iv, 'hex');
-      const encryptedData = fileContent.encryptedData;
 
-      const decipher = crypto.createDecipheriv(
-        'aes-256-cbc',
+      const decrypted = this.encryptionService.decryptContent(
+        fileContent.iv,
+        fileContent.encryptedData,
         this.encryptionKey,
-        iv,
       );
-
-      let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
 
       return decrypted;
     } catch (err) {

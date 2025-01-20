@@ -57,7 +57,8 @@ export class AuthService implements OnModuleInit {
     this.activeApiKeys = new Set(await this.apiKeysService.getHashedApiKeys());
     if (!Boolean(this.activeApiKeys.size)) {
       this.logger.warn(
-        `There are no active API keys. An API key must be added; otherwise, requests will be rejected with an UNAUTHORIZED error.`      );
+        `There are no active API keys. An API key must be added; otherwise, requests will be rejected with an UNAUTHORIZED error.`,
+      );
     } else {
       this.logger.log(
         `Active API keys have been updated. Total active API keys: ${this.activeApiKeys.size}`,

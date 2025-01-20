@@ -17,6 +17,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { EmailController } from './ssi/persistence/email/email.controller';
+import { IpfsModule } from './ipfs/ipfs.module';
+import { IpfsController } from './ipfs/ipfs.controller';
+import { EncryptionModule } from './encryption/encryption.module';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -36,7 +39,7 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         DB_USER: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
         //check if gatewayUri variable is set
-        GATEWAY_URI:Joi.string().required(),
+        GATEWAY_URI: Joi.string().required(),
         // check if mailer environment variables are set
         MAILER_TRANSPORT_HOST: Joi.string().required(),
         MAIL_USER: Joi.string().required(),
@@ -57,6 +60,11 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         },
       },
     }),
+    IpfsModule,
+    // .forRoot({
+    //   usePinata: process.env.IPFS_PROVIDER === 'pinata', // Use an environment variable to toggle
+    // }),
+    EncryptionModule,
     ScheduleModule.forRoot(),
     KnexModule,
     IssuerAgentModule,
@@ -72,7 +80,12 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
       },
     }),
   ],
-  controllers: [IssuerAgentController, DWNController, EmailController],
+  controllers: [
+    IssuerAgentController,
+    DWNController,
+    EmailController,
+    IpfsController,
+  ],
   providers: [
     Logger,
     {

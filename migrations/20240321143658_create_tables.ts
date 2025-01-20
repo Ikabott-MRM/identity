@@ -22,6 +22,13 @@ export async function up(knex: Knex): Promise<void> {
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.string('description').notNullable();
   });
+
+  await knex.schema.createTable('did_cids', (table) => {
+    table.string('cid').primary(); 
+    table.string('didUri').notNullable(); 
+    table.timestamp('created_at').defaultTo(knex.fn.now()); 
+    table.index('didUri', 'idx_didUri'); 
+  });
 }
 
 export async function down(knex: Knex): Promise<void> {

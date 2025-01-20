@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EncryptionService } from './encryption.service';
+import { PersistenceService } from './persistence.service';
 import { EmailService } from './email/email.service';
 import * as fs from 'fs';
 import { BearerDid, BearerDidSigner } from '@web5/dids';
@@ -8,9 +8,10 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import * as readline from 'readline';
+import { EncryptionService } from '../../encryption/encryption.service';
 
 describe('EncryptionService', () => {
-  let service: EncryptionService;
+  let service: PersistenceService;
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
   let emailService: EmailService;
@@ -18,8 +19,9 @@ describe('EncryptionService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        EncryptionService,
+        PersistenceService,
         EmailService,
+        EncryptionService,
         {
           provide: MailerService,
           useValue: {
@@ -32,7 +34,7 @@ describe('EncryptionService', () => {
     loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
     loggerDebugSpy = jest.spyOn(Logger.prototype, 'debug');
 
-    service = module.get<EncryptionService>(EncryptionService);
+    service = module.get<PersistenceService>(PersistenceService);
     emailService = module.get<EmailService>(EmailService);
   });
 

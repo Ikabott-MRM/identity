@@ -76,7 +76,7 @@ export class IssuerAgentController {
     schema: { type: 'string' },
   })
   async resolveDID(@Query('didUri') didUri: string) {
-    console.log(didUri)
+    console.log(didUri);
     const ssiProject = this.configService.get('ssi.ssiProjectName');
     let result: any;
     switch (ssiProject) {
