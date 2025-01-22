@@ -9,6 +9,8 @@ export interface CredentialQueryResultObject {
   vcJwt: string;
 }
 
+//TODO deberia de eliminarse todo lo relativo a DWN
+
 @Injectable()
 export class DWNService {
   private readonly logger = new Logger(DWNService.name);

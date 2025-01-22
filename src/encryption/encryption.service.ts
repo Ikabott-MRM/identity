@@ -27,15 +27,26 @@ export class EncryptionService {
     return salt;
   }
 
+  public generateDeterministicIV(credentialId: string, salt: string): Buffer {
+    // Combina el credentialId y el salt en un hash
+    const hash = crypto
+      .createHash('sha256')
+      .update(credentialId + salt)
+      .digest();
+    // Toma los primeros 16 bytes del hash como IV
+    return hash.subarray(0, 16);
+  }
+
   async encryptContent(
     content: string,
     encryptionKey: Buffer,
+    iv?: Buffer,
   ): Promise<{
     iv: string;
     encryptedData: string;
   }> {
     try {
-      const iv = crypto.randomBytes(16);
+      if (!iv) iv = crypto.randomBytes(16);
       const cipher = crypto.createCipheriv('aes-256-cbc', encryptionKey, iv);
 
       let encrypted = cipher.update(content, 'utf8', 'hex');
@@ -63,14 +74,11 @@ export class EncryptionService {
   //mejor guardo una salt unica para cada DID y el iv lo voy generando con el hash del CID
 
   async decryptContent(
-    // fileContent:{
     ivString: string,
     encryptedData: string,
-    // },
     encryptionKey: Buffer,
   ): Promise<string> {
     try {
-      // const iv = Buffer.from(intiVector, 'hex');
       const iv = Buffer.from(ivString, 'hex');
       const decipher = crypto.createDecipheriv(
         'aes-256-cbc',

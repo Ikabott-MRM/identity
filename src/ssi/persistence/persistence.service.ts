@@ -3,11 +3,15 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import { EmailService } from './email/email.service';
 import { EncryptionService } from '../../encryption/encryption.service';
+import { DidCidAssociationService } from 'src/credentialsRegistry/didCidAssociation.service';
+import { DidSaltAssociationService } from 'src/credentialsRegistry/didSaltAssociation.service';
 require('dotenv').config();
 
 @Injectable()
 export class PersistenceService {
-  private encryptionKey: Buffer | null = null;
+  private encryptionKeyIssuerDid: Buffer | null = null;
+  private encryptionKeyIssuerCredentials: Buffer | null = null;
+
   private readonly logger = new Logger(PersistenceService.name);
   private readonly encryptedDidFile =
     'src/ssi/persistence/encryptedPortableDid.txt';
@@ -15,6 +19,8 @@ export class PersistenceService {
   constructor(
     private readonly emailService: EmailService,
     private readonly encryptionService: EncryptionService,
+    private readonly didCidsAssociationService: DidCidAssociationService,
+    private readonly didSaltAssociationService: DidSaltAssociationService,
   ) {}
 
   private async promptForUserInput(question: string): Promise<string> {
@@ -33,7 +39,7 @@ export class PersistenceService {
 
   private async confirmIssuerRecovery(): Promise<boolean> {
     const userInput = await this.promptForUserInput(
-      'Do you want to try recovering the issuer? (Y/N):\n',
+      'Do you want to attempt recovering the issuer?\n This process will recover the issuer DID and the key used for encrypting the credentials and the credential manifest.\n(Y/N):\n',
     );
     return userInput.trim().toUpperCase() === 'Y';
   }
@@ -45,20 +51,34 @@ export class PersistenceService {
         'Enter the encryption password you chose the first time you started the issuer:\n',
       ));
 
-    const salt =
-      process.env.SALT ??
+    const saltIssuerDid =
+      process.env.SALT_ISSUER_DID ??
       (await this.promptForUserInput(
-        'Enter the encryption salt that you previously received by email:\n',
+        'Enter the encryption salt you previously received by email labeled "salt for issuer DID".\n',
       ));
 
-    this.encryptionKey = this.encryptionService.deriveSymmmetricKeyFromPassword(
-      password,
-      salt,
-    );
+    this.encryptionKeyIssuerDid =
+      this.encryptionService.deriveSymmmetricKeyFromPassword(
+        password,
+        saltIssuerDid,
+      );
+
+    const saltIssuerCredentials =
+      process.env.SALT_ISSUER_CREDENTIALS ??
+      (await this.promptForUserInput(
+        'Enter the encryption salt you previously received by email labeled "salt for issuer credentials".\n',
+      ));
+
+    this.encryptionKeyIssuerCredentials =
+      this.encryptionService.deriveSymmmetricKeyFromPassword(
+        password,
+        saltIssuerCredentials,
+      );
   }
 
   private async promptForPasswordAndEmailForEncryption(): Promise<{
-    salt: string;
+    saltIssuerDid: string;
+    saltIssuerCredentials: string;
     emailAddress: string;
   }> {
     const password =
@@ -74,7 +94,7 @@ export class PersistenceService {
         process.env.MAIL_ADDRESS ??
         (await this.promptForUserInput(
           attempts == 1
-            ? 'Enter your email address. We will send you the encrypted file and the salt used for its encryption.\nWith the salt and the encryption key that only you know, you will be able to decrypt the file needed.\n'
+            ? 'Enter your email address. We will send you the encrypted file of the portable DID and the salt used for its encryption.\n We will also be sending the salt needed for recovering the encryption key used for ecnrypting/decrypting the credentials issued.\nWith these salts and the password that only you know, you will be able to decrypt the file needed.\n'
             : 'The email address you entered is invalid. Please enter your email address again:\n',
         ));
 
@@ -83,13 +103,20 @@ export class PersistenceService {
       attempts++;
 
       if (isValidEmailAddress) {
-        const salt = this.encryptionService.generateSalt();
-        this.encryptionKey =
+        const saltIssuerDid = this.encryptionService.generateSalt();
+        this.encryptionKeyIssuerDid =
           this.encryptionService.deriveSymmmetricKeyFromPassword(
             password,
-            salt,
+            saltIssuerDid,
           );
-        return { salt, emailAddress };
+
+        const saltIssuerCredentials = this.encryptionService.generateSalt();
+        this.encryptionKeyIssuerCredentials =
+          this.encryptionService.deriveSymmmetricKeyFromPassword(
+            password,
+            saltIssuerCredentials,
+          );
+        return { saltIssuerDid, saltIssuerCredentials, emailAddress };
       }
     } while (!isValidEmailAddress && attempts <= 3);
 
@@ -100,15 +127,16 @@ export class PersistenceService {
 
   async createDidFile(data: string): Promise<void> {
     try {
-      const { salt, emailAddress } =
+      const { saltIssuerDid, saltIssuerCredentials, emailAddress } =
         await this.promptForPasswordAndEmailForEncryption();
 
       const fileContent = await this.encryptionService.encryptContent(
         data,
-        this.encryptionKey,
+        this.encryptionKeyIssuerDid,
       );
       this.emailService.sendMail(emailAddress, {
-        salt,
+        saltIssuerDid,
+        saltIssuerCredentials,
         encryptedContent: fileContent,
       });
       fs.writeFileSync(this.encryptedDidFile, JSON.stringify(fileContent));
@@ -126,7 +154,9 @@ export class PersistenceService {
       if (!fs.existsSync(this.encryptedDidFile)) return null;
 
       const recoverIssuer =
-        Boolean(process.env.SALT) && Boolean(process.env.SECRET_PWD)
+        Boolean(process.env.SALT_ISSUER_DID) &&
+        Boolean(process.env.SALT_ISSUER_CREDENTIALS) &&
+        Boolean(process.env.SECRET_PWD)
           ? true
           : await this.confirmIssuerRecovery();
       if (!recoverIssuer) {
@@ -145,7 +175,7 @@ export class PersistenceService {
       const decrypted = this.encryptionService.decryptContent(
         fileContent.iv,
         fileContent.encryptedData,
-        this.encryptionKey,
+        this.encryptionKeyIssuerDid,
       );
 
       return decrypted;
@@ -155,6 +185,86 @@ export class PersistenceService {
         err.stack,
       );
       throw err;
+    }
+  }
+
+  //Para no tener que guardar el IV, se va a generar deterministicamente
+  //se va a generar una salt para el holderDid pasado como parametro
+  //esa salt se va a guardar asociada a dicho did
+  //el iv se va a generar usando esa salt unica pra el did y un hash del id de la credencial
+  //pensar como tiene que llegarle esta data al issuer
+  //o se agrega en el mail que para cada credencial el iv se genera de X forma?
+
+  //se tiene que guardar en IPFS un concatenado del credentialId y lo encriptado
+  //credentialId no es sensible o sea no pasa nada
+
+  //para desencriptar se tiene que separar la priemra parte con el -
+  //usar eso pra regenerar el iv
+  //y ahi desencriptar
+  async encryptCredential(
+    data: string,
+    holderidUri: string,
+    credentialId: string,
+  ): Promise<string> {
+    try {
+      let didSalt =
+        await this.didSaltAssociationService.getDidSalt(holderidUri);
+      if (!didSalt) didSalt = this.encryptionService.generateSalt();
+      await this.didSaltAssociationService.addDidSaltAssociation(
+        didSalt,
+        holderidUri,
+      );
+      const iv = this.encryptionService.generateDeterministicIV(
+        credentialId,
+        didSalt,
+      );
+
+      const fileContent = await this.encryptionService.encryptContent(
+        data,
+        this.encryptionKeyIssuerCredentials,
+        iv,
+      );
+
+      return fileContent.encryptedData;
+    } catch (error) {
+      this.logger.error(
+        `An error occurred while trying to encrypt credential.`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  async decryptCredential(data: string, holderidUri: string): Promise<string> {
+    try {
+      let didSalt =
+        await this.didSaltAssociationService.getDidSalt(holderidUri);
+      if (!didSalt)
+        throw new Error(
+          'There is no salt associated to DID. Initialization vector cannot be determined.',
+        );
+      //Split the string using '-' as the separator and extract the first part as the credential ID
+      const ipfsContent = data.split('-');
+      let credentialId = ipfsContent[0];
+      const iv = this.encryptionService.generateDeterministicIV(
+        credentialId,
+        didSalt,
+      );
+
+      const decryptedCredential = await this.encryptionService.decryptContent(
+        iv.toString('hex'),
+        ipfsContent[1],
+        this.encryptionKeyIssuerCredentials,
+      );
+
+      //TODO devuelvo un string, tengo que pasarlo a formato credencial para devolverlas
+      return decryptedCredential;
+    } catch (error) {
+      this.logger.error(
+        `An error occurred while trying to decrypt credential.`,
+        error.stack,
+      );
+      throw error;
     }
   }
 }

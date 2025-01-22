@@ -34,6 +34,12 @@ export async function up(knex: Knex): Promise<void> {
     table.string('cid').primary(); 
     table.timestamp('created_at').defaultTo(knex.fn.now()); 
   });
+
+  await knex.schema.createTable('did_salt', (table) => {
+    table.string('didUri').primary(); 
+    table.timestamp('salt').notNullable(); 
+    table.timestamp('created_at').defaultTo(knex.fn.now()); 
+  });
 }
 
 export async function down(knex: Knex): Promise<void> {
@@ -41,4 +47,6 @@ export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('api_keys');
   await knex.schema.dropTableIfExists('did_cids');
   await knex.schema.dropTableIfExists('manifests');
+  await knex.schema.dropTableIfExists('did_salt');
+
 }

@@ -40,7 +40,8 @@ describe('EncryptionService', () => {
 
   afterEach(async () => {
     jest.clearAllMocks();
-    delete process.env.SALT;
+    delete process.env.SALT_ISSUER_DID;
+    delete process.env.SALT_ISSUER_CREDENTIALS;
     delete process.env.SECRET_PWD;
   });
 
@@ -134,9 +135,12 @@ describe('EncryptionService', () => {
       jest.spyOn(emailService, 'sendMail').mockImplementation();
 
       await service.createDidFile(JSON.stringify(mockPortableDid, null, 2));
-      expect((service as any).encryptionKey).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
+
       expect(emailService.sendMail).toHaveBeenCalledWith('user@example.com', {
-        salt: expect.any(String),
+        saltIssuerDid: expect.any(String),
+        saltIssuerCredentials: expect.any(String),
         encryptedContent: expect.any(Object),
       });
       expect(fs.writeFileSync).toHaveBeenCalledWith(
@@ -181,9 +185,12 @@ describe('EncryptionService', () => {
       jest.spyOn(emailService, 'sendMail').mockImplementation();
 
       await service.createDidFile(JSON.stringify(mockPortableDid, null, 2));
-      expect((service as any).encryptionKey).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
+
       expect(emailService.sendMail).toHaveBeenCalledWith('user@gmail.com', {
-        salt: expect.any(String),
+        saltIssuerDid: expect.any(String),
+        saltIssuerCredentials: expect.any(String),
         encryptedContent: expect.any(Object),
       });
       expect(fs.writeFileSync).toHaveBeenCalledWith(
@@ -244,7 +251,9 @@ describe('EncryptionService', () => {
       ).rejects.toThrow(
         'Maximum attempts to enter a valid email address have been reached. The issuer will not be initialized. Please resolve this issue before attempting to start it again.',
       );
-      expect((service as any).encryptionKey).toBeNull();
+      expect((service as any).encryptionKeyIssuerDid).toBeNull();
+      expect((service as any).encryptionKeyIssuerCredentials).toBeNull();
+
       expect(emailService.sendMail).not.toHaveBeenCalled();
       expect(fs.writeFileSync).not.toHaveBeenCalled();
 
@@ -283,7 +292,8 @@ describe('EncryptionService', () => {
       } as any);
 
       const result = await service.loadDidFile();
-      expect((service as any).encryptionKey).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
 
       expect(result).toBe(mockDecryptedData);
     });
@@ -321,7 +331,8 @@ describe('EncryptionService', () => {
     });
 
     it('should return null if the user declines to recover the issuer', async () => {
-      delete process.env.SALT;
+      delete process.env.SALT_ISSUER_DID;
+      delete process.env.SALT_ISSUER_CREDENTIALS;
       delete process.env.SECRET_PWD;
 
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);

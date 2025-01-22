@@ -74,11 +74,12 @@ SECRET_PWD: This is the password that will be used to encrypt/decrypt the file.
 
 It is important to note that, for any variables that the system detects as defined, the user will not have the option to enter them manually. If you want the system to prompt for any of these variables, or both, via the command line, those variables should not be defined.
 
-Later, if for any reason it is necessary to restart the issuer to recover the DID from the initially initialized issuer, the following environment variables must be defined: SECRET_PWD and SALT.
+Later, if for any reason it is necessary to restart the issuer to recover the DID from the initially initialized issuer, the following environment variables must be defined: SECRET_PWD, SALT_ISSUER_DID and SALT_ISSUER_CREDENTIALS.
 
 SECRET_PWD must have the same value as the password used the first time the issuer was initialized.
-SALT must be defined with the salt that was sent to the user’s email after the issuer was first initialized.
-If these two variables are defined, it will be assumed that you want to attempt to recover the issuer that was previously initialized. If one of these variables is not defined but an encrypted file exists, the system will ask the user via command line if they want to attempt to recover the issuer, and the system will wait for a response.
+SALT_ISSUER_DID and SALT_ISSUER_CREDENTIALS must be defined with the salt values sent to the user’s email after the issuer was first initialized. It is important to use the correct salt for each case: one will be used to derive the encryption key needed to decrypt the portable DID, and the other will be used to derive the encryption key required to encrypt and decrypt credentials issued by the issuer before they are uploaded to IPFS. The purpose of each key is clearly explained in the email sent when the issuer was first initialized.
+
+If these variables are defined, it will be assumed that you want to attempt to recover the issuer that was previously initialized. If one of these variables is not defined but an encrypted file exists, the system will ask the user via command line if they want to attempt to recover the issuer, and the system will wait for a response.
 
 Therefore, if you want to fully automate the deployment process without interaction, it is crucial to correctly define the necessary environment variables for each case.
 

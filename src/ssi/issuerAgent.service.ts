@@ -146,6 +146,35 @@ export class IssuerAgentService implements OnModuleInit {
     error: string | null;
   }> {
     try {
+      //TODO aca cuando hace un issue de la credential tiene que incluir:
+      /**
+       * encriptar la credencial y guardarla en ipfs. Se le tiene que mandar al issuer un mail con los datos
+       * que se usaron para encriptar esa credencial y el manifest o la salt sea la misma y explicar ocmo se genera el iv. Definir eso
+       * la salt y la password van a ser las mismas. definir como se genera el IV
+       * misma key para credenciales y manifest? manifest no tiene por que ir encriptado si no tiene nada sensible solo dids que son publicos, no?
+       *
+       * capaz asi cmo se tiene una encryption key para el portable did, se puede tener una para el ipfs storage y que tambien tenga que completar
+       * datos para recuperarla y que sea la misma para todo lo que va a ipfs
+       * o de ultima password y salt ya alcancen para todo si se sabe que el IV es un hash de X tipo del CID
+       * se tendria que mandar un mail al generar la encryption key de ipfs y deberia de ser al levantal el issuer
+       * Tiene sentido pedir mas de una password? para mi no, alcanza con tener salts distinas, sino es complicar mas al issuer
+       *
+       * asociar ese CID al did del holder en la bdd
+       *
+       * obtener el CID del current manifest del issuer
+       *
+       * obtener el manifest de IPFS usando ese CID
+       *
+       * desencriptar el manifest
+       *
+       * actualizar el manifest agregando el CID de la creedncial a las credenciales del holder
+       *
+       * encriptar el manifest
+       *
+       * guardarlo a IPFS
+       *
+       * agregar ese CID a la bdd en la tabla manifests
+       */
       const schema = await this.credentialsRepository.get(schemaId);
       const mappedData = mapDataWithRules(data, schema.mappingRulesDescriptor);
       let expirationISOString: string;
@@ -176,6 +205,7 @@ export class IssuerAgentService implements OnModuleInit {
       const signedVcJwt = await vc.sign({ did: this.operationalDID });
       this.logger.debug(`credential has been successfully signed`);
 
+      // TODO antes se guardaba aca en DWN, ahora tienen que hacerse todos los pasos de arriba
       const saveResult = await this.dwnService.saveCredentialtoDWN(
         subjectDid,
         signedVcJwt,

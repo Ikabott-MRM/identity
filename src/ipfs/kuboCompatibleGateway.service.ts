@@ -6,6 +6,7 @@ import { IpfsGateway } from './ipfs.interface';
 export class KuboCompatibleGateway implements IpfsGateway {
   private readonly gatewayUrl = process.env.IPFS_GATEWAY_URL;
   //TODO ver que meto en config como obligatorio para que si o si haya algun valor de IPFS
+  // TODO clase NO probada. Falta tener un gateway propio para probarla!!
   private readonly logger = new Logger(KuboCompatibleGateway.name);
 
   async uploadContent(content: string): Promise<string> {
