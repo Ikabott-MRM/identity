@@ -29,10 +29,16 @@ export async function up(knex: Knex): Promise<void> {
     table.timestamp('created_at').defaultTo(knex.fn.now()); 
     table.index('didUri', 'idx_didUri'); 
   });
+
+  await knex.schema.createTable('manifests', (table) => {
+    table.string('cid').primary(); 
+    table.timestamp('created_at').defaultTo(knex.fn.now()); 
+  });
 }
 
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('request');
   await knex.schema.dropTableIfExists('api_keys');
-
+  await knex.schema.dropTableIfExists('did_cids');
+  await knex.schema.dropTableIfExists('manifests');
 }

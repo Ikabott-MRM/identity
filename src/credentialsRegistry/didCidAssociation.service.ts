@@ -1,27 +1,50 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Knex } from 'knex';
-import { IssuerAgentService } from '../ssi/issuerAgent.service';
+import { retryOperation } from '../helpers/functions';
 
 @Injectable()
-export class didCidsAssociationService {
-  constructor(
-    @Inject('KnexConnection') private readonly knex: Knex,
-    private readonly issuerService: IssuerAgentService,
-  ) {}
+export class DidCidAssociationService {
+  constructor(@Inject('KnexConnection') private readonly knex: Knex) {}
 
-  private readonly logger = new Logger(didCidsAssociationService.name);
+  private readonly logger = new Logger(DidCidAssociationService.name);
 
   async addCidToDid(cid: string, didUri: string): Promise<void> {
-    //TODO agregar aca loggear que se agrego X cid asociado a Z did con exito
-    await this.knex('did_cids').insert({ cid: cid, didUri: didUri });
+    try {
+      await retryOperation(async () => {
+        await this.knex('did_cids').insert({ cid: cid, didUri: didUri });
+      }, this.logger);
+      this.logger.debug(
+        `CID ${cid} has been successfully associated to DIDUri ${didUri} and saved to db.`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `An error has occurred while trying to associate CID ${cid} to DIDUri ${didUri}`,
+        error.stack,
+      );
+    }
   }
 
   async getCidsByDid(didUri: string): Promise<string[]> {
-    //TODO agregar que si no hay ninguno loggear eso
-    const results = await this.knex('did_cids')
-      .select('CID')
-      .where('didUri', didUri);
+    try {
+      const results = await this.knex('did_cids')
+        .select('cid')
+        .where('didUri', didUri);
 
-    return results.map(row => row.CID);
+      if (results.length === 0) {
+        this.logger.debug(
+          `No CIDs were found to be associated with DIDUri ${didUri}`,
+        );
+      } else {
+        this.logger.debug(
+          `${results.length} CIDs have been found to be associated with DIDUri ${didUri}`,
+        );
+      }
+      return results.map(row => row.cid);
+    } catch (error) {
+      this.logger.error(
+        `An error has occurred while trying to get all CIDs associated to DIDUri ${didUri}`,
+        error.stack,
+      );
+    }
   }
 }
