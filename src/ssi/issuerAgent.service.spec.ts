@@ -4,28 +4,27 @@ import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/cre
 import { BearerDid, BearerDidSigner, DidDht } from '@web5/dids';
 import { Jwk, LocalKeyManager } from '@web5/crypto';
 import { Logger } from '@nestjs/common';
-import { DWNService } from './dwn/dwn.service';
 import { VerifiableCredential } from '@web5/credentials';
 import { mapDataWithRules } from '../helpers/functions';
-import { EncryptionService } from './persistence/encryption.service';
+import { PersistenceService } from './persistence/persistence.service';
 import { EmailService } from './persistence/email/email.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 
+//TODO modificar tests para sacar el uso de DWN
 describe('IssuerAgentService', () => {
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
   let service: IssuerAgentService;
   let operationalDID: BearerDid;
-  let encryptionService: EncryptionService;
+  let persistenceService: PersistenceService;
   let emailService: EmailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CredentialsSchemasInMemoryRepository,
-        DWNService,
         EmailService,
         {
           provide: MailerService,
@@ -33,13 +32,13 @@ describe('IssuerAgentService', () => {
             sendMail: jest.fn(),
           },
         },
-        EncryptionService,
+        PersistenceService,
         IssuerAgentService,
       ],
     }).compile();
 
     service = module.get<IssuerAgentService>(IssuerAgentService);
-    encryptionService = module.get<EncryptionService>(EncryptionService);
+    persistenceService = module.get<PersistenceService>(PersistenceService);
     emailService = module.get<EmailService>(EmailService);
 
     jest.mock('../helpers/functions', () => ({
@@ -105,7 +104,7 @@ describe('IssuerAgentService', () => {
       const mockPortableDid = await mockBearerDid.export();
 
       jest
-        .spyOn(encryptionService as any, 'promptForUserInput')
+        .spyOn(persistenceService as any, 'promptForUserInput')
         .mockImplementationOnce(async () => 'strongpassword') // for password
         .mockImplementationOnce(async () => 'user@example.com'); // for email
 
@@ -113,13 +112,13 @@ describe('IssuerAgentService', () => {
       jest.spyOn(emailService, 'isValidEmailAddress').mockReturnValueOnce(true);
 
       //mock loadDidFile result in order to trigger the creation of a new did
-      jest.spyOn(encryptionService, 'loadDidFile').mockReturnValueOnce(null);
-      jest.spyOn(encryptionService, 'createDidFile');
+      jest.spyOn(persistenceService, 'loadDidFile').mockReturnValueOnce(null);
+      jest.spyOn(persistenceService, 'createDidFile');
 
       await service.onModuleInit();
 
-      expect(encryptionService.loadDidFile).toHaveBeenCalled();
-      expect(encryptionService.createDidFile).toHaveBeenCalledWith(
+      expect(persistenceService.loadDidFile).toHaveBeenCalled();
+      expect(persistenceService.createDidFile).toHaveBeenCalledWith(
         JSON.stringify(mockPortableDid, null, 2),
       );
 
@@ -158,7 +157,7 @@ describe('IssuerAgentService', () => {
       jest.spyOn(DidDht, 'import').mockResolvedValueOnce(mockBearerDid);
 
       jest
-        .spyOn(encryptionService as any, 'promptForUserInput')
+        .spyOn(persistenceService as any, 'promptForUserInput')
         .mockImplementationOnce(async () => 'strongpassword') // for password
         .mockImplementationOnce(async () => 'user@example.com'); // for email
 
@@ -168,7 +167,7 @@ describe('IssuerAgentService', () => {
       //mock that did file exists and that user confirms recovery
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest
-        .spyOn(encryptionService as any, 'confirmIssuerRecovery')
+        .spyOn(persistenceService as any, 'confirmIssuerRecovery')
         .mockResolvedValue(true);
 
       jest
@@ -181,13 +180,13 @@ describe('IssuerAgentService', () => {
       } as any);
 
       //mock loadDidFile result in order to trigger the creation of a new did
-      jest.spyOn(encryptionService, 'loadDidFile');
-      jest.spyOn(encryptionService, 'createDidFile');
+      jest.spyOn(persistenceService, 'loadDidFile');
+      jest.spyOn(persistenceService, 'createDidFile');
 
       await service.onModuleInit();
 
-      expect(encryptionService.loadDidFile).toHaveBeenCalled();
-      expect(encryptionService.createDidFile).not.toHaveBeenCalled();
+      expect(persistenceService.loadDidFile).toHaveBeenCalled();
+      expect(persistenceService.createDidFile).not.toHaveBeenCalled();
 
       expect(loggerDebugSpy).toHaveBeenCalledWith(
         'Verifying if there is an encrypted DID to attempt recovery of the previous issuer.',
@@ -202,7 +201,7 @@ describe('IssuerAgentService', () => {
       (service as any).operationalDID = null;
 
       jest
-        .spyOn(encryptionService, 'loadDidFile')
+        .spyOn(persistenceService, 'loadDidFile')
         .mockRejectedValueOnce(new Error('Simulated error'));
       await expect(service.onModuleInit()).rejects.toThrow('Simulated error');
 
@@ -270,7 +269,7 @@ describe('IssuerAgentService', () => {
   });
 
   describe('issueCredential', () => {
-    it('should issue a credential successfully and save it to DWN', async () => {
+    it('should issue a credential successfully and save it to IPFS', async () => {
       const mockSchema = {
         id: 'DriversLicense',
         type: ['https://identity-iovf.xyz/schemas/driversLicense'],

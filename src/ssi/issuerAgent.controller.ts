@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOkResponse,
@@ -76,7 +83,7 @@ export class IssuerAgentController {
     schema: { type: 'string' },
   })
   async resolveDID(@Query('didUri') didUri: string) {
-    console.log(didUri)
+    console.log(didUri);
     const ssiProject = this.configService.get('ssi.ssiProjectName');
     let result: any;
     switch (ssiProject) {
@@ -150,6 +157,47 @@ export class IssuerAgentController {
 
     if (result?.success) {
       this.logger.debug(`Issuer's PK successfully retrieved.`);
+      return sendResponse(result.result, 200, null);
+    }
+    return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);
+  }
+
+  @Get('credentials')
+  @ApiOperation({
+    summary:
+      'It retrieves VCs stored encrypted by the issuer on IPFS node whose holder is the DID passed as parameters.',
+  })
+  @ApiQuery({
+    name: 'holderDid',
+    required: true,
+    description: 'DID of the user for who the VCs are being fetched.',
+    schema: { type: 'string' },
+  })
+  @ApiOkResponse({
+    status: 200,
+    description: 'VCs successfully retrieved.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request.',
+  })
+  @ApiResponse({
+    status: 500,
+    description:
+      'Internal server error. Message field on response will provide a more accurate description of it.',
+  })
+  async credentials(@Query('holderDid') holderDid: string) {
+    if (!holderDid)
+      throw new BadRequestException(
+        `holderDid cannot be undefined. A value must be passed as query parameter.`,
+      );
+    const result =
+      await this.issuerAgentService.queryCredentialsFromIPFS(holderDid);
+
+    if (result?.success) {
+      this.logger.debug(
+        `IPFS successfully queried for VCs of ${holderDid} and VCs successfully decrypted.`,
+      );
       return sendResponse(result.result, 200, null);
     }
     return sendErrorResponse(RequestError.UNEXPECTED_ERROR, 500, result.error);

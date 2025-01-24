@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EncryptionService } from './encryption.service';
+import { PersistenceService } from './persistence.service';
 import { EmailService } from './email/email.service';
 import * as fs from 'fs';
 import { BearerDid, BearerDidSigner } from '@web5/dids';
@@ -8,9 +8,10 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import * as readline from 'readline';
+import { EncryptionService } from '../../encryption/encryption.service';
 
 describe('EncryptionService', () => {
-  let service: EncryptionService;
+  let service: PersistenceService;
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
   let emailService: EmailService;
@@ -18,8 +19,9 @@ describe('EncryptionService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        EncryptionService,
+        PersistenceService,
         EmailService,
+        EncryptionService,
         {
           provide: MailerService,
           useValue: {
@@ -32,13 +34,14 @@ describe('EncryptionService', () => {
     loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
     loggerDebugSpy = jest.spyOn(Logger.prototype, 'debug');
 
-    service = module.get<EncryptionService>(EncryptionService);
+    service = module.get<PersistenceService>(PersistenceService);
     emailService = module.get<EmailService>(EmailService);
   });
 
   afterEach(async () => {
     jest.clearAllMocks();
-    delete process.env.SALT;
+    delete process.env.SALT_ISSUER_DID;
+    delete process.env.SALT_ISSUER_CREDENTIALS;
     delete process.env.SECRET_PWD;
   });
 
@@ -132,9 +135,12 @@ describe('EncryptionService', () => {
       jest.spyOn(emailService, 'sendMail').mockImplementation();
 
       await service.createDidFile(JSON.stringify(mockPortableDid, null, 2));
-      expect((service as any).encryptionKey).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
+
       expect(emailService.sendMail).toHaveBeenCalledWith('user@example.com', {
-        salt: expect.any(String),
+        saltIssuerDid: expect.any(String),
+        saltIssuerCredentials: expect.any(String),
         encryptedContent: expect.any(Object),
       });
       expect(fs.writeFileSync).toHaveBeenCalledWith(
@@ -179,9 +185,12 @@ describe('EncryptionService', () => {
       jest.spyOn(emailService, 'sendMail').mockImplementation();
 
       await service.createDidFile(JSON.stringify(mockPortableDid, null, 2));
-      expect((service as any).encryptionKey).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
+
       expect(emailService.sendMail).toHaveBeenCalledWith('user@gmail.com', {
-        salt: expect.any(String),
+        saltIssuerDid: expect.any(String),
+        saltIssuerCredentials: expect.any(String),
         encryptedContent: expect.any(Object),
       });
       expect(fs.writeFileSync).toHaveBeenCalledWith(
@@ -242,7 +251,9 @@ describe('EncryptionService', () => {
       ).rejects.toThrow(
         'Maximum attempts to enter a valid email address have been reached. The issuer will not be initialized. Please resolve this issue before attempting to start it again.',
       );
-      expect((service as any).encryptionKey).toBeNull();
+      expect((service as any).encryptionKeyIssuerDid).toBeNull();
+      expect((service as any).encryptionKeyIssuerCredentials).toBeNull();
+
       expect(emailService.sendMail).not.toHaveBeenCalled();
       expect(fs.writeFileSync).not.toHaveBeenCalled();
 
@@ -281,7 +292,8 @@ describe('EncryptionService', () => {
       } as any);
 
       const result = await service.loadDidFile();
-      expect((service as any).encryptionKey).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
+      expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
 
       expect(result).toBe(mockDecryptedData);
     });
@@ -319,7 +331,8 @@ describe('EncryptionService', () => {
     });
 
     it('should return null if the user declines to recover the issuer', async () => {
-      delete process.env.SALT;
+      delete process.env.SALT_ISSUER_DID;
+      delete process.env.SALT_ISSUER_CREDENTIALS;
       delete process.env.SECRET_PWD;
 
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);

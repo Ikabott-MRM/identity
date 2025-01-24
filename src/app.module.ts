@@ -1,12 +1,8 @@
 import { Module, Logger } from '@nestjs/common';
-import { KnexModule } from './db/knex.module';
 import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
 import { HttpModule } from '@nestjs/axios';
-import { IssuerAgentController } from './ssi/issuerAgent.controller';
 import { IssuerAgentModule } from './ssi/issuerAgent.module';
-import { DWNModule } from './ssi/dwn/dwn.module';
-import { DWNController } from './ssi/dwn/dwn.controller';
 import { RequestModule } from './request/request.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -16,7 +12,8 @@ import { ApiKeyAuthGuard } from './auth/guards/api-key-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
-import { EmailController } from './ssi/persistence/email/email.controller';
+import { IpfsModule } from './ipfs/ipfs.module';
+import { EmailModule } from './ssi/persistence/email/email.module';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -36,7 +33,7 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         DB_USER: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
         //check if gatewayUri variable is set
-        GATEWAY_URI:Joi.string().required(),
+        GATEWAY_URI: Joi.string().required(),
         // check if mailer environment variables are set
         MAILER_TRANSPORT_HOST: Joi.string().required(),
         MAIL_USER: Joi.string().required(),
@@ -57,11 +54,14 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
         },
       },
     }),
+    EmailModule,
+    IpfsModule,
+    // .forRoot({
+    //   usePinata: process.env.IPFS_PROVIDER === 'pinata', // Use an environment variable to toggle
+    // }),
     ScheduleModule.forRoot(),
-    KnexModule,
     IssuerAgentModule,
     HttpModule,
-    DWNModule,
     RequestModule,
     AuthModule,
     ServeStaticModule.forRoot({
@@ -72,7 +72,6 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
       },
     }),
   ],
-  controllers: [IssuerAgentController, DWNController, EmailController],
   providers: [
     Logger,
     {

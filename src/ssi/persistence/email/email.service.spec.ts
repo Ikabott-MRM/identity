@@ -39,7 +39,8 @@ describe('EmailService', () => {
     it('should send an email and log that it has been sent', async () => {
       const mockEmail = 'user@example.com';
       const mockText = {
-        salt: 'mockSalt',
+        saltIssuerDid: 'saltIssuerDid',
+        saltIssuerCredentials: 'saltIssuerCredentials',
         encryptedContent: {
           iv: 'mockIv',
           encryptedData: 'mockEncryptedData',
@@ -50,8 +51,8 @@ describe('EmailService', () => {
 
       expect(mailerService.sendMail).toHaveBeenCalledWith({
         to: mockEmail,
-        subject: 'Salt and Encrypted Portable DID',
-        text: `Important Information:\n\nThe encrypted portable DID is: ${mockText.encryptedContent}\n\nThe salt used for encryption is: ${mockText.salt}`,
+        subject: 'Salts and Encrypted Portable DID',
+        text: `Important Information:\n\nThe encrypted portable DID is: ${mockText.encryptedContent}\n\nThe salt used for encryption of the portable did is saltIssuerDid: ${mockText.saltIssuerDid}\n. The salt used for the ecryption key used for encrypting credentials is saltIssuerCredentials: ${mockText.saltIssuerCredentials}`,
         html: expect.any(String),
       });
 
@@ -63,7 +64,8 @@ describe('EmailService', () => {
     it('should log an error if sending an email fails', async () => {
       const mockEmail = 'user@example.com';
       const mockText = {
-        salt: 'mockSalt',
+        saltIssuerDid: 'saltIssuerDid',
+        saltIssuerCredentials: 'saltIssuerCredentials',
         encryptedContent: {
           iv: 'mockIv',
           encryptedData: 'mockEncryptedData',
@@ -78,7 +80,7 @@ describe('EmailService', () => {
       );
 
       expect(loggerErrorSpy).toHaveBeenCalledWith(
-        `An error occurred while trying to send the encrypted portable DID to email ${mockEmail}`,
+        `An error occurred while trying to send the encrypted portable DID and salts to email ${mockEmail}`,
         mockError.stack,
       );
     });

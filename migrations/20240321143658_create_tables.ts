@@ -22,10 +22,31 @@ export async function up(knex: Knex): Promise<void> {
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.string('description').notNullable();
   });
+
+  await knex.schema.createTable('did_cids', (table) => {
+    table.string('cid').primary(); 
+    table.string('didUri').notNullable(); 
+    table.timestamp('created_at').defaultTo(knex.fn.now()); 
+    table.index('didUri', 'idx_didUri'); 
+  });
+
+  await knex.schema.createTable('manifests', (table) => {
+    table.string('cid').primary(); 
+    table.timestamp('created_at').defaultTo(knex.fn.now()); 
+  });
+
+  await knex.schema.createTable('did_salt', (table) => {
+    table.string('didUri').primary(); 
+    table.string('salt').notNullable(); 
+    table.timestamp('created_at').defaultTo(knex.fn.now()); 
+  });
 }
 
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('request');
   await knex.schema.dropTableIfExists('api_keys');
+  await knex.schema.dropTableIfExists('did_cids');
+  await knex.schema.dropTableIfExists('manifests');
+  await knex.schema.dropTableIfExists('did_salt');
 
 }

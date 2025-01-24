@@ -10,32 +10,59 @@ export class EmailService {
   async sendMail(
     to: string,
     text: {
-      salt: string;
+      saltIssuerDid: string;
+      saltIssuerCredentials: string;
       encryptedContent: { iv: string; encryptedData: string };
     },
   ) {
     try {
       const htmlMailContent = `
         <b>Important Information</b><br/><br/>
+        <p>
         The encrypted portable DID for the issuer is: <b>${text.encryptedContent.encryptedData}</b><br/><br/>
-        The salt used to derive the encryption key with the password you entered when starting the issuer is: <b>${text.salt}</b><br/><br/>
+        The salt used, along with the password you entered when starting the issuer, to derive the encryption key for encrypting the portable DID is: <b>saltIssuerDid: ${text.saltIssuerDid}</b><br/><br/>
         The iv used to encrypt the portable DID is: <b>${text.encryptedContent.iv}</b><br/><br/>
+        The salt used, along with the password you entered when starting the issuer, to derive the encryption key for encrypting the issued credentials is: <b>saltIssuerCredentials: ${text.saltIssuerCredentials}</b><br/><br/>
+        </p>
+        <p>
+          The initialization vector for encrypting credentials before uploading them to IPFS is determined deterministically using the salt associated with the holder DID URI and a hash of the credential ID. 
+       <br/><br/>
+          The credential ID is uploaded concatenated to the encrypted credential with a hyphen ("-") sign.
+       <br/><br/>
+          To obtain the IV for decrypting the credentials, you will need to first retrieve the salt associated with the holder DID URI and then apply the following:
+        </p>
+        <pre>
+        <code>
+        const hash = crypto
+          .createHash('sha256')
+          .update(credentialId + salt)
+          .digest();
+        
+        // Take the first 16 bytes of the hash as the IV
+        const iv = hash.subarray(0, 16);
+        </code>
+        </pre>
+        <p>
+        The encryption keys were derived using the crypto module of Node.js with the 'scryptSync' method and defining a 'keylen' of 32.With the password and the salts, you will be able to derive each of the encryption keys mentioned above.<br/><br/>
+        </p>
+        <p>
         The portable DID was encrypted using the crypto module of Node.js with the AES (Advanced Encryption Standard) algorithm in CTR mode (aes-256-ctr).<br/><br/>
         Knowing the algorithm, the iv, the password, the salt, and having the encrypted content, you will be able to decrypt the file if needed.<br/><br/>
+        </p>
         <b>REMEMBER</b> that the password is not stored anywhere. It is up to you to keep it safe.
       `;
 
       await this.mailerService.sendMail({
         to: to,
-        subject: 'Salt and Encrypted Portable DID',
-        text: `Important Information:\n\nThe encrypted portable DID is: ${text.encryptedContent}\n\nThe salt used for encryption is: ${text.salt}`,
+        subject: 'Salts and Encrypted Portable DID',
+        text: `Important Information:\n\nThe encrypted portable DID is: ${text.encryptedContent}\n\nThe salt used for encryption of the portable did is saltIssuerDid: ${text.saltIssuerDid}\n. The salt used for the ecryption key used for encrypting credentials is saltIssuerCredentials: ${text.saltIssuerCredentials}`,
         html: htmlMailContent,
       });
 
       this.logger.log(`Email has been sent to ${to}`);
     } catch (error) {
       this.logger.error(
-        `An error occurred while trying to send the encrypted portable DID to email ${to}`,
+        `An error occurred while trying to send the encrypted portable DID and salts to email ${to}`,
         error.stack,
       );
       throw error;
