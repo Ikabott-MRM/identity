@@ -40,7 +40,7 @@ export class PinataGatewayService implements IpfsGateway {
     }
   }
 
-  async getContent(cid: string): Promise<string> {
+  async getContent(cid: string): Promise<string | object> {
     try {
       const response = await axios.get(`${this.pinataGateway}/ipfs/${cid}`, {
         headers: {
@@ -48,6 +48,7 @@ export class PinataGatewayService implements IpfsGateway {
         },
       });
 
+      console.log(typeof response.data);
       return response.data;
     } catch (error) {
       this.logger.error(

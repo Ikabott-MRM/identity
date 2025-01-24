@@ -92,7 +92,7 @@ export class EncryptionService {
       return decrypted;
     } catch (err) {
       this.logger.error(
-        `An error occurred while trying to decrypt issuer DID file`,
+        `An error occurred while trying to decrypt data`,
         err.stack,
       );
       throw err;

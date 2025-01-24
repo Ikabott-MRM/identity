@@ -4,7 +4,6 @@ import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/cre
 import { BearerDid, BearerDidSigner, DidDht } from '@web5/dids';
 import { Jwk, LocalKeyManager } from '@web5/crypto';
 import { Logger } from '@nestjs/common';
-import { DWNService } from './dwn/dwn.service';
 import { VerifiableCredential } from '@web5/credentials';
 import { mapDataWithRules } from '../helpers/functions';
 import { PersistenceService } from './persistence/persistence.service';
@@ -13,6 +12,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 
+//TODO modificar tests para sacar el uso de DWN
 describe('IssuerAgentService', () => {
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
@@ -25,7 +25,6 @@ describe('IssuerAgentService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CredentialsSchemasInMemoryRepository,
-        DWNService,
         EmailService,
         {
           provide: MailerService,
@@ -270,7 +269,7 @@ describe('IssuerAgentService', () => {
   });
 
   describe('issueCredential', () => {
-    it('should issue a credential successfully and save it to DWN', async () => {
+    it('should issue a credential successfully and save it to IPFS', async () => {
       const mockSchema = {
         id: 'DriversLicense',
         type: ['https://identity-iovf.xyz/schemas/driversLicense'],

@@ -9,10 +9,20 @@ import {
 import { VerifiableCredential } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
 import { mapDataWithRules } from '../helpers/functions';
-import { DWNService } from './dwn/dwn.service';
 import { Jwk } from '@web5/crypto';
 import { PersistenceService } from './persistence/persistence.service';
 import { ConfigService } from '@nestjs/config';
+import {
+  CredentialManifest,
+  CredentialsManifestService,
+} from 'src/credentialsRegistry/credentialsManifest.service';
+import { PinataGatewayService } from 'src/ipfs/pinataGateway.service';
+import { DidCidAssociationService } from 'src/credentialsRegistry/didCidAssociation.service';
+
+export interface CredentialQueryResultObject {
+  verifiableCredential: VerifiableCredential;
+  vcJwt: string;
+}
 
 @Injectable()
 export class IssuerAgentService implements OnModuleInit {
@@ -21,9 +31,13 @@ export class IssuerAgentService implements OnModuleInit {
   private gatewayUri: string;
   constructor(
     private readonly credentialsRepository: CredentialsSchemasInMemoryRepository,
-    private readonly dwnService: DWNService,
     private readonly persistenceService: PersistenceService,
     private readonly configService: ConfigService,
+    private readonly credentialManifestService: CredentialsManifestService,
+    //TODO aca es que se tendria que ver cmo hacerlo dinamico, capaz podria ser al incializar el modulo o en el
+    //constructor en funcion de variable?
+    private readonly ipfsService: PinataGatewayService,
+    private readonly didCidsAssociationService: DidCidAssociationService,
   ) {
     this.gatewayUri = this.configService.get('ssi.gatewayUri');
   }
@@ -146,35 +160,6 @@ export class IssuerAgentService implements OnModuleInit {
     error: string | null;
   }> {
     try {
-      //TODO aca cuando hace un issue de la credential tiene que incluir:
-      /**
-       * encriptar la credencial y guardarla en ipfs. Se le tiene que mandar al issuer un mail con los datos
-       * que se usaron para encriptar esa credencial y el manifest o la salt sea la misma y explicar ocmo se genera el iv. Definir eso
-       * la salt y la password van a ser las mismas. definir como se genera el IV
-       * misma key para credenciales y manifest? manifest no tiene por que ir encriptado si no tiene nada sensible solo dids que son publicos, no?
-       *
-       * capaz asi cmo se tiene una encryption key para el portable did, se puede tener una para el ipfs storage y que tambien tenga que completar
-       * datos para recuperarla y que sea la misma para todo lo que va a ipfs
-       * o de ultima password y salt ya alcancen para todo si se sabe que el IV es un hash de X tipo del CID
-       * se tendria que mandar un mail al generar la encryption key de ipfs y deberia de ser al levantal el issuer
-       * Tiene sentido pedir mas de una password? para mi no, alcanza con tener salts distinas, sino es complicar mas al issuer
-       *
-       * asociar ese CID al did del holder en la bdd
-       *
-       * obtener el CID del current manifest del issuer
-       *
-       * obtener el manifest de IPFS usando ese CID
-       *
-       * desencriptar el manifest
-       *
-       * actualizar el manifest agregando el CID de la creedncial a las credenciales del holder
-       *
-       * encriptar el manifest
-       *
-       * guardarlo a IPFS
-       *
-       * agregar ese CID a la bdd en la tabla manifests
-       */
       const schema = await this.credentialsRepository.get(schemaId);
       const mappedData = mapDataWithRules(data, schema.mappingRulesDescriptor);
       let expirationISOString: string;
@@ -205,19 +190,58 @@ export class IssuerAgentService implements OnModuleInit {
       const signedVcJwt = await vc.sign({ did: this.operationalDID });
       this.logger.debug(`credential has been successfully signed`);
 
-      // TODO antes se guardaba aca en DWN, ahora tienen que hacerse todos los pasos de arriba
-      const saveResult = await this.dwnService.saveCredentialtoDWN(
-        subjectDid,
-        signedVcJwt,
-        credentialData.type[0],
+      //frist: get credential manifest of issuer
+      let currentManifest: CredentialManifest;
+      let newManifest: CredentialManifest;
+      const currentManifestCid =
+        await this.credentialManifestService.getCurrentManifest();
+      if (currentManifestCid)
+        currentManifest = (await this.ipfsService.getContent(
+          currentManifestCid,
+        )) as CredentialManifest;
+
+      //encrypt the signedVcJWT
+      const encryptedCredential =
+        await this.persistenceService.encryptCredential(
+          signedVcJwt,
+          subjectDid,
+          vc.vcDataModel.id,
+        );
+
+      //upload it to IPFS
+      const credentialCID = await this.ipfsService.uploadContent(
+        `${vc.vcDataModel.id}-${encryptedCredential}`,
       );
 
-      if (!saveResult.success) {
-        throw new Error(
-          saveResult.error ||
-            `An error occurred while saving the credential to DWN`,
+      //associate credential CID to holder did uri
+      await this.didCidsAssociationService.addCidToDid(
+        credentialCID,
+        subjectDid,
+      );
+
+      //add credential CID to manfiest of credentials issued by this issuer
+      //if there is an already existing manifest, update it, otherwise create a new one
+      if (currentManifest) {
+        newManifest = await this.credentialManifestService.updateManifest(
+          credentialCID,
+          subjectDid,
+          currentManifest,
+        );
+      } else {
+        newManifest = await this.credentialManifestService.createManifest(
+          credentialCID,
+          subjectDid,
+          this.operationalDID.uri,
         );
       }
+      //convert CredentialManifest to string
+      const newManifestString = JSON.stringify(newManifest);
+      //upload manifest to IPFS
+      const newManifestCID =
+        await this.ipfsService.uploadContent(newManifestString);
+      await this.credentialManifestService.addManifestToDatabase(
+        newManifestCID,
+      );
 
       return {
         success: true,
@@ -264,6 +288,67 @@ export class IssuerAgentService implements OnModuleInit {
       this.logger.error(
         `An error occurred while retrieving the issuer public JSON web key from the verification method in its did document`,
         error.stack,
+      );
+      return { success: false, result: null, error: error.message };
+    }
+  }
+
+  async parseCredential(vcJwt: string): Promise<VerifiableCredential> {
+    const parsedCredential = VerifiableCredential.parseJwt({
+      vcJwt,
+    });
+
+    return parsedCredential;
+  }
+
+  async queryCredentialsFromIPFS(holderDid: string): Promise<{
+    success: boolean;
+    result: CredentialQueryResultObject[] | null;
+    error: string | null;
+  }> {
+    try {
+      if (!holderDid) throw new Error(`holderDid cannot be undefined.`);
+
+      //get all DIDs associated to holderDid
+      const holderDidCids =
+        await this.didCidsAssociationService.getCidsByDid(holderDid);
+
+      if (!holderDidCids)
+        return {
+          success: true,
+          result: null,
+          error: null,
+        };
+
+      let results: CredentialQueryResultObject[];
+      results = await Promise.all(
+        holderDidCids.map(async holderDidCid => {
+          // Fetch  content from IPFS
+          const content = (await this.ipfsService.getContent(
+            holderDidCid,
+          )) as string;
+          // Decrypt the credential
+          const vcJwt = await this.persistenceService.decryptCredential(
+            content,
+            holderDid,
+          );
+          const parsedCredential = await this.parseCredential(vcJwt);
+          return {
+            vcJwt,
+            verifiableCredential: parsedCredential,
+          };
+        }),
+      );
+
+      return {
+              success: true,
+              result: results,
+              error: null,
+            };;
+    } catch (error) {
+      this.logger.error(
+        `An error occurred while trying to query and process credentials of holder ${holderDid} from IPFS`,
+        error,
       );
       return { success: false, result: null, error: error.message };
     }

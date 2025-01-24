@@ -21,6 +21,7 @@ export class DidSaltAssociationService {
         `An error has occurred while trying to associate salt ${salt} to DIDUri ${didUri}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -47,6 +48,7 @@ export class DidSaltAssociationService {
         `An error has occurred while trying to get salt associated to DIDUri ${didUri}`,
         error.stack,
       );
+      throw error;
     }
   }
 }

@@ -14,8 +14,7 @@ import { BearerDid } from '@web5/dids';
 import { Jwk, LocalKeyManager } from '@web5/crypto';
 import { VerifiableCredential } from '@web5/credentials';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
-import { DWNModule } from './dwn/dwn.module';
-import { EncryptionService } from './persistence/persistence.service';
+import { PersistenceService } from './persistence/persistence.service';
 import { EmailService } from './persistence/email/email.service';
 import { MailerService } from '@nestjs-modules/mailer';
 
@@ -29,7 +28,6 @@ describe('IssuerAgentController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [IssuerAgentController],
-      imports: [DWNModule],
       providers: [
         EmailService,
         {
@@ -38,7 +36,7 @@ describe('IssuerAgentController', () => {
             sendMail: jest.fn(),
           },
         },
-        EncryptionService,
+        PersistenceService,
         IssuerAgentService,
         ConfigService,
         CredentialsSchemasInMemoryRepository,

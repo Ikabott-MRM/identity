@@ -54,12 +54,13 @@ describe('credentialsManifestService', () => {
 
   describe('updateManifest', () => {
     it('should add a new CID to an existing holderDidUri', async () => {
-      const manifest = {
+      let manifest = {
         issuerDid: 'did:example:issuer',
         issuedCredentials: [
           { holderDidUri: 'did:example:holder1', cids: ['cid1'] },
         ],
       };
+
       const credentialCid = 'cid2';
       const holderDidUri = 'did:example:holder1';
 

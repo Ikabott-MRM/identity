@@ -2,25 +2,24 @@ import { Module } from '@nestjs/common';
 import { IssuerAgentService } from './issuerAgent.service';
 import { IssuerAgentController } from './issuerAgent.controller';
 import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/credentialsSchemas-in-memory';
-import { DWNModule } from './dwn/dwn.module';
-import { EmailService } from './persistence/email/email.service';
-import { PersistenceService } from './persistence/persistence.service';
 import { EncryptionModule } from 'src/encryption/encryption.module';
+import { KnexModule } from 'src/db/knex.module';
+import { CredentialsRegistryModule } from 'src/credentialsRegistry/credentialsRegistry.module';
+import { IpfsModule } from 'src/ipfs/ipfs.module';
+import { EmailModule } from './persistence/email/email.module';
+import { PersistenceModule } from './persistence/persistence.module';
 
 @Module({
-  imports: [DWNModule, EncryptionModule],
-  providers: [
-    IssuerAgentService,
-    CredentialsSchemasInMemoryRepository,
-    EmailService,
-    PersistenceService,
+  imports: [
+    IpfsModule,
+    EmailModule,
+    EncryptionModule,
+    KnexModule,
+    CredentialsRegistryModule,
+    PersistenceModule,
   ],
+  providers: [IssuerAgentService, CredentialsSchemasInMemoryRepository],
   controllers: [IssuerAgentController],
-  exports: [
-    IssuerAgentService,
-    CredentialsSchemasInMemoryRepository,
-    EmailService,
-    PersistenceService,
-  ],
+  exports: [IssuerAgentService, CredentialsSchemasInMemoryRepository],
 })
 export class IssuerAgentModule {}

@@ -37,7 +37,7 @@ export async function up(knex: Knex): Promise<void> {
 
   await knex.schema.createTable('did_salt', (table) => {
     table.string('didUri').primary(); 
-    table.timestamp('salt').notNullable(); 
+    table.string('salt').notNullable(); 
     table.timestamp('created_at').defaultTo(knex.fn.now()); 
   });
 }

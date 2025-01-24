@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import { EmailService } from './email/email.service';
 import { EncryptionService } from '../../encryption/encryption.service';
-import { DidCidAssociationService } from 'src/credentialsRegistry/didCidAssociation.service';
 import { DidSaltAssociationService } from 'src/credentialsRegistry/didSaltAssociation.service';
 require('dotenv').config();
 
@@ -19,7 +18,6 @@ export class PersistenceService {
   constructor(
     private readonly emailService: EmailService,
     private readonly encryptionService: EncryptionService,
-    private readonly didCidsAssociationService: DidCidAssociationService,
     private readonly didSaltAssociationService: DidSaltAssociationService,
   ) {}
 
@@ -209,15 +207,21 @@ export class PersistenceService {
     try {
       let didSalt =
         await this.didSaltAssociationService.getDidSalt(holderidUri);
-      if (!didSalt) didSalt = this.encryptionService.generateSalt();
-      await this.didSaltAssociationService.addDidSaltAssociation(
-        didSalt,
-        holderidUri,
-      );
+      if (!didSalt) {
+        didSalt = this.encryptionService.generateSalt();
+        await this.didSaltAssociationService.addDidSaltAssociation(
+          didSalt,
+          holderidUri,
+        );
+      }
+
+      console.log(credentialId)
       const iv = this.encryptionService.generateDeterministicIV(
         credentialId,
         didSalt,
       );
+
+      console.log(iv.toString('hex'))
 
       const fileContent = await this.encryptionService.encryptContent(
         data,
@@ -245,7 +249,9 @@ export class PersistenceService {
         );
       //Split the string using '-' as the separator and extract the first part as the credential ID
       const ipfsContent = data.split('-');
-      let credentialId = ipfsContent[0];
+      const encryptedCredential = ipfsContent.slice(5).join("-");
+      let credentialId = ipfsContent.slice(0,5).join("-")
+
       const iv = this.encryptionService.generateDeterministicIV(
         credentialId,
         didSalt,
@@ -253,7 +259,7 @@ export class PersistenceService {
 
       const decryptedCredential = await this.encryptionService.decryptContent(
         iv.toString('hex'),
-        ipfsContent[1],
+        encryptedCredential,
         this.encryptionKeyIssuerCredentials,
       );
 

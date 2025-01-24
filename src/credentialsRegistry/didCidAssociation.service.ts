@@ -24,7 +24,7 @@ export class DidCidAssociationService {
     }
   }
 
-  async getCidsByDid(didUri: string): Promise<string[]> {
+  async getCidsByDid(didUri: string): Promise<string[] | null> {
     try {
       const results = await this.knex('did_cids')
         .select('cid')
@@ -34,6 +34,7 @@ export class DidCidAssociationService {
         this.logger.debug(
           `No CIDs were found to be associated with DIDUri ${didUri}`,
         );
+        return null;
       } else {
         this.logger.debug(
           `${results.length} CIDs have been found to be associated with DIDUri ${didUri}`,

@@ -6,7 +6,7 @@ interface DidsCidsAssociation {
   holderDidUri: string;
   cids: string[];
 }
-interface CredentialManifest {
+export interface CredentialManifest {
   issuerDid: string;
   issuedCredentials?: DidsCidsAssociation[];
 }
@@ -36,7 +36,37 @@ export class CredentialsManifestService {
           cids: [credentialCid],
         });
       }
+      this.logger.debug(
+        `Credential with cid ${credentialCid} has been succesfully added to manifest as a credential issued to did: ${holderDidUri}`,
+      );
+      return manifest;
+    } catch (error) {
+      this.logger.error(
+        `An error occurred while updating the issuer manifest to add the newly uploaded credential with CID: ${credentialCid} for the holder with DID URI: ${holderDidUri}`,
+      );
+      throw error;
+    }
+  }
 
+  async createManifest(
+    credentialCid: string,
+    holderDidUri: string,
+    issuerDid: string,
+  ): Promise<CredentialManifest> {
+    try {
+      const manifest: CredentialManifest = {
+        issuerDid,
+        issuedCredentials: [
+          {
+            holderDidUri,
+            cids: [credentialCid],
+          },
+        ],
+      };
+
+      this.logger.debug(
+        `Credential manifest has been created and credential with cid ${credentialCid} has been succesfully added to manifest as a credential issued to did: ${holderDidUri}`,
+      );
       return manifest;
     } catch (error) {
       this.logger.error(

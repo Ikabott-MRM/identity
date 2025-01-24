@@ -23,7 +23,7 @@ export class IpfsController {
   }
 
   @Get('getContent/:cid')
-  async getContent(@Param('cid') cid: string): Promise<string> {
+  async getContent(@Param('cid') cid: string): Promise<string | object> {
     return this.ipfsGateway.getContent(cid);
   }
 }
