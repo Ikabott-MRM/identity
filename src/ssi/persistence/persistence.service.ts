@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import { EmailService } from './email/email.service';
 import { EncryptionService } from '../../encryption/encryption.service';
-import { DidSaltAssociationService } from 'src/credentialsRegistry/didSaltAssociation.service';
+import { DidSaltAssociationService } from '../../credentialsRegistry/didSaltAssociation.service';
 require('dotenv').config();
 
 @Injectable()
@@ -186,19 +186,6 @@ export class PersistenceService {
     }
   }
 
-  //Para no tener que guardar el IV, se va a generar deterministicamente
-  //se va a generar una salt para el holderDid pasado como parametro
-  //esa salt se va a guardar asociada a dicho did
-  //el iv se va a generar usando esa salt unica pra el did y un hash del id de la credencial
-  //pensar como tiene que llegarle esta data al issuer
-  //o se agrega en el mail que para cada credencial el iv se genera de X forma?
-
-  //se tiene que guardar en IPFS un concatenado del credentialId y lo encriptado
-  //credentialId no es sensible o sea no pasa nada
-
-  //para desencriptar se tiene que separar la priemra parte con el -
-  //usar eso pra regenerar el iv
-  //y ahi desencriptar
   async encryptCredential(
     data: string,
     holderidUri: string,
@@ -215,13 +202,13 @@ export class PersistenceService {
         );
       }
 
-      console.log(credentialId)
+      console.log(credentialId);
       const iv = this.encryptionService.generateDeterministicIV(
         credentialId,
         didSalt,
       );
 
-      console.log(iv.toString('hex'))
+      console.log(iv.toString('hex'));
 
       const fileContent = await this.encryptionService.encryptContent(
         data,
@@ -249,8 +236,8 @@ export class PersistenceService {
         );
       //Split the string using '-' as the separator and extract the first part as the credential ID
       const ipfsContent = data.split('-');
-      const encryptedCredential = ipfsContent.slice(5).join("-");
-      let credentialId = ipfsContent.slice(0,5).join("-")
+      const encryptedCredential = ipfsContent.slice(5).join('-');
+      let credentialId = ipfsContent.slice(0, 5).join('-');
 
       const iv = this.encryptionService.generateDeterministicIV(
         credentialId,

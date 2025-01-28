@@ -7,8 +7,8 @@ import {
   ApiSecurity,
 } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
-import { sendErrorResponse } from 'src/helpers/functions';
-import { RequestError } from 'src/helpers/errors';
+import { sendErrorResponse } from '../../../helpers/functions';
+import { RequestError } from '../../../helpers/errors';
 import { EmailService } from './email.service';
 import { BackupEmailDto } from './dto/BackupEmailDto.dto';
 

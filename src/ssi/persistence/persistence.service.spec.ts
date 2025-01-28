@@ -9,33 +9,73 @@ import { Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import * as readline from 'readline';
 import { EncryptionService } from '../../encryption/encryption.service';
+import { DidSaltAssociationService } from '../../credentialsRegistry/didSaltAssociation.service';
+import { Knex } from 'knex';
 
 describe('EncryptionService', () => {
   let service: PersistenceService;
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
   let emailService: EmailService;
+  let knex: Knex;
+  let didSaltAssociationService: DidSaltAssociationService;
+  let encryptionService: EncryptionService;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PersistenceService,
         EmailService,
         EncryptionService,
+        DidSaltAssociationService,
         {
           provide: MailerService,
           useValue: {
             sendMail: jest.fn(),
           },
         },
+        {
+          provide: 'KnexConnection',
+          useFactory: () => {
+            return require('knex')({
+              client: 'sqlite3',
+              connection: ':memory:',
+              useNullAsDefault: true,
+            });
+          },
+        },
       ],
     }).compile();
+
+    knex = module.get<Knex>('KnexConnection');
+
+    await knex.schema.createTable('did_salt', table => {
+      table.string('didUri').primary();
+      table.timestamp('salt').notNullable();
+      table.timestamp('created_at').defaultTo(knex.fn.now());
+    });
 
     loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
     loggerDebugSpy = jest.spyOn(Logger.prototype, 'debug');
 
     service = module.get<PersistenceService>(PersistenceService);
     emailService = module.get<EmailService>(EmailService);
+    encryptionService = module.get<EncryptionService>(EncryptionService);
+
+    didSaltAssociationService = module.get<DidSaltAssociationService>(
+      DidSaltAssociationService,
+    );
+  });
+
+  beforeEach(async () => {
+    (service as any).encryptionKeyIssuerDid = null;
+    (service as any).encryptionKeyIssuerCredentials = null;
+
+    await knex('did_salt').del();
+  });
+
+  afterAll(async () => {
+    await knex.destroy();
   });
 
   afterEach(async () => {
@@ -344,5 +384,98 @@ describe('EncryptionService', () => {
 
       expect(result).toBeNull();
     });
+  });
+
+  it('should encrypt and decrypt a credential successfully', async () => {
+    const mockData = 'mockCredentialData';
+    const mockHolderUri = 'did:example:123';
+    const mockCredentialId = 'credential-123-456-789-101112';
+
+    // Mock didSaltAssociationService methods
+    const mockSalt = 'mockSalt';
+    jest
+      .spyOn(didSaltAssociationService, 'getDidSalt')
+      .mockResolvedValueOnce(null); // Simulate no existing salt
+    jest
+      .spyOn(didSaltAssociationService, 'addDidSaltAssociation')
+      .mockResolvedValueOnce(undefined); // Simulate successful salt addition
+
+    // Mock encryptionService methods
+    const mockIv = Buffer.from('mockIv');
+    const mockEncryptedData = 'mockEncryptedData';
+    jest.spyOn(encryptionService, 'generateSalt').mockReturnValue(mockSalt);
+    jest
+      .spyOn(encryptionService, 'generateDeterministicIV')
+      .mockReturnValue(mockIv);
+    jest.spyOn(encryptionService, 'encryptContent').mockResolvedValueOnce({
+      iv: 'test-iv',
+      encryptedData: mockEncryptedData,
+    });
+
+    // Call encryptCredential
+    const encryptedData = await service.encryptCredential(
+      mockData,
+      mockHolderUri,
+      mockCredentialId,
+    );
+
+    expect(didSaltAssociationService.getDidSalt).toHaveBeenCalledWith(
+      mockHolderUri,
+    );
+    expect(
+      didSaltAssociationService.addDidSaltAssociation,
+    ).toHaveBeenCalledWith(mockSalt, mockHolderUri);
+    expect(encryptionService.generateDeterministicIV).toHaveBeenCalledWith(
+      mockCredentialId,
+      mockSalt,
+    );
+    expect(encryptionService.encryptContent).toHaveBeenCalledWith(
+      mockData,
+      service['encryptionKeyIssuerCredentials'],
+      mockIv,
+    );
+    expect(encryptedData).toBe(mockEncryptedData);
+
+    // Test decryptCredential
+    jest
+      .spyOn(didSaltAssociationService, 'getDidSalt')
+      .mockResolvedValueOnce(mockSalt);
+    jest
+      .spyOn(encryptionService, 'decryptContent')
+      .mockResolvedValueOnce(mockData);
+
+    const decryptedData = await service.decryptCredential(
+      `${mockCredentialId}-${mockEncryptedData}`,
+      mockHolderUri,
+    );
+
+    expect(didSaltAssociationService.getDidSalt).toHaveBeenCalledWith(
+      mockHolderUri,
+    );
+    expect(encryptionService.generateDeterministicIV).toHaveBeenCalledWith(
+      mockCredentialId,
+      mockSalt,
+    );
+    expect(encryptionService.decryptContent).toHaveBeenCalledWith(
+      mockIv.toString('hex'),
+      mockEncryptedData,
+      service['encryptionKeyIssuerCredentials'],
+    );
+    expect(decryptedData).toBe(mockData);
+  });
+
+  it('should throw an error when decrypting without an associated salt', async () => {
+    const mockData = 'mockCredentialData';
+    const mockHolderUri = 'did:example:123';
+
+    jest
+      .spyOn(didSaltAssociationService, 'getDidSalt')
+      .mockResolvedValueOnce(null); // Simulate no salt
+
+    await expect(
+      service.decryptCredential(mockData, mockHolderUri),
+    ).rejects.toThrow(
+      'There is no salt associated to DID. Initialization vector cannot be determined.',
+    );
   });
 });

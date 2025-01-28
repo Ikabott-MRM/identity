@@ -11,8 +11,14 @@ import { EmailService } from './persistence/email/email.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
+import { PinataGatewayService } from '../ipfs/pinataGateway.service';
+import { DidCidAssociationService } from '../credentialsRegistry/didCidAssociation.service';
+import { CredentialsManifestService } from '../credentialsRegistry/credentialsManifest.service';
+import { Knex } from 'knex';
+import { EncryptionService } from '../encryption/encryption.service';
+import { DidSaltAssociationService } from '../credentialsRegistry/didSaltAssociation.service';
+import { ConfigService } from '@nestjs/config';
 
-//TODO modificar tests para sacar el uso de DWN
 describe('IssuerAgentService', () => {
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
@@ -20,16 +26,37 @@ describe('IssuerAgentService', () => {
   let operationalDID: BearerDid;
   let persistenceService: PersistenceService;
   let emailService: EmailService;
+  let ipfsService: PinataGatewayService;
+  let didCidsAssociationService: DidCidAssociationService;
+  let credentialManifestService: CredentialsManifestService;
+  let knex: Knex;
+  let encryptionservice: EncryptionService;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CredentialsSchemasInMemoryRepository,
         EmailService,
+        PinataGatewayService,
+        EncryptionService,
+        DidSaltAssociationService,
+        DidCidAssociationService,
+        ConfigService,
+        CredentialsManifestService,
         {
           provide: MailerService,
           useValue: {
             sendMail: jest.fn(),
+          },
+        },
+        {
+          provide: 'KnexConnection',
+          useFactory: () => {
+            return require('knex')({
+              client: 'sqlite3',
+              connection: ':memory:',
+              useNullAsDefault: true,
+            });
           },
         },
         PersistenceService,
@@ -37,13 +64,47 @@ describe('IssuerAgentService', () => {
       ],
     }).compile();
 
+    knex = module.get<Knex>('KnexConnection');
+
+    await knex.schema.createTable('did_cids', table => {
+      table.string('cid').primary();
+      table.string('didUri').notNullable();
+      table.timestamp('created_at').defaultTo(knex.fn.now());
+      table.index('didUri', 'idx_didUri');
+    });
+
+    await knex.schema.createTable('manifests', table => {
+      table.string('cid').primary();
+      table.timestamp('created_at').defaultTo(knex.fn.now());
+    });
+
+    await knex.schema.createTable('did_salt', table => {
+      table.string('didUri').primary();
+      table.string('salt').notNullable();
+      table.timestamp('created_at').defaultTo(knex.fn.now());
+    });
+
     service = module.get<IssuerAgentService>(IssuerAgentService);
     persistenceService = module.get<PersistenceService>(PersistenceService);
     emailService = module.get<EmailService>(EmailService);
+    ipfsService = module.get<PinataGatewayService>(PinataGatewayService);
+    encryptionservice = module.get<EncryptionService>(EncryptionService);
+    didCidsAssociationService = module.get<DidCidAssociationService>(
+      DidCidAssociationService,
+    );
+    credentialManifestService = module.get<CredentialsManifestService>(
+      CredentialsManifestService,
+    );
 
     jest.mock('../helpers/functions', () => ({
       mapDataWithRules: jest.fn(),
     }));
+  });
+
+  beforeEach(async () => {
+    await knex('did_cids').del();
+    await knex('manifests').del();
+    await knex('did_salt').del();
 
     const signerMock = {
       algorithm: 'mockAlgorithm',
@@ -62,16 +123,26 @@ describe('IssuerAgentService', () => {
       metadata: undefined,
       getSigner: jest.fn().mockResolvedValue(signerMock),
     };
-
     (service as any).operationalDID = operationalDID;
     loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
     loggerDebugSpy = jest.spyOn(Logger.prototype, 'debug');
+    await knex('did_cids').del();
   });
 
   afterEach(async () => {
-    loggerErrorSpy.mockClear();
-    loggerDebugSpy.mockClear();
+    if (loggerErrorSpy) {
+      loggerErrorSpy.mockRestore();
+      loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
+    }
+    if (loggerDebugSpy) {
+      loggerDebugSpy.mockRestore();
+      loggerDebugSpy = jest.spyOn(Logger.prototype, 'debug');
+    }
     jest.clearAllMocks();
+  });
+
+  afterAll(async () => {
+    await knex.destroy();
   });
 
   it('should be defined', () => {
@@ -180,7 +251,10 @@ describe('IssuerAgentService', () => {
       } as any);
 
       //mock loadDidFile result in order to trigger the creation of a new did
-      jest.spyOn(persistenceService, 'loadDidFile');
+      jest
+        .spyOn(persistenceService, 'loadDidFile')
+        .mockResolvedValue(JSON.stringify(mockPortableDid));
+
       jest.spyOn(persistenceService, 'createDidFile');
 
       await service.onModuleInit();
@@ -308,9 +382,38 @@ describe('IssuerAgentService', () => {
       jest.spyOn(VerifiableCredential, 'create').mockResolvedValue(mockVc);
       jest.spyOn(mockVc, 'sign').mockResolvedValue(mockedSignedVcJwt);
 
+      const mockEncryptedCredential = 'mockEncryptedCredential';
       jest
-        .spyOn((service as any).dwnService, 'saveCredentialtoDWN')
-        .mockResolvedValue(mockSaveResult);
+        .spyOn(persistenceService, 'encryptCredential')
+        .mockResolvedValueOnce(mockEncryptedCredential);
+
+      const mockCredentialCID = 'mockCredentialCID';
+      jest
+        .spyOn(ipfsService, 'uploadContent')
+        .mockResolvedValueOnce(mockCredentialCID);
+
+      jest
+        .spyOn(didCidsAssociationService, 'addCidToDid')
+        .mockResolvedValueOnce(undefined);
+
+      const mockManifest = null; // Simulate no existing manifest
+      jest
+        .spyOn(credentialManifestService, 'getCurrentManifest')
+        .mockResolvedValueOnce(null);
+
+      let manifest = {
+        issuerDid: 'did:example:issuer',
+        issuedCredentials: [
+          { holderDidUri: 'did:example:holder1', cids: ['cid1'] },
+        ],
+      };
+      jest
+        .spyOn(credentialManifestService, 'createManifest')
+        .mockResolvedValueOnce(manifest);
+
+      jest
+        .spyOn(credentialManifestService, 'addManifestToDatabase')
+        .mockResolvedValueOnce(undefined);
 
       const result = await service.issueCredential(
         {
@@ -328,13 +431,16 @@ describe('IssuerAgentService', () => {
       expect(loggerDebugSpy).toHaveBeenCalledWith(
         'credential is being created',
       );
+      expect(ipfsService.uploadContent).toHaveBeenCalledWith(
+        `${mockVc.vcDataModel.id}-${mockEncryptedCredential}`,
+      );
       expect(loggerDebugSpy).toHaveBeenCalledWith('credential is being signed');
       expect(loggerDebugSpy).toHaveBeenCalledWith(
         'credential has been successfully signed',
       );
     });
 
-    it('should fail while saving it to DWN', async () => {
+    it('should fail while saving it to IPFS', async () => {
       const mockSchema = {
         id: 'DriversLicense',
         type: ['https://identity-iovf.xyz/schemas/driversLicense'],
@@ -352,7 +458,6 @@ describe('IssuerAgentService', () => {
         },
         mockSchema.mappingRulesDescriptor,
       );
-      const mockSaveResult = { success: true };
 
       jest
         .spyOn((service as any).credentialsRepository, 'get')
@@ -362,8 +467,8 @@ describe('IssuerAgentService', () => {
         });
 
       jest
-        .spyOn((service as any).dwnService, 'saveCredentialtoDWN')
-        .mockRejectedValue(new Error('failed to save to DWN'));
+        .spyOn((service as any).ipfsService, 'uploadContent')
+        .mockRejectedValue(new Error('failed to save to IPFS'));
 
       const result = await service.issueCredential(
         {
@@ -376,7 +481,7 @@ describe('IssuerAgentService', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('failed to save to DWN');
+      expect(result.error).toBe('failed to save to IPFS');
       expect(loggerDebugSpy).toHaveBeenCalledWith(
         'credential is being created',
       );

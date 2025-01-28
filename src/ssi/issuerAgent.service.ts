@@ -15,9 +15,9 @@ import { ConfigService } from '@nestjs/config';
 import {
   CredentialManifest,
   CredentialsManifestService,
-} from 'src/credentialsRegistry/credentialsManifest.service';
-import { PinataGatewayService } from 'src/ipfs/pinataGateway.service';
-import { DidCidAssociationService } from 'src/credentialsRegistry/didCidAssociation.service';
+} from '../credentialsRegistry/credentialsManifest.service';
+import { PinataGatewayService } from '../ipfs/pinataGateway.service';
+import { DidCidAssociationService } from '../credentialsRegistry/didCidAssociation.service';
 
 export interface CredentialQueryResultObject {
   verifiableCredential: VerifiableCredential;
@@ -34,7 +34,7 @@ export class IssuerAgentService implements OnModuleInit {
     private readonly persistenceService: PersistenceService,
     private readonly configService: ConfigService,
     private readonly credentialManifestService: CredentialsManifestService,
-    //TODO aca es que se tendria que ver cmo hacerlo dinamico, capaz podria ser al incializar el modulo o en el
+    //TODO aca es que se va a tener que ver cmo hacerlo dinamico, capaz podria ser al incializar el modulo o en el
     //constructor en funcion de variable?
     private readonly ipfsService: PinataGatewayService,
     private readonly didCidsAssociationService: DidCidAssociationService,
@@ -122,7 +122,6 @@ export class IssuerAgentService implements OnModuleInit {
   }> {
     try {
       this.logger.log(`A dht did is about to be resolved`);
-      console.log(didUri);
       const didResolution = await DidDhtDocument.get({
         didUri,
         gatewayUri: this.gatewayUri,
@@ -341,10 +340,10 @@ export class IssuerAgentService implements OnModuleInit {
       );
 
       return {
-              success: true,
-              result: results,
-              error: null,
-            };;
+        success: true,
+        result: results,
+        error: null,
+      };
     } catch (error) {
       this.logger.error(
         `An error occurred while trying to query and process credentials of holder ${holderDid} from IPFS`,

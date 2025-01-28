@@ -17,6 +17,11 @@ import { CredentialsSchemasInMemoryRepository } from './inMemoryRepositories/cre
 import { PersistenceService } from './persistence/persistence.service';
 import { EmailService } from './persistence/email/email.service';
 import { MailerService } from '@nestjs-modules/mailer';
+import { Knex } from 'knex';
+import { CredentialsRegistryModule } from '../credentialsRegistry/credentialsRegistry.module';
+import { KnexModule } from '../db/knex.module';
+import { EncryptionModule } from '../encryption/encryption.module';
+import { IpfsModule } from '../ipfs/ipfs.module';
 
 describe('IssuerAgentController', () => {
   let controller: IssuerAgentController;
@@ -24,12 +29,20 @@ describe('IssuerAgentController', () => {
   let configService: ConfigService;
   let testDid: BearerDid;
   let operationalDID: BearerDid;
+  let knex: Knex;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [IssuerAgentController],
+      imports: [
+        IpfsModule,
+        EncryptionModule,
+        KnexModule,
+        CredentialsRegistryModule,
+      ],
       providers: [
         EmailService,
+        //I am mocking the mailerService directly in order to avoid dealing with SMTP during testing
         {
           provide: MailerService,
           useValue: {
@@ -41,6 +54,16 @@ describe('IssuerAgentController', () => {
         ConfigService,
         CredentialsSchemasInMemoryRepository,
         {
+          provide: 'KnexConnection',
+          useFactory: () => {
+            return require('knex')({
+              client: 'sqlite3',
+              connection: ':memory:',
+              useNullAsDefault: true,
+            });
+          },
+        },
+        {
           provide: Logger,
           useValue: {
             debug: jest.fn(),
@@ -49,6 +72,8 @@ describe('IssuerAgentController', () => {
         },
       ],
     }).compile();
+
+    knex = module.get<Knex>('KnexConnection');
 
     const signerMock = {
       algorithm: 'mockAlgorithm',
@@ -82,6 +107,14 @@ describe('IssuerAgentController', () => {
     controller = module.get<IssuerAgentController>(IssuerAgentController);
     service = module.get<IssuerAgentService>(IssuerAgentService);
     configService = module.get<ConfigService>(ConfigService);
+  });
+
+  afterEach(async () => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(async () => {
+    await knex.destroy();
   });
 
   it('should be defined', () => {
