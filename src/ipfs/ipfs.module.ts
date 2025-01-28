@@ -21,7 +21,7 @@
 // }
 
 import { Module } from '@nestjs/common';
-import { EncryptionModule } from 'src/encryption/encryption.module';
+import { EncryptionModule } from '../encryption/encryption.module';
 import { IpfsController } from './ipfs.controller';
 import { PinataGatewayService } from './pinataGateway.service';
 

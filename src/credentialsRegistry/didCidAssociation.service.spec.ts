@@ -93,7 +93,7 @@ describe('didCidsAssociationService', () => {
       expect(loggerDebugSpy).toHaveBeenCalledWith(
         `No CIDs were found to be associated with DIDUri ${didUri}`,
       );
-      expect(result).toEqual([]);
+      expect(result).toEqual(null);
     });
   });
 });
