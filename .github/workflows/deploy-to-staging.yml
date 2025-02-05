@@ -1,0 +1,53 @@
+name: Staging identity API deployment
+
+on:
+  # trigger when staging branch or workflow file changes
+  push:
+    branches: 
+      [ staging ] 
+    paths:
+    - '**'
+
+  # allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions: 
+      id-token: write # required to obtain OIDC JWT (azure auth)
+      contents: read # required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Branch Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.IDENTITYAPI_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.IDENTITYAPI_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.IDENTITYAPI_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create .env file
+        run: echo "${{ secrets.STAGING_ENV_FILE }}" > .env
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }} 
+          registryUrl: identitycace.azurecr.io
+          registryUsername: ${{ secrets.IDENTITYAPI_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.IDENTITYAPI_REGISTRY_PASSWORD }}
+          containerAppName: identity-api-staging
+          resourceGroup: identity-backend-resources
+          imageToBuild: identitycace.azurecr.io/identity-api-staging:${{ github.sha }}
+          environmentVariables: |
+            PINATA_GATEWAY=${{ secrets.PINATA_GATEWAY }} PINATA_JWT_TOKEN=${{ secrets.PINATA_JWT_TOKEN }} SECRET_PWD=${{ secrets.SECRET_PWD }} SALT_ISSUER_DID=${{ secrets.SALT_ISSUER_DID }} SALT_ISSUER_CREDENTIALS=${{ secrets.SALT_ISSUER_CREDENTIALS }} MAIL_ADDRESS=${{ secrets.MAIL_ADDRESS }}
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Deployment failed. Rolling back to the previous revision."
+          az containerapp revision rollback --name identity-api-staging --resource-group identity-backend-resources
