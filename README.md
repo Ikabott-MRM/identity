@@ -1,8 +1,6 @@
 # Identity
 
-
 IOV Foundation's Identity API allows governments to handle Decentralized Identifiers (DIDs) and Self-Sovereign Identity (SSI). Designed for scale.
-
 
 ## Getting Started
 
@@ -15,26 +13,26 @@ IOV Foundation's Identity API allows governments to handle Decentralized Identif
 ### Installation
 
 1. Clone the repository:
-`git clone https://github.com/IOV-Foundation/identity`
+   `git clone https://github.com/IOV-Foundation/identity`
 
 2. Install dependencies:
-`npm install`
+   `npm install`
 
 ### Running the application
 
-- To run the MySQL database
-`docker-compose up -d database`
+- To run the MySQL database (if the configured database is the one booted up from docker)
+  `docker-compose up -d database`
 
 - To run migrations
-This is needed to start the project for the first time.
-`npx knex migrate:up`
+  This is needed to start the project for the first time.
+  `npx knex migrate:up`
 
 - For development:
-`npm run start:dev`
+  `npm run start:dev`
 
 - For production:
-`npm run build`
-`npm run start:prod`
+  `npm run build`
+  `npm run start:prod`
 
 ## About how issuer persistence is handled
 
@@ -55,6 +53,7 @@ It is important to note that when using Gmail as the mail server, the password u
 The issuer is designed to support two types of deployments: interactive and automated.
 
 #### Interactive Deployment
+
 The password entered by the user to encrypt/decrypt the file will not be stored anywhere in the system. Each time the backend is started, it will check if a file containing the encrypted portableDid exists.
 
 If this file exists, the user will need to enter the password that was used the first time the issuer was initialized, along with the salt used to derive the encryption key, which was sent to their email address when the issuer was first initialized. With that password and the salt, the encryption key will be derived again and used to decrypt the file containing the portableDid.
@@ -62,6 +61,7 @@ If this file exists, the user will need to enter the password that was used the 
 If this file does not exist, the user will be prompted to enter a password (explaining that it will not be stored in the system and must be stored securely) and an email address to which the encrypted file and the salt will be sent. With the encrypted file, knowledge of the algorithm used, and the salt, the user can decrypt the file externally if needed.
 
 #### Automated Deployment
+
 The deployment method for the issuer will depend on each entity that wishes to implement it. At the code level, it is possible to bypass an interactive deployment, meaning that the person responsible for setting up the issuer does not need to enter data via command line. However, how an automated deployment is achieved will depend on each entity. In this project, GitHub Actions was used to automate the deployment.
 
 This section does not explain how to automate the deployment, but rather what is necessary at the configuration level to allow for an automated deployment.
@@ -84,6 +84,7 @@ If these variables are defined, it will be assumed that you want to attempt to r
 Therefore, if you want to fully automate the deployment process without interaction, it is crucial to correctly define the necessary environment variables for each case.
 
 ## Scripts
+
 - `npm run build`: Build the application
 - `npm run format`: Format code using Prettier
 - `npm run start`: Start the application
@@ -98,19 +99,19 @@ Therefore, if you want to fully automate the deployment process without interact
 - `npm run test:e2e`: Run end-to-end tests
 
 ## Features
+
 - Self-sovereign identity
-    - DID Creation
-    - Creation of credentials via templates
-        - Driver License
-        - More coming soon
-    - Credential requests by end users
-    - Credential approval or rejection
+  - DID Creation
+  - Creation of credentials via templates
+    - Driver License
+    - More coming soon
+  - Credential requests by end users
+  - Credential approval or rejection
 
 ## Technology Stack
 
 - NestJS
 - TypeScript
-- [TBD](https://www.tbd.website/)
 - MySQL
 - Jest for testing
 
@@ -123,5 +124,6 @@ Our goal is to continuously improve. We develop IDA openly on GitHub and welcome
 Apache License 2.0.
 
 ## Contact
+
 For information purposes: info@iovf.org
 For support purposes: support@iovf.org

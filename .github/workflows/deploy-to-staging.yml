@@ -3,18 +3,17 @@ name: Staging identity API deployment
 on:
   # trigger when staging branch or workflow file changes
   push:
-    branches: 
-      [ staging ] 
+    branches: [staging]
     paths:
-    - '**'
+      - '**'
 
-  # allow manual trigger 
-  workflow_dispatch:      
+  # allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       id-token: write # required to obtain OIDC JWT (azure auth)
       contents: read # required when GH token is used to authenticate with private repo
 
@@ -35,7 +34,7 @@ jobs:
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: ${{ github.workspace }} 
+          appSourcePath: ${{ github.workspace }}
           registryUrl: identitycace.azurecr.io
           registryUsername: ${{ secrets.IDENTITYAPI_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.IDENTITYAPI_REGISTRY_PASSWORD }}
@@ -43,7 +42,7 @@ jobs:
           resourceGroup: identity-backend-resources
           imageToBuild: identitycace.azurecr.io/identity-api-staging:${{ github.sha }}
           environmentVariables: |
-            PINATA_GATEWAY=${{ secrets.PINATA_GATEWAY }} PINATA_JWT_TOKEN=${{ secrets.PINATA_JWT_TOKEN }} SECRET_PWD=${{ secrets.SECRET_PWD }} SALT_ISSUER_DID=${{ secrets.SALT_ISSUER_DID }} SALT_ISSUER_CREDENTIALS=${{ secrets.SALT_ISSUER_CREDENTIALS }} MAIL_ADDRESS=${{ secrets.MAIL_ADDRESS }}
+            PINATA_GATEWAY=${{ secrets.PINATA_GATEWAY_STAGING }} PINATA_JWT_TOKEN=${{ secrets.PINATA_JWT_TOKEN_STAGING }} SECRET_PWD=${{ secrets.SECRET_PWD_STAGING }} SALT_ISSUER_DID=${{ secrets.SALT_ISSUER_DID_STAGING }} SALT_ISSUER_CREDENTIALS=${{ secrets.SALT_ISSUER_CREDENTIALS_STAGING }} MAIL_ADDRESS=${{ secrets.MAIL_ADDRESS }}
 
       - name: Rollback on failure
         if: failure()
