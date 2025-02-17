@@ -62,6 +62,7 @@ export class IssuerAgentService implements OnModuleInit {
         } else {
           this.logger.log(`Initializing issuer for the first time.`);
           const portableDid = (await this.createAndExportTBDIdentity()).result;
+          if(!portableDid) throw new Error(`DID creation has failed.`)
           const issuerPortableDid = JSON.stringify(portableDid, null, 2);
           await this.persistenceService.createDidFile(issuerPortableDid);
           this.operationalDID = await DidDht.import({
