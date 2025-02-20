@@ -94,7 +94,7 @@ export class IssuerAgentService implements OnModuleInit {
       // Creates a DID using the DHT method and publishes the DID Document to the DHT using gatewayUri provided through env variable
       this.logger.log(`A dht did is about to be created`);
       const didDht = await DidDht.create({
-        options: { gatewayUri: this.gatewayUri },
+        options: { gatewayUri: this.gatewayUri, publish:false },        
       });
 
       const portableDid = await didDht.export();
@@ -116,6 +116,7 @@ export class IssuerAgentService implements OnModuleInit {
   /**
    * @returns the DidDocument of the did passed as parameter
    */
+  // WARNING: In this version, since DIDs are NOT being published due to errors with the DID DHT Gateway, this method WILL NOT WORK. 
   async resolveTBDIdentity(didUri: string): Promise<{
     success: boolean;
     result: DidDocument | null;
