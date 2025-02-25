@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as readline from 'readline';
 import { EmailService } from './email/email.service';
 import { EncryptionService } from '../../encryption/encryption.service';
@@ -138,6 +139,7 @@ export class PersistenceService {
         encryptedContent: fileContent,
       });
       fs.writeFileSync(this.encryptedDidFile, JSON.stringify(fileContent));
+      this.logger.debug(`New encryptedPortableDid txt file has been written to file system.`)
     } catch (err) {
       this.logger.error(
         `An error occurred while trying to encrypt issuer DID.`,
@@ -149,7 +151,11 @@ export class PersistenceService {
 
   async loadDidFile(): Promise<string> {
     try {
-      if (!fs.existsSync(this.encryptedDidFile)) return null;
+      this.logger.debug(`fle exists w/o absolute path: ${fs.existsSync(this.encryptedDidFile)}`)
+      const absolutePath = path.resolve(process.cwd(), this.encryptedDidFile); 
+      this.logger.debug(`fle exists w absolute path: ${fs.existsSync(absolutePath)}`)
+
+      if (!fs.existsSync(absolutePath)) return null;
 
       const recoverIssuer =
         Boolean(process.env.SALT_ISSUER_DID) &&
