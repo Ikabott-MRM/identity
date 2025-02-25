@@ -2,6 +2,8 @@
 
 IOV Foundation's Identity API allows governments to handle Decentralized Identifiers (DIDs) and Self-Sovereign Identity (SSI). Designed for scale.
 
+TODO add api keys section
+
 ## Getting Started
 
 ### Prerequisites
