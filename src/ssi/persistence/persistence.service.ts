@@ -14,7 +14,7 @@ export class PersistenceService {
 
   private readonly logger = new Logger(PersistenceService.name);
   private readonly encryptedDidFile =
-    'src/ssi/persistence/encryptedPortableDid.txt';
+    'encryptedPortableDid.txt';
 
   constructor(
     private readonly emailService: EmailService,
