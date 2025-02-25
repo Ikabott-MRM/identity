@@ -161,11 +161,15 @@ export class PersistenceService {
         this.logger.debug('Not running from the /dist directory on Azure');
       }
 
+      this.logger.debug(`running on dirname:${__dirname}`)
+
       const encryptedDidFilePath = path.join(
         __dirname,
-        'ssi',
         this.encryptedDidFile,
       ); // adjust path for dist
+
+      this.logger.debug(`file path :${this.encryptedDidFile}`)
+      this.logger.debug(`file path with absolute :${encryptedDidFilePath}`)
 
       this.logger.debug(
         `fle exists w/o absolute path: ${fs.existsSync(this.encryptedDidFile)}`,
