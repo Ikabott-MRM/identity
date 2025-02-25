@@ -50,6 +50,8 @@ export class IssuerAgentService implements OnModuleInit {
         );
         let issuerPortableDidString =
           await this.persistenceService.loadDidFile();
+        
+        this.logger.debug(`loadDidFile returned: ${issuerPortableDidString}`)
 
         if (Boolean(issuerPortableDidString)) {
           const issuerPortableDid = JSON.parse(issuerPortableDidString);
