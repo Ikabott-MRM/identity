@@ -139,7 +139,9 @@ export class PersistenceService {
         encryptedContent: fileContent,
       });
       fs.writeFileSync(this.encryptedDidFile, JSON.stringify(fileContent));
-      this.logger.debug(`New encryptedPortableDid txt file has been written to file system.`)
+      this.logger.debug(
+        `New encryptedPortableDid txt file has been written to file system.`,
+      );
     } catch (err) {
       this.logger.error(
         `An error occurred while trying to encrypt issuer DID.`,
@@ -151,11 +153,29 @@ export class PersistenceService {
 
   async loadDidFile(): Promise<string> {
     try {
-      this.logger.debug(`fle exists w/o absolute path: ${fs.existsSync(this.encryptedDidFile)}`)
-      const absolutePath = path.resolve(process.cwd(), this.encryptedDidFile); 
-      this.logger.debug(`fle exists w absolute path: ${fs.existsSync(absolutePath)}`)
+      const isInDist = __dirname.endsWith('/dist');
 
-      if (!fs.existsSync(absolutePath)) return null;
+      if (isInDist) {
+        this.logger.debug('Running from the /dist directory on Azure');
+      } else {
+        this.logger.debug('Not running from the /dist directory on Azure');
+      }
+
+      const encryptedDidFilePath = path.join(
+        __dirname,
+        'ssi',
+        this.encryptedDidFile,
+      ); // adjust path for dist
+
+      this.logger.debug(
+        `fle exists w/o absolute path: ${fs.existsSync(this.encryptedDidFile)}`,
+      );
+      // const absolutePath = path.resolve(process.cwd(), this.encryptedDidFile);
+      this.logger.debug(
+        `fle exists w absolute path: ${fs.existsSync(encryptedDidFilePath)}`,
+      );
+
+      if (!fs.existsSync(encryptedDidFilePath)) return null;
 
       const recoverIssuer =
         Boolean(process.env.SALT_ISSUER_DID) &&

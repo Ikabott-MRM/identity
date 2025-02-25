@@ -50,8 +50,8 @@ export class IssuerAgentService implements OnModuleInit {
         );
         let issuerPortableDidString =
           await this.persistenceService.loadDidFile();
-        
-        this.logger.debug(`loadDidFile returned: ${issuerPortableDidString}`)
+
+        this.logger.debug(`loadDidFile returned: ${issuerPortableDidString}`);
 
         if (Boolean(issuerPortableDidString)) {
           const issuerPortableDid = JSON.parse(issuerPortableDidString);
@@ -64,7 +64,7 @@ export class IssuerAgentService implements OnModuleInit {
         } else {
           this.logger.log(`Initializing issuer for the first time.`);
           const portableDid = (await this.createAndExportTBDIdentity()).result;
-          if(!portableDid) throw new Error(`DID creation has failed.`)
+          if (!portableDid) throw new Error(`DID creation has failed.`);
           const issuerPortableDid = JSON.stringify(portableDid, null, 2);
           await this.persistenceService.createDidFile(issuerPortableDid);
           this.operationalDID = await DidDht.import({
@@ -96,7 +96,7 @@ export class IssuerAgentService implements OnModuleInit {
       // Creates a DID using the DHT method and publishes the DID Document to the DHT using gatewayUri provided through env variable
       this.logger.log(`A dht did is about to be created`);
       const didDht = await DidDht.create({
-        options: { gatewayUri: this.gatewayUri, publish:false },        
+        options: { gatewayUri: this.gatewayUri, publish: false },
       });
 
       const portableDid = await didDht.export();
@@ -118,7 +118,7 @@ export class IssuerAgentService implements OnModuleInit {
   /**
    * @returns the DidDocument of the did passed as parameter
    */
-  // WARNING: In this version, since DIDs are NOT being published due to errors with the DID DHT Gateway, this method WILL NOT WORK. 
+  // WARNING: In this version, since DIDs are NOT being published due to errors with the DID DHT Gateway, this method WILL NOT WORK.
   async resolveTBDIdentity(didUri: string): Promise<{
     success: boolean;
     result: DidDocument | null;
