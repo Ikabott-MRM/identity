@@ -168,7 +168,7 @@ export class PersistenceService {
         this.encryptedDidFile,
       ); // adjust path for dist
 
-      this.logger.debug(`file path :${this.encryptedDidFile}`)
+      this.logger.debug(`file path w/o absolute :${this.encryptedDidFile}`)
       this.logger.debug(`file path with absolute :${encryptedDidFilePath}`)
 
       this.logger.debug(
