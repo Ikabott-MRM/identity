@@ -126,6 +126,13 @@ export class PersistenceService {
 
   async createDidFile(data: string): Promise<void> {
     try {
+
+      const encryptedDidFilePath = path.join(
+        __dirname,
+        this.encryptedDidFile,
+      );
+      this.logger.debug(`Writing to: ${encryptedDidFilePath}`);
+
       const { saltIssuerDid, saltIssuerCredentials, emailAddress } =
         await this.promptForPasswordAndEmailForEncryption();
 
@@ -138,7 +145,7 @@ export class PersistenceService {
         saltIssuerCredentials,
         encryptedContent: fileContent,
       });
-      fs.writeFileSync(this.encryptedDidFile, JSON.stringify(fileContent));
+      fs.writeFileSync(encryptedDidFilePath, JSON.stringify(fileContent));
       this.logger.debug(
         `New encryptedPortableDid txt file has been written to file system.`,
       );
