@@ -4,8 +4,6 @@ require('dotenv').config();
 
 @Injectable()
 export class EncryptionService {
-  //TODO ver si no deberia tneer una private variable que guarde key de encryption de credenciales
-  //y que se inicialice al inicializar el server en la parte de persistence
   private readonly logger = new Logger(EncryptionService.name);
   constructor() {}
 
@@ -66,12 +64,6 @@ export class EncryptionService {
       throw err;
     }
   }
-
-  //TODO ver si esta bueno siempre asumir que iv viene en fileConten o si no es mejor pasar
-  //los dos parametros separados
-  //porque para desencriptar lo de IPFS yo no voy a estar subiendo el contenido con el IV
-  //sino el IV seria publico a todo el munod
-  //mejor guardo una salt unica para cada DID y el iv lo voy generando con el hash del CID
 
   async decryptContent(
     ivString: string,

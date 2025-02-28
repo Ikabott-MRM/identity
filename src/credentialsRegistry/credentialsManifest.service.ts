@@ -93,11 +93,6 @@ export class CredentialsManifestService {
     }
   }
 
-  //TODO esto deberia ser un endpoint? o cmo accederian en teoria?
-  //o cada vez que hago e update mando un mail con el ultimo cid?
-  //como desencriptarian?
-  //mando mail con todo cierto
-  //el current manifest seria el ultimo manifest
   async getCurrentManifest(): Promise<string | null> {
     try {
       const result = await this.knex('manifests')

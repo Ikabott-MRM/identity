@@ -12,6 +12,7 @@ export class EmailService {
     text: {
       saltIssuerDid: string;
       saltIssuerCredentials: string;
+      encryptedContentCID?: string;
       encryptedContent: { iv: string; encryptedData: string };
     },
   ) {
@@ -23,6 +24,14 @@ export class EmailService {
         The salt used, along with the password you entered when starting the issuer, to derive the encryption key for encrypting the portable DID is: <b>saltIssuerDid: ${text.saltIssuerDid}</b><br/><br/>
         The iv used to encrypt the portable DID is: <b>${text.encryptedContent.iv}</b><br/><br/>
         The salt used, along with the password you entered when starting the issuer, to derive the encryption key for encrypting the issued credentials is: <b>saltIssuerCredentials: ${text.saltIssuerCredentials}</b><br/><br/>
+        </p>
+        <p>
+        ${
+          text.encryptedContentCID ??
+          `The encrypted portable DID for the issuer has been uploaded to IPFS concatenated with the iv used to encrypt it. Its CID is: <b>${text.encryptedContentCID}</b>. To download it from IPFS you can execute a GET to https://ipfs.io/ipfs/${text.encryptedContentCID}. This will return the same iv as the one displayed above as the iv and the encrypted portable DID as encryptedData.<br/><br/>
+        The purpose of sending the CID is for you to be able to set the environment variable needed for defining whether you want to try to recover an already deployed instance of the issuer.<br/><br/>
+        <b>REMEMBER</b> that the CID set to try to recover a previous instance <b>MUST</b> be set together with its corresponding <b>SALT_ISSUER_DID</b> and <b>SALT_ISSUER_CREDENTIALS</b>. You cannot use a CID received in one email and the salts from another email, as it will fail in the recovery process.`
+        }
         </p>
         <p>
           The initialization vector for encrypting credentials before uploading them to IPFS is determined deterministically using the salt associated with the holder DID URI and a hash of the credential ID. 

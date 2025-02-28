@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as readline from 'readline';
 import { EmailService } from './email/email.service';
 import { EncryptionService } from '../../encryption/encryption.service';
 import { DidSaltAssociationService } from '../../credentialsRegistry/didSaltAssociation.service';
+import { PinataGatewayService } from '../../ipfs/pinataGateway.service';
 require('dotenv').config();
 
 @Injectable()
@@ -13,13 +12,12 @@ export class PersistenceService {
   private encryptionKeyIssuerCredentials: Buffer | null = null;
 
   private readonly logger = new Logger(PersistenceService.name);
-  private readonly encryptedDidFile =
-    'encryptedPortableDid.txt';
 
   constructor(
     private readonly emailService: EmailService,
     private readonly encryptionService: EncryptionService,
     private readonly didSaltAssociationService: DidSaltAssociationService,
+    private readonly ipfsService: PinataGatewayService,
   ) {}
 
   private async promptForUserInput(question: string): Promise<string> {
@@ -34,13 +32,6 @@ export class PersistenceService {
         resolve(answer);
       });
     });
-  }
-
-  private async confirmIssuerRecovery(): Promise<boolean> {
-    const userInput = await this.promptForUserInput(
-      'Do you want to attempt recovering the issuer?\n This process will recover the issuer DID and the key used for encrypting the credentials and the credential manifest.\n(Y/N):\n',
-    );
-    return userInput.trim().toUpperCase() === 'Y';
   }
 
   private async promptForPasswordAndSaltForDecryption(): Promise<void> {
@@ -126,13 +117,6 @@ export class PersistenceService {
 
   async createDidFile(data: string): Promise<void> {
     try {
-
-      const encryptedDidFilePath = path.join(
-        __dirname,
-        this.encryptedDidFile,
-      );
-      this.logger.debug(`Writing to: ${encryptedDidFilePath}`);
-
       const { saltIssuerDid, saltIssuerCredentials, emailAddress } =
         await this.promptForPasswordAndEmailForEncryption();
 
@@ -140,18 +124,23 @@ export class PersistenceService {
         data,
         this.encryptionKeyIssuerDid,
       );
+
+      const fileContentCID = await this.ipfsService.uploadContent(
+        JSON.stringify(fileContent),
+      );
+      this.logger.log(
+        `Encrypted issuer Did file has been uploaded to IPFS. CID:${fileContentCID}`,
+      );
+
       this.emailService.sendMail(emailAddress, {
         saltIssuerDid,
         saltIssuerCredentials,
+        encryptedContentCID: fileContentCID,
         encryptedContent: fileContent,
       });
-      fs.writeFileSync(encryptedDidFilePath, JSON.stringify(fileContent));
-      this.logger.debug(
-        `New encryptedPortableDid txt file has been written to file system.`,
-      );
     } catch (err) {
       this.logger.error(
-        `An error occurred while trying to encrypt issuer DID.`,
+        `An error occurred while creating the encrypted portable DID string and uploading it to IPFS.`,
         err.stack,
       );
       throw err;
@@ -160,63 +149,33 @@ export class PersistenceService {
 
   async loadDidFile(): Promise<string> {
     try {
-      const isInDist = __dirname.endsWith('/dist');
+      const recoverIssuer = Boolean(process.env.ISSUER_PORTABLE_DID_CID)
+        ? true
+        : false;
 
-      if (isInDist) {
-        this.logger.debug('Running from the /dist directory on Azure');
-      } else {
-        this.logger.debug('Not running from the /dist directory on Azure');
-      }
-
-      this.logger.debug(`running on dirname:${__dirname}`)
-
-      const encryptedDidFilePath = path.join(
-        __dirname,
-        this.encryptedDidFile,
-      ); // adjust path for dist
-
-      this.logger.debug(`file path w/o absolute :${this.encryptedDidFile}`)
-      this.logger.debug(`file path with absolute :${encryptedDidFilePath}`)
-
-      this.logger.debug(
-        `fle exists w/o absolute path: ${fs.existsSync(this.encryptedDidFile)}`,
-      );
-      // const absolutePath = path.resolve(process.cwd(), this.encryptedDidFile);
-      this.logger.debug(
-        `fle exists w absolute path: ${fs.existsSync(encryptedDidFilePath)}`,
-      );
-
-      if (!fs.existsSync(encryptedDidFilePath)) return null;
-
-      const recoverIssuer =
-        Boolean(process.env.SALT_ISSUER_DID) &&
-        Boolean(process.env.SALT_ISSUER_CREDENTIALS) &&
-        Boolean(process.env.SECRET_PWD)
-          ? true
-          : await this.confirmIssuerRecovery();
       if (!recoverIssuer) {
         this.logger.log(
-          'Recovery of the originally initialized issuer has been declined by the user, or the necessary environment variables are not set. The encrypted file will be overwritten.',
+          `As no CID has been found, the recovery of the originally initialized issuer is considered declined by the user. A new encrypted file containing a new issuer DID will be generated and uploaded to IPFS.`,
         );
         return null;
       }
 
       await this.promptForPasswordAndSaltForDecryption();
 
-      const fileContent = JSON.parse(
-        fs.readFileSync(this.encryptedDidFile, 'utf8'),
-      );
+      const encryptedFileAndIV = (await this.ipfsService.getContent(
+        process.env.ISSUER_PORTABLE_DID_CID,
+      )) as { iv: string; encryptedData: string };
 
       const decrypted = this.encryptionService.decryptContent(
-        fileContent.iv,
-        fileContent.encryptedData,
+        encryptedFileAndIV.iv,
+        encryptedFileAndIV.encryptedData,
         this.encryptionKeyIssuerDid,
       );
 
       return decrypted;
     } catch (err) {
       this.logger.error(
-        `An error occurred while trying to decrypt issuer DID file`,
+        `An error occurred while trying to decrypt issuer DID file obtained from IPFS.`,
         err.stack,
       );
       throw err;

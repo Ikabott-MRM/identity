@@ -56,11 +56,17 @@ The issuer is designed to support two types of deployments: interactive and auto
 
 #### Interactive Deployment
 
-The password entered by the user to encrypt/decrypt the file will not be stored anywhere in the system. Each time the backend is started, it will check if a file containing the encrypted portableDid exists.
+ Each time the backend starts, it will check whether an environment variable containing the CID of the encrypted portable DID uploaded to IPFS is defined. This variable is named ISSUER_PORTABLE_DID_CID.
 
-If this file exists, the user will need to enter the password that was used the first time the issuer was initialized, along with the salt used to derive the encryption key, which was sent to their email address when the issuer was first initialized. With that password and the salt, the encryption key will be derived again and used to decrypt the file containing the portableDid.
+If this variable exists, the user must enter the same password that was used when the issuer was first initialized, along with the salt used to derive the encryption key. This salt was sent to their email address during the initial setup. Using the provided password and salt, the encryption key will be derived again and used to decrypt the file containing the portableDid.
 
-If this file does not exist, the user will be prompted to enter a password (explaining that it will not be stored in the system and must be stored securely) and an email address to which the encrypted file and the salt will be sent. With the encrypted file, knowledge of the algorithm used, and the salt, the user can decrypt the file externally if needed.
+The user will also be prompted to enter the salt used to derive the encryption key for encrypting credentials before uploading them to IPFS. This salt was also sent to their email when the issuer was first initialized.
+
+If the environment variable is not defined, it will be assumed that no issuer needs to be recovered, and a new issuer will be initialized from scratch. In this case, the user will be prompted to enter a password (with a clear explanation that it will not be stored in the system and must be kept securely) and an email address where the encrypted file and salts will be sent.
+
+The password entered by the user to encrypt/decrypt the file will not be stored anywhere in the system.
+
+With the encrypted file, knowledge of the encryption algorithm, and the corresponding salt, the user can decrypt the file externally if needed.
 
 #### Automated Deployment
 
@@ -76,12 +82,13 @@ SECRET_PWD: This is the password that will be used to encrypt/decrypt the file.
 
 It is important to note that, for any variables that the system detects as defined, the user will not have the option to enter them manually. If you want the system to prompt for any of these variables, or both, via the command line, those variables should not be defined.
 
-Later, if for any reason it is necessary to restart the issuer to recover the DID from the initially initialized issuer, the following environment variables must be defined: SECRET_PWD, SALT_ISSUER_DID and SALT_ISSUER_CREDENTIALS.
+Later, if for any reason it is necessary to restart the issuer to recover the DID from the initially initialized issuer, the following environment variables must be defined: ISSUER_PORTABLE_DID_CID, SECRET_PWD, SALT_ISSUER_DID and SALT_ISSUER_CREDENTIALS.
 
+ISSUER_PORTABLE_DID_CID must be defined with the CID string sent to the user’s email after the issuer was first initialized.
 SECRET_PWD must have the same value as the password used the first time the issuer was initialized.
 SALT_ISSUER_DID and SALT_ISSUER_CREDENTIALS must be defined with the salt values sent to the user’s email after the issuer was first initialized. It is important to use the correct salt for each case: one will be used to derive the encryption key needed to decrypt the portable DID, and the other will be used to derive the encryption key required to encrypt and decrypt credentials issued by the issuer before they are uploaded to IPFS. The purpose of each key is clearly explained in the email sent when the issuer was first initialized.
 
-If these variables are defined, it will be assumed that you want to attempt to recover the issuer that was previously initialized. If one of these variables is not defined but an encrypted file exists, the system will ask the user via command line if they want to attempt to recover the issuer, and the system will wait for a response.
+If ISSUER_PORTABLE_DID_CID variable is defined, it will be assumed that you want to attempt to recover the issuer that was previously initialized. If one of the above mentioned variables is not defined but ISSUER_PORTABLE_DID_CID is, the system will ask the user via command line for the missing values, and the system will wait for a response.
 
 Therefore, if you want to fully automate the deployment process without interaction, it is crucial to correctly define the necessary environment variables for each case.
 
