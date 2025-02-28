@@ -42,7 +42,7 @@ jobs:
           resourceGroup: identity-backend-resources
           imageToBuild: identitycace.azurecr.io/identity-api-staging:${{ github.sha }}
           environmentVariables: |
-            PINATA_GATEWAY=${{ secrets.PINATA_GATEWAY_STAGING }} PINATA_JWT_TOKEN=${{ secrets.PINATA_JWT_TOKEN_STAGING }} SECRET_PWD=${{ secrets.SECRET_PWD_STAGING }} SALT_ISSUER_DID=${{ secrets.SALT_ISSUER_DID_STAGING }} SALT_ISSUER_CREDENTIALS=${{ secrets.SALT_ISSUER_CREDENTIALS_STAGING }} MAIL_ADDRESS=${{ secrets.MAIL_ADDRESS }}
+            PINATA_GATEWAY=${{ secrets.PINATA_GATEWAY_STAGING }} PINATA_JWT_TOKEN=${{ secrets.PINATA_JWT_TOKEN_STAGING }} SECRET_PWD=${{ secrets.SECRET_PWD_STAGING }} SALT_ISSUER_DID=${{ secrets.SALT_ISSUER_DID_STAGING }} SALT_ISSUER_CREDENTIALS=${{ secrets.SALT_ISSUER_CREDENTIALS_STAGING }} MAIL_ADDRESS=${{ secrets.MAIL_ADDRESS }} ISSUER_PORTABLE_DID_CID=${{ secrets.ISSUER_PORTABLE_DID_CID_STAGING }}
 
       - name: Rollback on failure
         if: failure()

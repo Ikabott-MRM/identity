@@ -4,6 +4,7 @@ import { EmailService } from './email/email.service';
 import { EncryptionService } from '../../encryption/encryption.service';
 import { DidSaltAssociationService } from '../../credentialsRegistry/didSaltAssociation.service';
 import { PinataGatewayService } from '../../ipfs/pinataGateway.service';
+import { ConfigService } from '@nestjs/config';
 require('dotenv').config();
 
 @Injectable()
@@ -18,6 +19,7 @@ export class PersistenceService {
     private readonly encryptionService: EncryptionService,
     private readonly didSaltAssociationService: DidSaltAssociationService,
     private readonly ipfsService: PinataGatewayService,
+    private readonly configService: ConfigService,
   ) {}
 
   private async promptForUserInput(question: string): Promise<string> {
@@ -36,13 +38,15 @@ export class PersistenceService {
 
   private async promptForPasswordAndSaltForDecryption(): Promise<void> {
     const password =
-      process.env.SECRET_PWD ??
+      this.configService.get('issuerPersistenceAndRecovery.secretPwd') ??
+      // process.env.SECRET_PWD ??
       (await this.promptForUserInput(
         'Enter the encryption password you chose the first time you started the issuer:\n',
       ));
 
     const saltIssuerDid =
-      process.env.SALT_ISSUER_DID ??
+      this.configService.get('issuerPersistenceAndRecovery.issuerDidSalt') ??
+      // process.env.SALT_ISSUER_DID ??
       (await this.promptForUserInput(
         'Enter the encryption salt you previously received by email labeled "salt for issuer DID".\n',
       ));
@@ -54,7 +58,8 @@ export class PersistenceService {
       );
 
     const saltIssuerCredentials =
-      process.env.SALT_ISSUER_CREDENTIALS ??
+      this.configService.get('issuerPersistenceAndRecovery.credentialsSalt') ??
+      // process.env.SALT_ISSUER_CREDENTIALS ??
       (await this.promptForUserInput(
         'Enter the encryption salt you previously received by email labeled "salt for issuer credentials".\n',
       ));
@@ -72,7 +77,8 @@ export class PersistenceService {
     emailAddress: string;
   }> {
     const password =
-      process.env.SECRET_PWD ??
+      this.configService.get('issuerPersistenceAndRecovery.secretPwd') ??
+      // process.env.SECRET_PWD ??
       (await this.promptForUserInput(
         'Enter the encryption password.\nPlease store this password securely, as it will be the only way to recover the issuer in case you need to restart it in the future.\nThis password WILL NOT be stored anywhere in the system.:\n',
       ));
@@ -81,7 +87,8 @@ export class PersistenceService {
     let attempts = 1;
     do {
       let emailAddress =
-        process.env.MAIL_ADDRESS ??
+        this.configService.get('issuerPersistenceAndRecovery.emailAddress') ??
+        // process.env.MAIL_ADDRESS ??
         (await this.promptForUserInput(
           attempts == 1
             ? 'Enter your email address. We will send you the encrypted file of the portable DID and the salt used for its encryption.\n We will also be sending the salt needed for recovering the encryption key used for ecnrypting/decrypting the credentials issued.\nWith these salts and the password that only you know, you will be able to decrypt the file needed.\n'
@@ -149,7 +156,10 @@ export class PersistenceService {
 
   async loadDidFile(): Promise<string> {
     try {
-      const recoverIssuer = Boolean(process.env.ISSUER_PORTABLE_DID_CID)
+      // const recoverIssuer = Boolean(process.env.ISSUER_PORTABLE_DID_CID)
+      const recoverIssuer = Boolean(
+        this.configService.get('issuerPersistenceAndRecovery.issuerDidCID'),
+      )
         ? true
         : false;
 
@@ -163,7 +173,7 @@ export class PersistenceService {
       await this.promptForPasswordAndSaltForDecryption();
 
       const encryptedFileAndIV = (await this.ipfsService.getContent(
-        process.env.ISSUER_PORTABLE_DID_CID,
+        this.configService.get('issuerPersistenceAndRecovery.issuerDidCID'),
       )) as { iv: string; encryptedData: string };
 
       const decrypted = this.encryptionService.decryptContent(

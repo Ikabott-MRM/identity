@@ -47,6 +47,6 @@ jobs:
           _buildArgumentsKey_: |
             _buildArgumentsValues_
           environmentVariables: |
-            PINATA_GATEWAY=${{ secrets.PINATA_GATEWAY }} PINATA_JWT_TOKEN=${{ secrets.PINATA_JWT_TOKEN }} SECRET_PWD=${{ secrets.SECRET_PWD }} SALT_ISSUER_DID=${{ secrets.SALT_ISSUER_DID }} SALT_ISSUER_CREDENTIALS=${{ secrets.SALT_ISSUER_CREDENTIALS }} MAIL_ADDRESS=${{ secrets.MAIL_ADDRESS }}
+            PINATA_GATEWAY=${{ secrets.PINATA_GATEWAY }} PINATA_JWT_TOKEN=${{ secrets.PINATA_JWT_TOKEN }} SECRET_PWD=${{ secrets.SECRET_PWD }} SALT_ISSUER_DID=${{ secrets.SALT_ISSUER_DID }} SALT_ISSUER_CREDENTIALS=${{ secrets.SALT_ISSUER_CREDENTIALS }} MAIL_ADDRESS=${{ secrets.MAIL_ADDRESS }} ISSUER_PORTABLE_DID_CID=${{ secrets.ISSUER_PORTABLE_DID_CID }}
 
 
