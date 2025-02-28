@@ -11,8 +11,10 @@ import * as readline from 'readline';
 import { EncryptionService } from '../../encryption/encryption.service';
 import { DidSaltAssociationService } from '../../credentialsRegistry/didSaltAssociation.service';
 import { Knex } from 'knex';
+import { PinataGatewayService } from '../../ipfs/pinataGateway.service';
+import { ConfigService } from '@nestjs/config';
 
-describe('EncryptionService', () => {
+describe('Persistence Service', () => {
   let service: PersistenceService;
   let loggerErrorSpy: jest.SpyInstance;
   let loggerDebugSpy: jest.SpyInstance;
@@ -20,7 +22,8 @@ describe('EncryptionService', () => {
   let knex: Knex;
   let didSaltAssociationService: DidSaltAssociationService;
   let encryptionService: EncryptionService;
-
+let ipfsService: PinataGatewayService;
+let configService: ConfigService;
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -28,6 +31,8 @@ describe('EncryptionService', () => {
         EmailService,
         EncryptionService,
         DidSaltAssociationService,
+        PinataGatewayService,
+        ConfigService,
         {
           provide: MailerService,
           useValue: {
@@ -60,8 +65,9 @@ describe('EncryptionService', () => {
 
     service = module.get<PersistenceService>(PersistenceService);
     emailService = module.get<EmailService>(EmailService);
+    configService=module.get<ConfigService>(ConfigService);
     encryptionService = module.get<EncryptionService>(EncryptionService);
-
+    ipfsService = module.get<PinataGatewayService>(PinataGatewayService);
     didSaltAssociationService = module.get<DidSaltAssociationService>(
       DidSaltAssociationService,
     );
@@ -80,9 +86,6 @@ describe('EncryptionService', () => {
 
   afterEach(async () => {
     jest.clearAllMocks();
-    delete process.env.SALT_ISSUER_DID;
-    delete process.env.SALT_ISSUER_CREDENTIALS;
-    delete process.env.SECRET_PWD;
   });
 
   it('should be defined', () => {
@@ -134,33 +137,40 @@ describe('EncryptionService', () => {
           throw new Error('Function not implemented.');
         },
       };
-
+    
       const mockPortableDid = await mockedDid.export();
-
+    
       jest
         .spyOn(service as any, 'promptForUserInput')
         .mockImplementationOnce(async () => 'strongpassword') // for password
         .mockImplementationOnce(async () => 'user@example.com'); // for email
-
-      // Mock email validation to return true in order to have encriptionKey defined
+    
+      // Mock email validation to return true in order to have encryptionKey defined
       jest.spyOn(emailService, 'isValidEmailAddress').mockReturnValueOnce(true);
-
-      jest.spyOn(fs, 'writeFileSync').mockImplementation();
+    
+      // Mock the IPFS uploadContent method to return a mock CID
+      const mockCid = 'mockCid123';
+      jest
+        .spyOn(ipfsService, 'uploadContent')
+        .mockResolvedValueOnce(mockCid);
+    
       jest.spyOn(emailService, 'sendMail').mockImplementation();
-
+    
+      // Calling createDidFile should trigger the IPFS upload and send an email
       await service.createDidFile(JSON.stringify(mockPortableDid, null, 2));
+    
       expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
       expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
-
+    
       expect(emailService.sendMail).toHaveBeenCalledWith('user@example.com', {
         saltIssuerDid: expect.any(String),
         saltIssuerCredentials: expect.any(String),
         encryptedContent: expect.any(Object),
+        encryptedContentCID: mockCid, 
       });
-      expect(fs.writeFileSync).toHaveBeenCalledWith(
-        'src/ssi/persistence/encryptedPortableDid.txt',
-        expect.any(String),
-      );
+    
+      // Ensure the uploadContent method was called with the encrypted file content
+      expect(ipfsService.uploadContent).toHaveBeenCalledWith(expect.any(String));
     });
 
     it(`Should create and encrypt the DID file and send an email, with the first entered email being invalid and the second attempt being valid.`, async () => {
@@ -195,22 +205,29 @@ describe('EncryptionService', () => {
         .mockImplementationOnce(async () => 'user@gmail.com'); // for email
       jest.spyOn(emailService, 'isValidEmailAddress').mockReturnValueOnce(true);
 
-      jest.spyOn(fs, 'writeFileSync').mockImplementation();
-      jest.spyOn(emailService, 'sendMail').mockImplementation();
-
-      await service.createDidFile(JSON.stringify(mockPortableDid, null, 2));
-      expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
-      expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
-
-      expect(emailService.sendMail).toHaveBeenCalledWith('user@gmail.com', {
-        saltIssuerDid: expect.any(String),
-        saltIssuerCredentials: expect.any(String),
-        encryptedContent: expect.any(Object),
-      });
-      expect(fs.writeFileSync).toHaveBeenCalledWith(
-        'src/ssi/persistence/encryptedPortableDid.txt',
-        expect.any(String),
-      );
+        // Mock the IPFS uploadContent method to return a mock CID
+        const mockCid = 'mockCid123';
+        jest
+          .spyOn(ipfsService, 'uploadContent')
+          .mockResolvedValueOnce(mockCid);
+      
+        jest.spyOn(emailService, 'sendMail').mockImplementation();
+      
+        // Calling createDidFile should trigger the IPFS upload and send an email
+        await service.createDidFile(JSON.stringify(mockPortableDid, null, 2));
+      
+        expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
+        expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
+      
+        expect(emailService.sendMail).toHaveBeenCalledWith('user@gmail.com', {
+          saltIssuerDid: expect.any(String),
+          saltIssuerCredentials: expect.any(String),
+          encryptedContentCID: mockCid, 
+          encryptedContent: expect.any(Object),
+        });
+      
+        // Ensure the uploadContent method was called with the encrypted file content
+        expect(ipfsService.uploadContent).toHaveBeenCalledWith(expect.any(String));
     });
 
     it('should fail on creating and encrypting DID file due to not entering a valid email and reaching max attempts', async () => {
@@ -257,7 +274,7 @@ describe('EncryptionService', () => {
         .spyOn(emailService, 'isValidEmailAddress')
         .mockReturnValueOnce(false);
 
-      jest.spyOn(fs, 'writeFileSync').mockImplementation();
+      jest.spyOn(ipfsService, 'uploadContent').mockImplementation();
       jest.spyOn(emailService, 'sendMail').mockImplementation();
 
       await expect(
@@ -269,94 +286,74 @@ describe('EncryptionService', () => {
       expect((service as any).encryptionKeyIssuerCredentials).toBeNull();
 
       expect(emailService.sendMail).not.toHaveBeenCalled();
-      expect(fs.writeFileSync).not.toHaveBeenCalled();
+      expect(ipfsService.uploadContent).not.toHaveBeenCalled();
 
       expect(loggerErrorSpy).toHaveBeenNthCalledWith(
         1,
-        `An error occurred while trying to encrypt issuer DID.`,
+        `An error occurred while creating the encrypted portable DID string and uploading it to IPFS.`,
         expect.any(String),
       );
     });
   });
 
   describe('loadDidFile', () => {
-    //TODO CAMBIAR TESTS
     it('should return decrypted DID file content', async () => {
       const mockFileContent = {
         iv: '22c517a0445b870f0fd65f242df4d665',
         encryptedData: 'encryptedData',
       };
       const mockDecryptedData = 'decryptedData';
-      // Mock the methods
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      jest
-        .spyOn(service as any, 'confirmIssuerRecovery')
-        .mockResolvedValue(true);
+    
       jest
         .spyOn(service as any, 'promptForUserInput')
         .mockImplementationOnce(async () => 'password') // for password
         .mockImplementationOnce(async () => 'salt'); // for salt
-
-      jest
-        .spyOn(fs, 'readFileSync')
-        .mockReturnValue(JSON.stringify(mockFileContent));
-
-      jest.spyOn(crypto, 'createDecipheriv').mockReturnValue({
-        update: jest.fn().mockReturnValue(mockDecryptedData),
-        final: jest.fn().mockReturnValue(''),
-      } as any);
-
+    
+      // Mock configService to return a valid CID
+      jest.spyOn(configService, 'get').mockReturnValue('mockCID');
+    
+      // Mock IPFSService to return encrypted content
+      jest.spyOn(ipfsService, 'getContent').mockResolvedValue(mockFileContent);
+    
+      // Mock encryptionService.decryptContent instead of using crypto directly
+      jest.spyOn(encryptionService, 'decryptContent').mockResolvedValue(mockDecryptedData);
+    
       const result = await service.loadDidFile();
+    
       expect((service as any).encryptionKeyIssuerDid).not.toBeNull();
       expect((service as any).encryptionKeyIssuerCredentials).not.toBeNull();
-
       expect(result).toBe(mockDecryptedData);
     });
-
+    
+    
     it('should catch and log an error that occurred while trying to decrypt DID file content', async () => {
       const mockFileContent = {
         iv: '22c517a0445b870f0fd65f242df4d665',
         encryptedData: 'encryptedData',
       };
-      const mockDecryptedData = 'decryptedData';
-
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      jest
-        .spyOn(service as any, 'confirmIssuerRecovery')
-        .mockResolvedValue(true);
+    
       jest
         .spyOn(service as any, 'promptForUserInput')
         .mockImplementationOnce(async () => 'password') // for password
         .mockImplementationOnce(async () => 'salt'); // for salt
-
-      jest
-        .spyOn(fs, 'readFileSync')
-        .mockReturnValue(JSON.stringify(mockFileContent));
-
-      jest.spyOn(crypto, 'createDecipheriv').mockReturnValue({
-        update: jest.fn().mockReturnValue(mockDecryptedData),
-        final: jest.fn().mockImplementationOnce(() => {
-          throw new Error('decipher final throw error');
-        }),
-      } as any);
-
-      await expect(service.loadDidFile()).rejects.toThrow(
-        'decipher final throw error',
-      );
+    
+      // Mock configService to return a valid CID
+      jest.spyOn(configService, 'get').mockReturnValue('mockCID');
+    
+      // Mock IPFSService to return encrypted content
+      jest.spyOn(ipfsService, 'getContent').mockResolvedValue(mockFileContent);
+    
+      // Mock encryptionService to throw an error when decrypting
+      jest.spyOn(encryptionService, 'decryptContent').mockImplementation(() => {
+        throw new Error('decipher final throw error');
+      });
+    
+      await expect(service.loadDidFile()).rejects.toThrow('decipher final throw error');
     });
 
     it('should return null if the user declines to recover the issuer', async () => {
-      delete process.env.SALT_ISSUER_DID;
-      delete process.env.SALT_ISSUER_CREDENTIALS;
-      delete process.env.SECRET_PWD;
-
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      jest
-        .spyOn(service as any, 'confirmIssuerRecovery')
-        .mockResolvedValue(false);
-
+      jest.spyOn(configService, 'get').mockReturnValue(null);
       const result = await service.loadDidFile();
-
       expect(result).toBeNull();
     });
   });

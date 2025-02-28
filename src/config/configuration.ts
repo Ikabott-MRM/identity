@@ -11,11 +11,17 @@ export default () => ({
     limit: parseInt(process.env.RL_LIMIT) || 10,
   },
   ssi: {
-    dwn: process.env.DWN_URL,
     ssiProjectName: process.env.SSI_PROJECT_NAME || 'TBD',
     gatewayUri: process.env.GATEWAY_URI,
   },
   apiKeys: {
     cacheTTL: parseInt(process.env.CACHE_TTL) || 360000,
+  },
+  issuerPersistenceAndRecovery: {
+    secretPwd: process.env.SECRET_PWD,
+    issuerDidSalt: process.env.SALT_ISSUER_DID,
+    credentialsSalt: process.env.SALT_ISSUER_CREDENTIALS,
+    issuerDidCID: process.env.ISSUER_PORTABLE_DID_CID,
+    emailAddress: process.env.MAIL_ADDRESS,
   },
 });
