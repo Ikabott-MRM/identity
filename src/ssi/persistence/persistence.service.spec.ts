@@ -118,32 +118,6 @@ describe('EncryptionService', () => {
     });
   });
 
-  describe('confirmIssuerRecovery', () => {
-    it('should return true when user inputs "Y"', async () => {
-      jest.spyOn(service as any, 'promptForUserInput').mockResolvedValue('Y');
-      const result = await (service as any).confirmIssuerRecovery();
-      expect(result).toBe(true);
-    });
-
-    it('should return false when user inputs "N"', async () => {
-      jest.spyOn(service as any, 'promptForUserInput').mockResolvedValue('N');
-      const result = await (service as any).confirmIssuerRecovery();
-      expect(result).toBe(false);
-    });
-
-    it('should return true when user inputs " y "', async () => {
-      jest.spyOn(service as any, 'promptForUserInput').mockResolvedValue(' y ');
-      const result = await (service as any).confirmIssuerRecovery();
-      expect(result).toBe(true);
-    });
-
-    it('should return false when user inputs anything other than "Y"', async () => {
-      jest.spyOn(service as any, 'promptForUserInput').mockResolvedValue('no');
-      const result = await (service as any).confirmIssuerRecovery();
-      expect(result).toBe(false);
-    });
-  });
-
   describe('createDidFile method', () => {
     it('should create and encrypt DID file and send an email', async () => {
       const mockedDid: BearerDid = {
@@ -306,6 +280,7 @@ describe('EncryptionService', () => {
   });
 
   describe('loadDidFile', () => {
+    //TODO CAMBIAR TESTS
     it('should return decrypted DID file content', async () => {
       const mockFileContent = {
         iv: '22c517a0445b870f0fd65f242df4d665',

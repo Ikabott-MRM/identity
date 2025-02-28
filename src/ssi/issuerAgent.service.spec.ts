@@ -9,7 +9,6 @@ import { mapDataWithRules } from '../helpers/functions';
 import { PersistenceService } from './persistence/persistence.service';
 import { EmailService } from './persistence/email/email.service';
 import { MailerService } from '@nestjs-modules/mailer';
-import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { PinataGatewayService } from '../ipfs/pinataGateway.service';
 import { DidCidAssociationService } from '../credentialsRegistry/didCidAssociation.service';
@@ -138,6 +137,7 @@ describe('IssuerAgentService', () => {
       loggerDebugSpy.mockRestore();
       loggerDebugSpy = jest.spyOn(Logger.prototype, 'debug');
     }
+    delete process.env.ISSUER_PORTABLE_DID_CID;
     jest.clearAllMocks();
   });
 
@@ -201,7 +201,7 @@ describe('IssuerAgentService', () => {
     it('should initialize issuerAgent service by loading the encrypted DID', async () => {
       (service as any).operationalDID = null;
 
-      //mock the result of crecreateAndExportTBDIdentity in order to be able to test how createDidFile is called
+      // Mock the result of crecreateAndExportTBDIdentity in order to be able to test how createDidFile is called
       const mockBearerDid: BearerDid = {
         keyManager: new LocalKeyManager(),
         export: jest.fn().mockResolvedValue({
@@ -232,25 +232,22 @@ describe('IssuerAgentService', () => {
         .mockImplementationOnce(async () => 'strongpassword') // for password
         .mockImplementationOnce(async () => 'user@example.com'); // for email
 
-      // Mock email validation to return true in order to have encriptionKey defined
+      // Mock email validation to return true in order to have encryptionKey defined
       jest.spyOn(emailService, 'isValidEmailAddress').mockReturnValueOnce(true);
 
-      //mock that did file exists and that user confirms recovery
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      jest
-        .spyOn(persistenceService as any, 'confirmIssuerRecovery')
-        .mockResolvedValue(true);
+      // Simular que el backend detecta ISSUER_PORTABLE_DID_CID como definido
+      process.env.ISSUER_PORTABLE_DID_CID = 'mockCID';
+      const recoverIssuer = Boolean(process.env.ISSUER_PORTABLE_DID_CID); // Se evalúa como `true`
 
-      jest
-        .spyOn(fs, 'readFileSync')
-        .mockReturnValue(JSON.stringify(mockFileContent));
+      // Mock de IPFSService para devolver el contenido encriptado
+      jest.spyOn(ipfsService, 'getContent').mockResolvedValue(mockFileContent);
 
       jest.spyOn(crypto, 'createDecipheriv').mockReturnValue({
         update: jest.fn().mockReturnValue(JSON.stringify(mockPortableDid)),
         final: jest.fn().mockReturnValue(''),
       } as any);
 
-      //mock loadDidFile result in order to trigger the creation of a new did
+      // Mock loadDidFile result in order to trigger the creation of a new did
       jest
         .spyOn(persistenceService, 'loadDidFile')
         .mockResolvedValue(JSON.stringify(mockPortableDid));
@@ -270,7 +267,6 @@ describe('IssuerAgentService', () => {
 
       expect(loggerDebugSpy).toHaveBeenCalledWith(`${mockBearerDid.uri}`);
     });
-
     it('should fail initializing issuerAgent service due to loadDidFile throwing an error', async () => {
       (service as any).operationalDID = null;
 
