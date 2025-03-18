@@ -92,9 +92,10 @@ export class IssuerAgentService implements OnModuleInit {
   }> {
     try {
       // Creates a DID using the DHT method and publishes the DID Document to the DHT using gatewayUri provided through env variable
+      // TODO added publishing did again to test new dht infra, to see if it is being able to publish DIDs and resolve them
       this.logger.log(`A dht did is about to be created`);
       const didDht = await DidDht.create({
-        options: { gatewayUri: this.gatewayUri, publish: false },
+        options: { gatewayUri: this.gatewayUri},
       });
 
       const portableDid = await didDht.export();
