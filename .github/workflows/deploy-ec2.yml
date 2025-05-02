@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main  # o cambia a 'master' o tu branch principal
+      - dev # Cambiar cuando se haga el merge a main, por ahora lo dejamos en dev
 
 jobs:
   deploy:
@@ -22,7 +22,8 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << 'EOF'
             cd ~/identity
-            git pull origin main
+            git checkout dev
+            git pull origin dev
             docker compose down
             docker compose build
             docker compose up -d
