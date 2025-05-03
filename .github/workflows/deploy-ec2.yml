@@ -24,6 +24,7 @@ jobs:
           SECRET_PWD: ${{ secrets.SECRET_PWD }}
           SALT_ISSUER_DID: ${{ secrets.SALT_ISSUER_DID }}
           SALT_ISSUER_CREDENTIALS: ${{ secrets.SALT_ISSUER_CREDENTIALS }}
+          PINATA_JWT: ${{ secrets.PINATA_JWT_TOKEN }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << EOF
             cd ~/identity
