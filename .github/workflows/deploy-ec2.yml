@@ -21,33 +21,11 @@ jobs:
 
       - name: Deploy to EC2 via SSH
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << "EOF"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << EOF
             cd ~/identity
 
-            cat > .env <<EOT
-NODE_ENV=production
-PORT=3000
-
-DB_HOST=database
-DB_PORT=3306
-DB_USERNAME=user
-DB_PASSWORD=password
-DB_NAME=iovf-identity
-
-PINATA_JWT_TOKEN=${{ secrets.PINATA_JWT_TOKEN }}
-PINATA_GATEWAY=https://gateway.pinata.cloud
-
-MAIL_ADDRESS=ida@iovf.com
-MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-
-GATEWAY_URI=http://ssi-service:3000
-
-ISSUER_PORTABLE_DID_CID=${{ secrets.ISSUER_PORTABLE_DID_CID }}
-
-SECRET_PWD=${{ secrets.SECRET_PWD }}
-SALT_ISSUER_DID=${{ secrets.SALT_ISSUER_DID }}
-SALT_ISSUER_CREDENTIALS=${{ secrets.SALT_ISSUER_CREDENTIALS }}
-EOT
+            # Escribir el archivo .env desde el secret
+            echo "${{ secrets.DEV_ENV_FILE }}" > .env
 
             git checkout dev
             git pull origin dev
