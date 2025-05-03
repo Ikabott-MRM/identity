@@ -24,7 +24,7 @@ jobs:
           SECRET_PWD: ${{ secrets.SECRET_PWD }}
           SALT_ISSUER_DID: ${{ secrets.SALT_ISSUER_DID }}
           SALT_ISSUER_CREDENTIALS: ${{ secrets.SALT_ISSUER_CREDENTIALS }}
-          PINATA_JWT_TOKEN: ${{ secrets.PINATA_JWT_TOKEN }}
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << EOF
             cd ~/identity
@@ -43,6 +43,7 @@ jobs:
             echo "SALT_ISSUER_DID=$SALT_ISSUER_DID" >> .env
             echo "SALT_ISSUER_CREDENTIALS=$SALT_ISSUER_CREDENTIALS" >> .env
             echo "MAIL_ADDRESS=ida@iovf.org" >> .env
+            echo "PINATA_JWT=$PINATA_JWT" >> .env
 
             git checkout dev
             git pull origin dev
