@@ -20,12 +20,28 @@ jobs:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
       - name: Deploy to EC2 via SSH
+        env:
+          SECRET_PWD: ${{ secrets.SECRET_PWD }}
+          SALT_ISSUER_DID: ${{ secrets.SALT_ISSUER_DID }}
+          SALT_ISSUER_CREDENTIALS: ${{ secrets.SALT_ISSUER_CREDENTIALS }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << EOF
             cd ~/identity
 
-            # Escribir el archivo .env desde el secret
-            echo "${{ secrets.DEV_ENV_FILE }}" > .env
+            echo "DWN_URL=''" > .env
+            echo "SSI_PROJECT_NAME='TBD'" >> .env
+            echo "GATEWAY_URI=https://dht.iovf.org" >> .env
+            echo "DB_USER=user" >> .env
+            echo "DB_PASSWORD='password'" >> .env
+            echo "DB_HOST=database" >> .env
+            echo "DB_NAME=iovf-identity" >> .env
+            echo "MAILER_TRANSPORT_HOST='smtp.gmail.com'" >> .env
+            echo "MAIL_USER='ida@iovf.org'" >> .env
+            echo "MAIL_PASSWORD='sziwpnlooukzfcwo'" >> .env
+            echo "SECRET_PWD=$SECRET_PWD" >> .env
+            echo "SALT_ISSUER_DID=$SALT_ISSUER_DID" >> .env
+            echo "SALT_ISSUER_CREDENTIALS=$SALT_ISSUER_CREDENTIALS" >> .env
+            echo "MAIL_ADDRESS=ida@iovf.org" >> .env
 
             git checkout dev
             git pull origin dev
