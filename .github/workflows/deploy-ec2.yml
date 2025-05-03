@@ -43,8 +43,8 @@ jobs:
             echo "SALT_ISSUER_DID=$SALT_ISSUER_DID" >> .env
             echo "SALT_ISSUER_CREDENTIALS=$SALT_ISSUER_CREDENTIALS" >> .env
             echo "MAIL_ADDRESS=ida@iovf.org" >> .env
-            printf "PINATA_JWT=\"%s\"\n" "${PINATA_JWT}" >> .env
-
+            echo "PINATA_JWT=\"$PINATA_JWT\"" >> .env
+            
             git checkout dev
             git pull origin dev
             docker compose down
