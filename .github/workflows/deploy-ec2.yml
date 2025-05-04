@@ -43,7 +43,7 @@ jobs:
             echo "SALT_ISSUER_DID=$SALT_ISSUER_DID" >> .env
             echo "SALT_ISSUER_CREDENTIALS=$SALT_ISSUER_CREDENTIALS" >> .env
             echo "MAIL_ADDRESS=ida@iovf.org" >> .env
-            printf "PINATA_JWT_TOKEN=%s\n" "$PINATA_JWT_TOKEN" >> .env
+            echo "PINATA_JWT_TOKEN=${PINATA_JWT_TOKEN}" >> .env
 
             git checkout dev
             git pull origin dev
