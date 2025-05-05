@@ -3,7 +3,10 @@ import {
   BearerDid,
   DidDht,
   DidDhtDocument,
+  DidDhtUtils,
   DidDocument,
+  DidError,
+  DidErrorCode,
   PortableDid,
 } from '@web5/dids';
 import { VerifiableCredential } from '@web5/credentials';
@@ -18,6 +21,9 @@ import {
 } from '../credentialsRegistry/credentialsManifest.service';
 import { PinataGatewayService } from '../ipfs/pinataGateway.service';
 import { DidCidAssociationService } from '../credentialsRegistry/didCidAssociation.service';
+import { Convert } from "@web5/common";
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface CredentialQueryResultObject {
   verifiableCredential: VerifiableCredential;
@@ -92,13 +98,77 @@ export class IssuerAgentService implements OnModuleInit {
   }> {
     try {
       // Creates a DID using the DHT method and publishes the DID Document to the DHT using gatewayUri provided through env variable
+      // TODO added publishing did again to test new dht infra, to see if it is being able to publish DIDs and resolve them
       this.logger.log(`A dht did is about to be created`);
-      const didDht = await DidDht.create({
-        options: { gatewayUri: this.gatewayUri, publish: false },
+      const identity = await DidDht.create({
+        options: { gatewayUri: this.gatewayUri, publish: true},
       });
 
-      const portableDid = await didDht.export();
+      const portableDid = await identity.export();
       this.logger.log(`A dht did has been succesfully created`);
+
+      //TODO adding code to debug how URL is being obtained
+      console.log(`DID created and published: ${identity.uri}`);
+
+      console.log(`trying to debug error when publishing`);
+
+      const dnsPacket = await DidDhtDocument.toDnsPacket({
+        didDocument: identity.document,
+        didMetadata: identity.metadata,
+        authoritativeGatewayUris: [this.gatewayUri],
+      });
+
+      console.log(`converted to dns packet`);
+
+      // Create a signed BEP44 put message from the DNS packet.
+      const bep44Message = await DidDhtUtils.createBep44PutMessage({
+        dnsPacket,
+        publicKeyBytes: DidDhtUtils.identifierToIdentityKeyBytes({
+          didUri: identity.uri,
+        }),
+        signer: await identity.getSigner({ methodId: "0" }),
+      });
+
+      console.log(`created signed bep44 message`);
+
+      // Publish the DNS packet to the DHT network.
+      const identifier = Convert.uint8Array(bep44Message.k).toBase32Z();
+      console.log(`converted using convert from web5 common`);
+
+      // Concatenate the gateway URI with the identifier to form the full URL.
+      const url = new URL(identifier, this.gatewayUri).href;
+      console.log(`obtained URL:${url}`);
+
+
+      // Construct the body of the request according to the Pkarr relay specification.
+      const body = new Uint8Array(bep44Message.v.length + 72);
+      body.set(bep44Message.sig, 0);
+      new DataView(body.buffer).setBigUint64(
+        bep44Message.sig.length,
+        BigInt(bep44Message.seq),
+      );
+      body.set(bep44Message.v, bep44Message.sig.length + 8);
+
+      console.log(`constructed body of the request`);
+      console.log(body);
+      console.log(body.length);
+console.log(body.byteLength)
+      let response: Response;
+      const filePath = path.join(__dirname, 'body.bin'); // Save in the same directory as your script
+fs.writeFileSync(filePath, Buffer.from(body));
+
+      try {
+        response = await fetch(url, {
+          method  : 'PUT',
+          headers : { 'Content-Type': 'application/octet-stream' },
+          body
+        });
+  
+      } catch (error: any) {
+        console.log(error)
+        throw new DidError(DidErrorCode.InternalError, `Failed to put Pkarr record for identifier ${identifier}: ${error.message}`);
+      }
+      
       return {
         success: true,
         result: portableDid,
