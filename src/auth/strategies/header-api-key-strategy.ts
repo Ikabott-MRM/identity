@@ -10,7 +10,7 @@ export class HeaderApiKeyStrategy extends PassportStrategy(
 ) {
   constructor(private readonly authService: AuthService) {
     super(
-      { header: 'Authorization', prefix: 'Bearer ' },
+      { header: 'api_key', prefix: '' },
       false,
       async (apiKey: string, done: (error: Error, data: any) => void) => {
         return await this.validate(apiKey, done);
