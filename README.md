@@ -2,8 +2,6 @@
 
 IOV Foundation's Identity API allows governments to handle Decentralized Identifiers (DIDs) and Self-Sovereign Identity (SSI). Designed for scale.
 
-TODO add api keys section
-
 ## Getting Started
 
 ### Prerequisites
@@ -86,11 +84,105 @@ Later, if for any reason it is necessary to restart the issuer to recover the DI
 
 ISSUER_PORTABLE_DID_CID must be defined with the CID string sent to the user’s email after the issuer was first initialized.
 SECRET_PWD must have the same value as the password used the first time the issuer was initialized.
-SALT_ISSUER_DID and SALT_ISSUER_CREDENTIALS must be defined with the salt values sent to the user’s email after the issuer was first initialized. It is important to use the correct salt for each case: one will be used to derive the encryption key needed to decrypt the portable DID, and the other will be used to derive the encryption key required to encrypt and decrypt credentials issued by the issuer before they are uploaded to IPFS. The purpose of each key is clearly explained in the email sent when the issuer was first initialized.
+SALT_ISSUER_DID and SALT_ISSUER_CREDENTIALS must be defined with the salt values sent to the user’s email after the issuer was first initialized. It is important to use the correct salt for each case: one will be used to derive the encryption key needed to decrypt the portable DID, and the other will be used to derive the encryption key required to encrypt credentials issued by the issuer before they are uploaded to IPFS and decrypt them when needed to be fetched. The purpose of each key is clearly explained in the email sent when the issuer was first initialized.
 
 If ISSUER_PORTABLE_DID_CID variable is defined, it will be assumed that you want to attempt to recover the issuer that was previously initialized. If one of the above mentioned variables is not defined but ISSUER_PORTABLE_DID_CID is, the system will ask the user via command line for the missing values, and the system will wait for a response.
 
 Therefore, if you want to fully automate the deployment process without interaction, it is crucial to correctly define the necessary environment variables for each case.
+
+## API Keys & Endpoints Protection
+
+### Runtime Authentication
+Endpoint protection is enforced using the ApiKeyAuthGuard, which is based on the strategy implemented in: `src/auth/strategies/header-api-key-strategy.ts`
+Every incoming request must include a valid api_key in the headers to be authenticated and passed to the route handler.
+
+All endpoints of the issuer's API are protected via **API keys**. There is no visual interface or UI component for managing these keys. Instead, API key management is performed through command-line **scripts**. There must be at least one active api key ; otherwise, requests will be rejected with an UNAUTHORIZED error.
+
+> **Important**  
+> Before running any script, ensure that the database has been initialized using the following command:
+>
+> ```bash
+> npx knex migrate:up
+> ```
+> This will create the necessary tables:  
+> - `requests`: required for the issuer's internal operations.  
+> - `api_keys`: used for managing API keys.
+
+These scripts interact with the database using **Knex**, so the following environment variables must be properly set:
+
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_HOST`
+
+The **same database** must be used both by the issuer API and by the scripts to ensure access to the same set of API keys.
+
+###  Available Scripts
+
+Scripts are located in the `/src/auth/api-key-scripts` folder:
+
+- `create-api-key.ts`
+- `delete-api-key.ts`
+- `list-api-keys.ts`
+
+They allow continuous management of API keys (creation, listing, revocation) without requiring a server restart.
+
+### create-api-key.ts
+
+Use this script to create a new API key, which will be accepted for accessing protected endpoints.
+
+- API keys are **encrypted** before being stored in the database using the `crypto` module from Node.js.
+- The encryption uses **AES-256-CTR**, and each stored key includes its IV, salt, and ciphertext in a single `encrypted_key` field.
+- The script also stores a `hashed_pwd` (bcrypt hash of the password used for encryption) to ensure that all keys are encrypted with the same password.
+
+> **Note:** All API keys must be encrypted using the same password. If the password doesn't match previously stored ones, the script will terminate with:
+>
+> ```
+> The provided password does not match the encryption password for existing API keys. All API keys must be encrypted with the same password.
+> ```
+
+##### Arguments
+
+1. `description`: a short description of the API key (e.g., client name or purpose).
+2. `password`: encryption password (used to derive the key for encryption).
+
+Example
+
+```bash
+npx ts-node src/auth/api-key-scripts/create-api-key.ts "client1" "your-password"
+```
+
+### delete-api-key.ts
+Use this script to revoke access by deleting one or more API keys.
+
+The script first validates the provided password by comparing it (with bcrypt) against the hash stored in the database.
+After validation, you can delete keys either by description or by providing an explicit list of keys.
+
+#### Delete by Description
+Deletes all API keys associated with the given description.
+
+Example
+```bash
+npx ts-node src/auth/api-key-scripts/delete-api-key.ts your-password --desc="Customer ABC"
+```
+
+#### Delete Specific Keys
+Deletes only the specified keys, passed as a JSON array.
+
+Example
+```bash
+npx ts-node src/auth/api-key-scripts/delete-api-key.ts your-password --keys='["abc123", "def456"]'
+```
+
+### list-api-keys.ts
+This script lists all active API keys.
+
+Requires the encryption password to verify and decrypt stored keys.
+Outputs the decrypted API keys along with their associated descriptions.
+
+Example
+```bash
+npx ts-node src/auth/api-key-scripts/list-api-keys.ts your-password
+```
 
 ## Scripts
 
