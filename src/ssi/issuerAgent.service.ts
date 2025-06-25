@@ -40,8 +40,7 @@ export class IssuerAgentService implements OnModuleInit {
     private readonly persistenceService: PersistenceService,
     private readonly configService: ConfigService,
     private readonly credentialManifestService: CredentialsManifestService,
-    //TODO aca es que se va a tener que ver cmo hacerlo dinamico, capaz podria ser al incializar el modulo o en el
-    //constructor en funcion de variable?
+    //TODO aca es que se va a tener que ver cmo hacerlo dinamico. Eso queda pending hasta tener una gateway propia
     private readonly ipfsService: PinataGatewayService,
     private readonly didCidsAssociationService: DidCidAssociationService,
   ) {

@@ -12,9 +12,8 @@ export class IpfsController {
   @Post('upload')
   async uploadContent(
     @Body('content') content: string,
-    @Body('name') name?: string,
   ): Promise<string> {
-    return this.ipfsGateway.uploadContent(content, name);
+    return this.ipfsGateway.uploadContent(content);
   }
 
   @Delete('unpin/:cid')

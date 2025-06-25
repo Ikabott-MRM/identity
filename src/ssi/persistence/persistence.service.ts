@@ -78,7 +78,6 @@ export class PersistenceService {
   }> {
     const password =
       this.configService.get('issuerPersistenceAndRecovery.secretPwd') ??
-      // process.env.SECRET_PWD ??
       (await this.promptForUserInput(
         'Enter the encryption password.\nPlease store this password securely, as it will be the only way to recover the issuer in case you need to restart it in the future.\nThis password WILL NOT be stored anywhere in the system.:\n',
       ));
@@ -88,7 +87,6 @@ export class PersistenceService {
     do {
       let emailAddress =
         this.configService.get('issuerPersistenceAndRecovery.emailAddress') ??
-        // process.env.MAIL_ADDRESS ??
         (await this.promptForUserInput(
           attempts == 1
             ? 'Enter your email address. We will send you the encrypted file of the portable DID and the salt used for its encryption.\n We will also be sending the salt needed for recovering the encryption key used for ecnrypting/decrypting the credentials issued.\nWith these salts and the password that only you know, you will be able to decrypt the file needed.\n'
@@ -156,7 +154,6 @@ export class PersistenceService {
 
   async loadDidFile(): Promise<string> {
     try {
-      // const recoverIssuer = Boolean(process.env.ISSUER_PORTABLE_DID_CID)
       const recoverIssuer = Boolean(
         this.configService.get('issuerPersistenceAndRecovery.issuerDidCID'),
       )
@@ -208,13 +205,10 @@ export class PersistenceService {
         );
       }
 
-      console.log(credentialId);
       const iv = this.encryptionService.generateDeterministicIV(
         credentialId,
         didSalt,
       );
-
-      console.log(iv.toString('hex'));
 
       const fileContent = await this.encryptionService.encryptContent(
         data,
@@ -256,7 +250,6 @@ export class PersistenceService {
         this.encryptionKeyIssuerCredentials,
       );
 
-      //TODO devuelvo un string, tengo que pasarlo a formato credencial para devolverlas
       return decryptedCredential;
     } catch (error) {
       this.logger.error(

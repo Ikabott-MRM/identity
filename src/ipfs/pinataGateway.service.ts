@@ -9,11 +9,7 @@ export class PinataGatewayService implements IpfsGateway {
   private readonly secretAccessToken = process.env.PINATA_JWT_TOKEN;
   private readonly logger = new Logger(PinataGatewayService.name);
 
-  //cuando se suba una credencial se va a subir pasando el
-  //string que es encrypted data
-  //cuando se suba el manifest se va a pasar un json object
-  //pero para simplificar lo puedo pasar coo un string, no?
-  async uploadContent(content: string, name?: string): Promise<string> {
+  async uploadContent(content: string): Promise<string> {
     try {
       const formData = new FormData();
       const fileBlob = new Blob([content], { type: 'text/plain' });
