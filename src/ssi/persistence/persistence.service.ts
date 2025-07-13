@@ -244,11 +244,23 @@ export class PersistenceService {
         didSalt,
       );
 
-      const decryptedCredential = await this.encryptionService.decryptContent(
-        iv.toString('hex'),
-        encryptedCredential,
-        this.encryptionKeyIssuerCredentials,
-      );
+      //const decryptedCredential = await this.encryptionService.decryptContent(
+      //  iv.toString('hex'),
+      //  encryptedCredential,
+      //  this.encryptionKeyIssuerCredentials,
+      //);
+
+const encryptionKey = this.encryptionService.deriveSymmmetricKeyFromPassword(
+    this.configService.get('issuerPersistenceAndRecovery.secretPwd'),
+    didSalt,
+);
+
+const decryptedCredential = await this.encryptionService.decryptContent(
+    iv.toString('hex'),
+    encryptedCredential,
+    encryptionKey,
+);
+
 
       return decryptedCredential;
     } catch (error) {

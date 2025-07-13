@@ -94,7 +94,7 @@ Therefore, if you want to fully automate the deployment process without interact
 
 ### Runtime Authentication
 Endpoint protection is enforced using the ApiKeyAuthGuard, which is based on the strategy implemented in: `src/auth/strategies/header-api-key-strategy.ts`
-Every incoming request must include a valid api_key in the headers to be authenticated and passed to the route handler.
+Every incoming request must include a valid x-api-key in the headers to be authenticated and passed to the route handler.
 
 All endpoints of the issuer's API are protected via **API keys**. There is no visual interface or UI component for managing these keys. Instead, API key management is performed through command-line **scripts**. There must be at least one active api key ; otherwise, requests will be rejected with an UNAUTHORIZED error.
 

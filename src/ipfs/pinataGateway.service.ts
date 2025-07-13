@@ -5,7 +5,16 @@ import { IpfsGateway } from './ipfs.interface';
 @Injectable()
 export class PinataGatewayService implements IpfsGateway {
   private readonly pinataApiRul = `https://api.pinata.cloud`;
-  private readonly pinataGateway = process.env.PINATA_GATEWAY;
+  private readonly pinataGateway: string;
+
+constructor() {
+  this.pinataGateway = process.env.PINATA_GATEWAY || '';
+  if (!this.pinataGateway) {
+    throw new Error(
+      'PINATA_GATEWAY environment variable is not set. Check your environment variables.'
+    );
+  }
+}
   private readonly secretAccessToken = process.env.PINATA_JWT_TOKEN;
   private readonly logger = new Logger(PinataGatewayService.name);
 
