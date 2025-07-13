@@ -55,31 +55,30 @@ jobs:
           PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
           PINATA_JWT_TOKEN: ${{ secrets.PINATA_JWT_TOKEN }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} bash -s << 'EOSCRIPT'
             set -e
 
             cd ~/identity
 
             echo "Overwriting .env file..."
-            cat > .env <<EOT
-ISSUER_DID_CID=${ISSUER_DID_CID}
-DWN_URL=''
-SSI_PROJECT_NAME='TBD'
-GATEWAY_URI=https://dht.iovf.org
-DB_USER=user
-DB_PASSWORD='password'
-DB_HOST=database
-DB_NAME=iovf-identity
-MAILER_TRANSPORT_HOST='smtp.gmail.com'
-MAIL_USER='ida@iovf.org'
-MAIL_PASSWORD=${MAIL_PASSWORD}
-SECRET_PWD=${SECRET_PWD}
-SALT_ISSUER_DID=${SALT_ISSUER_DID}
-SALT_ISSUER_CREDENTIALS=${SALT_ISSUER_CREDENTIALS}
-MAIL_ADDRESS=ida@iovf.org
-PINATA_GATEWAY=${PINATA_GATEWAY}
-PINATA_JWT_TOKEN=${PINATA_JWT_TOKEN}
-EOT
+            > .env
+            echo "ISSUER_DID_CID=${ISSUER_DID_CID}" >> .env
+            echo "DWN_URL=''" >> .env
+            echo "SSI_PROJECT_NAME='TBD'" >> .env
+            echo "GATEWAY_URI=https://dht.iovf.org" >> .env
+            echo "DB_USER=user" >> .env
+            echo "DB_PASSWORD='password'" >> .env
+            echo "DB_HOST=database" >> .env
+            echo "DB_NAME=iovf-identity" >> .env
+            echo "MAILER_TRANSPORT_HOST='smtp.gmail.com'" >> .env
+            echo "MAIL_USER='ida@iovf.org'" >> .env
+            echo "MAIL_PASSWORD=${MAIL_PASSWORD}" >> .env
+            echo "SECRET_PWD=${SECRET_PWD}" >> .env
+            echo "SALT_ISSUER_DID=${SALT_ISSUER_DID}" >> .env
+            echo "SALT_ISSUER_CREDENTIALS=${SALT_ISSUER_CREDENTIALS}" >> .env
+            echo "MAIL_ADDRESS=ida@iovf.org" >> .env
+            echo "PINATA_GATEWAY=${PINATA_GATEWAY}" >> .env
+            echo "PINATA_JWT_TOKEN=${PINATA_JWT_TOKEN}" >> .env
 
             echo ".env generated:"
             cat .env
@@ -93,4 +92,4 @@ EOT
 
             docker compose ps
             docker compose logs --tail=30 api
-          EOF
+          EOSCRIPT
