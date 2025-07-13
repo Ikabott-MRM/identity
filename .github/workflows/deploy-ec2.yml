@@ -21,62 +21,40 @@ jobs:
 
       - name: Deploy to EC2 via SSH
         env:
+          ISSUER_DID_CID: ${{ secrets.ISSUER_DID_CID }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           SECRET_PWD: ${{ secrets.SECRET_PWD }}
           SALT_ISSUER_DID: ${{ secrets.SALT_ISSUER_DID }}
           SALT_ISSUER_CREDENTIALS: ${{ secrets.SALT_ISSUER_CREDENTIALS }}
+          PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
           PINATA_JWT_TOKEN: ${{ secrets.PINATA_JWT_TOKEN }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
-
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << EOF
             cd ~/identity
 
-            # Leer variables existentes del .env si existe
-            if [ -f .env ]; then
-              export $(grep -v '^#' .env | xargs -d '\n' || true)
-            fi
-
-            # Construir .env limpio (sobre-escribiendo anterior)
-            cat <<EOT > .env
-ISSUER_DID_CID=${ISSUER_DID_CID:-$ISSUER_DID_CID}
-DWN_URL=''
-SSI_PROJECT_NAME='TBD'
-GATEWAY_URI=https://dht.iovf.org
-DB_USER=user
-DB_PASSWORD='password'
-DB_HOST=database
-DB_NAME=iovf-identity
-MAILER_TRANSPORT_HOST='smtp.gmail.com'
-MAIL_USER='ida@iovf.org'
-MAIL_PASSWORD='${MAIL_PASSWORD}'
-SECRET_PWD='${SECRET_PWD}'
-SALT_ISSUER_DID='${SALT_ISSUER_DID}'
-SALT_ISSUER_CREDENTIALS='${SALT_ISSUER_CREDENTIALS}'
-MAIL_ADDRESS='ida@iovf.org'
-PINATA_GATEWAY='https://gateway.pinata.cloud'
-PINATA_JWT_TOKEN='${PINATA_JWT_TOKEN}'
-EOT
+            echo "ISSUER_DID_CID=$ISSUER_DID_CID" > .env
+            echo "DWN_URL=''" >> .env
+            echo "SSI_PROJECT_NAME='TBD'" >> .env
+            echo "GATEWAY_URI=https://dht.iovf.org" >> .env
+            echo "DB_USER=user" >> .env
+            echo "DB_PASSWORD='password'" >> .env
+            echo "DB_HOST=database" >> .env
+            echo "DB_NAME=iovf-identity" >> .env
+            echo "MAILER_TRANSPORT_HOST='smtp.gmail.com'" >> .env
+            echo "MAIL_USER='ida@iovf.org'" >> .env
+            echo "MAIL_PASSWORD=$MAIL_PASSWORD" >> .env
+            echo "SECRET_PWD=$SECRET_PWD" >> .env
+            echo "SALT_ISSUER_DID=$SALT_ISSUER_DID" >> .env
+            echo "SALT_ISSUER_CREDENTIALS=$SALT_ISSUER_CREDENTIALS" >> .env
+            echo "MAIL_ADDRESS=ida@iovf.org" >> .env
+            echo "PINATA_GATEWAY=$PINATA_GATEWAY" >> .env
+            echo "PINATA_JWT_TOKEN=$PINATA_JWT_TOKEN" >> .env
 
             git checkout dev
             git pull origin dev
             docker compose down
             docker compose build
             docker compose up -d
-
-            sleep 10
-
-            # Buscar nuevo CID del deploy en logs
-            CID=\$(docker compose logs api | grep "Encrypted issuer Did file has been uploaded to IPFS" | tail -1 | awk -F'CID:' '{print \$2}' | xargs)
-
-            if [ ! -z "\$CID" ]; then
-              echo "Nuevo CID detectado: \$CID"
-              # Actualizar ISSUER_DID_CID en .env
-              sed -i "/^ISSUER_DID_CID=/d" .env
-              echo "ISSUER_DID_CID=\$CID" >> .env
-            else
-              echo "No se detectó nuevo CID en los logs del deploy."
-            fi
 
             docker compose ps
             docker compose logs --tail=30 api
