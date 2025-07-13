@@ -234,7 +234,7 @@ export class PersistenceService {
         throw new Error(
           'There is no salt associated to DID. Initialization vector cannot be determined.',
         );
-      //Split the string using '-' as the separator and extract the first part as the credential ID
+      //Split the string using '-' as the separator and extract the first part as the credential ID /
       const ipfsContent = data.split('-');
       const encryptedCredential = ipfsContent.slice(5).join('-');
       let credentialId = ipfsContent.slice(0, 5).join('-');
