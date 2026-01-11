@@ -28,4 +28,4 @@ jobs:
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy tag $TAG" \
-            --parameters commands="git config --global --add safe.directory /home/ubuntu/identity,cd /home/ubuntu/identity,git fetch --tags --force,git checkout -f $TAG,docker compose up -d --build --no-deps api"
+            --parameters commands="sudo -u ubuntu -H bash -lc 'set -euo pipefail && cd /home/ubuntu/identity && git fetch --tags --force && git checkout -f $TAG && docker compose up -d --build --no-deps api'"
