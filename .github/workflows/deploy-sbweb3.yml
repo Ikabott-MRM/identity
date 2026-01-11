@@ -1,0 +1,31 @@
+name: deploy-sbweb3
+
+on:
+  push:
+    tags:
+      - 'sbweb3*'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Deploy on EC2 via SSM
+        run: |
+          set -euo pipefail
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          TAG="${GITHUB_REF_NAME}"
+
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy tag $TAG" \
+            --parameters commands="cd /home/ubuntu/identity,git fetch --tags --force,git checkout $TAG,docker compose up -d --build --no-deps api"
