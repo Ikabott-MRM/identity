@@ -24,8 +24,11 @@ jobs:
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
           TAG="${GITHUB_REF_NAME}"
 
+          PARAMS_JSON="$(jq -n --arg tag "$TAG" \
+            '{commands:["sudo -u ubuntu -H bash -lc \"set -euo pipefail && cd /home/ubuntu/identity && git fetch --tags --force && git checkout -f \($tag) && docker compose up -d --build --no-deps api\""]}')"
+
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy tag $TAG" \
-            --parameters commands="sudo -u ubuntu -H bash -lc 'set -euo pipefail && cd /home/ubuntu/identity && git fetch --tags --force && git checkout -f $TAG && docker compose up -d --build --no-deps api'"
+            --parameters "$PARAMS_JSON"
