@@ -26,8 +26,11 @@ jobs:
 
           # Important: the instance may have been cloned from another environment and `origin` might not point
           # to this GitHub repo. We set it explicitly to ensure the pushed tag exists on the remote we fetch.
-          PARAMS_JSON="$(jq -n --arg tag "$TAG" --arg repo "https://github.com/Ikabott-MRM/identity.git" \
-            '{commands:["sudo -u ubuntu -H bash -lc \"set -euo pipefail && cd /home/ubuntu/identity && git remote set-url origin \($repo) && git fetch --prune --tags --force origin && git rev-parse -q --verify refs/tags/\($tag) >/dev/null || (echo TAG_NOT_FOUND:\($tag); git tag -l \\\"sbweb3*\\\" | tail -n 50; exit 1) && git checkout -f \($tag) && docker compose up -d --build --no-deps api\""]}')"
+          # Repo access:
+          # - If the instance has a GitHub Deploy Key at /home/ubuntu/.ssh/id_ed25519, use SSH.
+          # - Otherwise, fall back to HTTPS (works if the repo is public).
+          PARAMS_JSON="$(jq -n --arg tag "$TAG" --arg repo_ssh "git@github.com:Ikabott-MRM/identity.git" --arg repo_https "https://github.com/Ikabott-MRM/identity.git" \
+            '{commands:["sudo -u ubuntu -H bash -lc \"set -euo pipefail && cd /home/ubuntu/identity && if test -f /home/ubuntu/.ssh/id_ed25519; then git remote set-url origin \($repo_ssh); export GIT_SSH_COMMAND=\\\"ssh -o StrictHostKeyChecking=accept-new\\\"; else git remote set-url origin \($repo_https); fi && git fetch --prune --tags --force origin || (echo FETCH_FAILED_CHECK_REPO_ACCESS; echo If the repo is private: add a GitHub Deploy Key to /home/ubuntu/.ssh/id_ed25519; echo If you made it public: ensure the remote is reachable via HTTPS.; exit 1) && git rev-parse -q --verify refs/tags/\($tag) >/dev/null || (echo TAG_NOT_FOUND:\($tag); git tag -l \\\"sbweb3*\\\" | tail -n 50; exit 1) && git checkout -f \($tag) && docker compose up -d --build --no-deps api\""]}')"
 
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
