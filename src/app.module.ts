@@ -14,6 +14,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { IpfsModule } from './ipfs/ipfs.module';
 import { EmailModule } from './ssi/persistence/email/email.module';
+import { Web3RegistryModule } from './web3Registry/web3Registry.module';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -64,6 +65,7 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     HttpModule,
     RequestModule,
     AuthModule,
+    Web3RegistryModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'documents'),
       serveRoot: '/documents',

@@ -24,4 +24,13 @@ export default () => ({
     issuerDidCID: process.env.ISSUER_PORTABLE_DID_CID,
     emailAddress: process.env.MAIL_ADDRESS,
   },
+  web3: {
+    enabled: process.env.WEB3_ENABLED === 'true',
+    rpcUrl: process.env.WEB3_RPC_URL,
+    chainId: parseInt(process.env.WEB3_CHAIN_ID || '31', 10),
+    contractAddress: process.env.WEB3_CONTRACT_ADDRESS,
+    privateKey: process.env.WEB3_PRIVATE_KEY,
+    confirmations: parseInt(process.env.WEB3_CONFIRMATIONS || '1', 10),
+    txTimeoutMs: parseInt(process.env.WEB3_TX_TIMEOUT_MS || '60000', 10),
+  },
 });

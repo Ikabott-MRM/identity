@@ -8,6 +8,7 @@ import { CredentialsRegistryModule } from 'src/credentialsRegistry/credentialsRe
 import { IpfsModule } from 'src/ipfs/ipfs.module';
 import { EmailModule } from './persistence/email/email.module';
 import { PersistenceModule } from './persistence/persistence.module';
+import { Web3RegistryModule } from '../web3Registry/web3Registry.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PersistenceModule } from './persistence/persistence.module';
     KnexModule,
     CredentialsRegistryModule,
     PersistenceModule,
+    Web3RegistryModule,
   ],
   providers: [IssuerAgentService, CredentialsSchemasInMemoryRepository],
   controllers: [IssuerAgentController],

@@ -1,0 +1,20 @@
+{
+  "name": "did-manifest-registry-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for DID Manifest Registry on Rootstock",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy.ts --network rootstockTestnet",
+    "verify": "hardhat verify --network rootstockTestnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "dotenv": "^16.3.1",
+    "hardhat": "^2.19.0"
+  }
+}
+
+

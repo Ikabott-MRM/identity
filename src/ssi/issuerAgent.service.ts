@@ -24,6 +24,8 @@ import { DidCidAssociationService } from '../credentialsRegistry/didCidAssociati
 import { Convert } from "@web5/common";
 import * as fs from 'fs';
 import * as path from 'path';
+import { Web3RegistryService } from '../web3Registry/web3Registry.service';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface CredentialQueryResultObject {
   verifiableCredential: VerifiableCredential;
@@ -43,6 +45,7 @@ export class IssuerAgentService implements OnModuleInit {
     //TODO aca es que se va a tener que ver cmo hacerlo dinamico. Eso queda pending hasta tener una gateway propia
     private readonly ipfsService: PinataGatewayService,
     private readonly didCidsAssociationService: DidCidAssociationService,
+    private readonly web3RegistryService?: Web3RegistryService,
   ) {
     this.gatewayUri = this.configService.get('ssi.gatewayUri');
   }
@@ -229,6 +232,10 @@ fs.writeFileSync(filePath, Buffer.from(body));
     result: string | null;
     error: string | null;
   }> {
+    const correlationId = uuidv4();
+    this.logger.debug(
+      `[${correlationId}] Starting credential issuance for subjectDid: ${subjectDid}`,
+    );
     try {
       const schema = await this.credentialsRepository.get(schemaId);
       const mappedData = mapDataWithRules(data, schema.mappingRulesDescriptor);
@@ -313,6 +320,21 @@ fs.writeFileSync(filePath, Buffer.from(body));
         newManifestCID,
       );
 
+      // Dual-write to Rootstock (non-blocking)
+      if (this.web3RegistryService) {
+        this.web3RegistryService
+          .enqueueOrWriteManifestCid(subjectDid, newManifestCID, correlationId)
+          .catch((error) => {
+            this.logger.warn(
+              `[${correlationId}] Failed to enqueue Rootstock write (non-blocking): ${error.message}`,
+            );
+          });
+      }
+
+      this.logger.debug(
+        `[${correlationId}] Credential issuance completed successfully for subjectDid: ${subjectDid}`,
+      );
+
       return {
         success: true,
         result: signedVcJwt,
@@ -320,7 +342,7 @@ fs.writeFileSync(filePath, Buffer.from(body));
       };
     } catch (error) {
       this.logger.error(
-        `An error occurred while trying to issue a Verifiable credential for ${subjectDid}`,
+        `[${correlationId}] An error occurred while trying to issue a Verifiable credential for ${subjectDid}`,
         error.stack,
       );
       return { success: false, result: null, error: error.message };
