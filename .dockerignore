@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+*.md
+dist
+.env
+.env.development
+.env.test
+contracts/
+docs/
+test/
+*.test.ts
+*.spec.ts
