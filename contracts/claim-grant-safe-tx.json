@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "chainId": "30",
+  "createdAt": 1740739200000,
+  "meta": {
+    "name": "Claim Grant via ClaimHelper",
+    "description": "Atomically swaps Safe singleton to ClaimHelper (empty receive), executes Governor proposal to claim 0.12 RBTC grant, then restores original singleton.",
+    "txBuilderVersion": "1.17.1",
+    "createdFromSafeAddress": "0xaB13aFFB7E7B5f8102B05015da82d3F08d5Bd26D",
+    "createdFromOwnerAddress": ""
+  },
+  "transactions": [
+    {
+      "to": "0x657b5B93e07Add7B0dA58043B68f5Ddc57af467F",
+      "value": "0",
+      "data": "0x318c7587000000000000000000000000657b5b93e07add7b0da58043b68f5ddc57af467f00000000000000000000000029fcb43b46531bca003ddc8fcb67ffe91900c76200000000000000000000000071ac6ff904a17f50f2c07b693376ccc1c92627f0bf6ff0cf1f7360df1bce16eca7b8551031654ceaa4f1eb2b956de60c92a14a2e",
+      "operation": 1
+    }
+  ]
+}

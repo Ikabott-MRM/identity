@@ -351,5 +351,5 @@ networks: {
 MIT License - See [LICENSE](../../LICENSE) file.
 
 ## SupportFor questions or issues:
-- GitHub Issues: https://github.com/IOV-Foundation/identity/issues
+- GitHub Issues: https://github.com/Ikabott-MRM/identity/issues
 - Email: dev@iovfoundation.org

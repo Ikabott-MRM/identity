@@ -25,8 +25,12 @@ import type {
 export interface DidManifestRegistryInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "acceptOwnership"
+      | "deleteManifestCid"
+      | "deleteManifestCidsBatch"
       | "getManifestCid"
       | "owner"
+      | "pendingOwner"
       | "renounceOwnership"
       | "setManifestCid"
       | "setManifestCidsBatch"
@@ -34,14 +38,36 @@ export interface DidManifestRegistryInterface extends Interface {
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic: "ManifestCidSet" | "OwnershipTransferred"
+    nameOrSignatureOrTopic:
+      | "ManifestCidDeleted"
+      | "ManifestCidSet"
+      | "ManifestCidsBatchDeleted"
+      | "ManifestCidsBatchSet"
+      | "OwnershipTransferStarted"
+      | "OwnershipTransferred"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "acceptOwnership",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "deleteManifestCid",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "deleteManifestCidsBatch",
+    values: [BytesLike[]]
+  ): string;
   encodeFunctionData(
     functionFragment: "getManifestCid",
     values: [BytesLike]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "pendingOwner",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
@@ -60,10 +86,26 @@ export interface DidManifestRegistryInterface extends Interface {
   ): string;
 
   decodeFunctionResult(
+    functionFragment: "acceptOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "deleteManifestCid",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "deleteManifestCidsBatch",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getManifestCid",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "pendingOwner",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
@@ -82,6 +124,19 @@ export interface DidManifestRegistryInterface extends Interface {
   ): Result;
 }
 
+export namespace ManifestCidDeletedEvent {
+  export type InputTuple = [didKey: BytesLike, writer: AddressLike];
+  export type OutputTuple = [didKey: string, writer: string];
+  export interface OutputObject {
+    didKey: string;
+    writer: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace ManifestCidSetEvent {
   export type InputTuple = [
     didKey: BytesLike,
@@ -97,6 +152,54 @@ export namespace ManifestCidSetEvent {
     didKey: string;
     manifestCid: string;
     writer: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace ManifestCidsBatchDeletedEvent {
+  export type InputTuple = [didKeys: BytesLike[], writer: AddressLike];
+  export type OutputTuple = [didKeys: string[], writer: string];
+  export interface OutputObject {
+    didKeys: string[];
+    writer: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace ManifestCidsBatchSetEvent {
+  export type InputTuple = [
+    didKeys: BytesLike[],
+    manifestCids: string[],
+    writer: AddressLike
+  ];
+  export type OutputTuple = [
+    didKeys: string[],
+    manifestCids: string[],
+    writer: string
+  ];
+  export interface OutputObject {
+    didKeys: string[];
+    manifestCids: string[];
+    writer: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace OwnershipTransferStartedEvent {
+  export type InputTuple = [previousOwner: AddressLike, newOwner: AddressLike];
+  export type OutputTuple = [previousOwner: string, newOwner: string];
+  export interface OutputObject {
+    previousOwner: string;
+    newOwner: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -160,9 +263,25 @@ export interface DidManifestRegistry extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  acceptOwnership: TypedContractMethod<[], [void], "nonpayable">;
+
+  deleteManifestCid: TypedContractMethod<
+    [didKey: BytesLike],
+    [void],
+    "nonpayable"
+  >;
+
+  deleteManifestCidsBatch: TypedContractMethod<
+    [didKeys: BytesLike[]],
+    [void],
+    "nonpayable"
+  >;
+
   getManifestCid: TypedContractMethod<[didKey: BytesLike], [string], "view">;
 
   owner: TypedContractMethod<[], [string], "view">;
+
+  pendingOwner: TypedContractMethod<[], [string], "view">;
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
@@ -189,10 +308,22 @@ export interface DidManifestRegistry extends BaseContract {
   ): T;
 
   getFunction(
+    nameOrSignature: "acceptOwnership"
+  ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "deleteManifestCid"
+  ): TypedContractMethod<[didKey: BytesLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "deleteManifestCidsBatch"
+  ): TypedContractMethod<[didKeys: BytesLike[]], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "getManifestCid"
   ): TypedContractMethod<[didKey: BytesLike], [string], "view">;
   getFunction(
     nameOrSignature: "owner"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "pendingOwner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "renounceOwnership"
@@ -216,11 +347,39 @@ export interface DidManifestRegistry extends BaseContract {
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
 
   getEvent(
+    key: "ManifestCidDeleted"
+  ): TypedContractEvent<
+    ManifestCidDeletedEvent.InputTuple,
+    ManifestCidDeletedEvent.OutputTuple,
+    ManifestCidDeletedEvent.OutputObject
+  >;
+  getEvent(
     key: "ManifestCidSet"
   ): TypedContractEvent<
     ManifestCidSetEvent.InputTuple,
     ManifestCidSetEvent.OutputTuple,
     ManifestCidSetEvent.OutputObject
+  >;
+  getEvent(
+    key: "ManifestCidsBatchDeleted"
+  ): TypedContractEvent<
+    ManifestCidsBatchDeletedEvent.InputTuple,
+    ManifestCidsBatchDeletedEvent.OutputTuple,
+    ManifestCidsBatchDeletedEvent.OutputObject
+  >;
+  getEvent(
+    key: "ManifestCidsBatchSet"
+  ): TypedContractEvent<
+    ManifestCidsBatchSetEvent.InputTuple,
+    ManifestCidsBatchSetEvent.OutputTuple,
+    ManifestCidsBatchSetEvent.OutputObject
+  >;
+  getEvent(
+    key: "OwnershipTransferStarted"
+  ): TypedContractEvent<
+    OwnershipTransferStartedEvent.InputTuple,
+    OwnershipTransferStartedEvent.OutputTuple,
+    OwnershipTransferStartedEvent.OutputObject
   >;
   getEvent(
     key: "OwnershipTransferred"
@@ -231,6 +390,17 @@ export interface DidManifestRegistry extends BaseContract {
   >;
 
   filters: {
+    "ManifestCidDeleted(bytes32,address)": TypedContractEvent<
+      ManifestCidDeletedEvent.InputTuple,
+      ManifestCidDeletedEvent.OutputTuple,
+      ManifestCidDeletedEvent.OutputObject
+    >;
+    ManifestCidDeleted: TypedContractEvent<
+      ManifestCidDeletedEvent.InputTuple,
+      ManifestCidDeletedEvent.OutputTuple,
+      ManifestCidDeletedEvent.OutputObject
+    >;
+
     "ManifestCidSet(bytes32,string,address)": TypedContractEvent<
       ManifestCidSetEvent.InputTuple,
       ManifestCidSetEvent.OutputTuple,
@@ -240,6 +410,39 @@ export interface DidManifestRegistry extends BaseContract {
       ManifestCidSetEvent.InputTuple,
       ManifestCidSetEvent.OutputTuple,
       ManifestCidSetEvent.OutputObject
+    >;
+
+    "ManifestCidsBatchDeleted(bytes32[],address)": TypedContractEvent<
+      ManifestCidsBatchDeletedEvent.InputTuple,
+      ManifestCidsBatchDeletedEvent.OutputTuple,
+      ManifestCidsBatchDeletedEvent.OutputObject
+    >;
+    ManifestCidsBatchDeleted: TypedContractEvent<
+      ManifestCidsBatchDeletedEvent.InputTuple,
+      ManifestCidsBatchDeletedEvent.OutputTuple,
+      ManifestCidsBatchDeletedEvent.OutputObject
+    >;
+
+    "ManifestCidsBatchSet(bytes32[],string[],address)": TypedContractEvent<
+      ManifestCidsBatchSetEvent.InputTuple,
+      ManifestCidsBatchSetEvent.OutputTuple,
+      ManifestCidsBatchSetEvent.OutputObject
+    >;
+    ManifestCidsBatchSet: TypedContractEvent<
+      ManifestCidsBatchSetEvent.InputTuple,
+      ManifestCidsBatchSetEvent.OutputTuple,
+      ManifestCidsBatchSetEvent.OutputObject
+    >;
+
+    "OwnershipTransferStarted(address,address)": TypedContractEvent<
+      OwnershipTransferStartedEvent.InputTuple,
+      OwnershipTransferStartedEvent.OutputTuple,
+      OwnershipTransferStartedEvent.OutputObject
+    >;
+    OwnershipTransferStarted: TypedContractEvent<
+      OwnershipTransferStartedEvent.InputTuple,
+      OwnershipTransferStartedEvent.OutputTuple,
+      OwnershipTransferStartedEvent.OutputObject
     >;
 
     "OwnershipTransferred(address,address)": TypedContractEvent<

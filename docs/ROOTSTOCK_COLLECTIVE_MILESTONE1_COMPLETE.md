@@ -7,17 +7,50 @@
 
 ---
 
-## Executive Summary
+> **Posting note (governance tracking):** Please post this milestone update as a **comment** on the original **[2510] grant proposal thread** (instead of creating a new thread), so the full lifecycle stays in one place.
 
-Milestone 1 of our Rootstock SSI integration grant is complete. We migrated DID-to-CID storage from centralized MySQL to Rootstock blockchain smart contracts, enabling a truly decentralized identity infrastructure.
+## Deliverables + proof links (Milestone 1)
 
-### Milestone 1 Deliverables (All Complete)
+| Deliverable | Status | Proof |
+|------------|--------|-------|
+| Smart contract deployed to Rootstock testnet | ✅ Complete | [Contract on Blockscout](https://rootstock-testnet.blockscout.com/address/0x657b5b93E07aDd7B0DA58043B68f5DDC57aF467f) |
+| DID→CID write/read cycle works | ✅ Complete | [Example tx](https://rootstock-testnet.blockscout.com/tx/0x86f469e8ed3e22b33558a36c5fe54cfa99b25c0488692ba079a89f4214d6f6d6) + [Example manifest (IPFS)](https://gateway.pinata.cloud/ipfs/QmfMQfrdXLw82GjxJaJZMdkZvttYrwXp6BXD79PJZ5VAB9) |
+| Backend dual-write (MySQL + Rootstock) | ✅ Complete | [Key commits](https://github.com/Ikabott-MRM/identity) (see `352206f`, `fbbbc4d`, `683e2d9`) |
+| Citizen app backendless discovery | ✅ Complete | Android APK build: https://expo.dev/accounts/ikabotts-organization/projects/ssi-web3/builds/62fe83c4-2a41-4abe-a9f0-fb53c001fa66 |
+| Documentation + testing | ✅ Complete | [Docs folder](https://github.com/Ikabott-MRM/identity/tree/dev/docs) |
 
-1. Smart contract deployed to Rootstock testnet
-2. CID written/read cycle functional
-3. Backend integration with dual-write mechanism
-4. Citizen app backendless discovery implemented
-5. Comprehensive documentation and testing
+## What changed (and why it matters)
+
+Until now, credential discovery depended on our backend and a centralized database. In Milestone 1 we moved the **DID → ManifestCID pointer** to a Rootstock smart contract (`DidManifestRegistry`), so anyone can verify and fetch the latest manifest CID for a DID directly from the chain.
+
+We didn’t “replace everything overnight”: the backend still writes to MySQL for immediate consistency, but it now **dual-writes on-chain** (with an outbox + retry worker so issuance doesn’t block). This gives us decentralization without breaking reliability.
+
+The practical outcome is that the citizen app can do **backendless discovery**: read the manifest CID from Rootstock, fetch the manifest and credentials from IPFS, and display them—so discovery keeps working even if our backend is down.
+
+## Test it yourself!!!
+
+You can test the end-to-end flow (citizen → request → issuer approval) using the Android APK and issuer web portal.
+
+1. **Download and install the Android APK**
+   - Expo build: https://expo.dev/accounts/ikabotts-organization/projects/ssi-web3/builds/62fe83c4-2a41-4abe-a9f0-fb53c001fa66
+
+2. **Open the app and create your DID**
+   - Tap **Crear DID**
+   - You should see the IDA demo welcome screen (e.g., “Bienvenidos a IDA DEMO”) and your identity initialized
+
+3. **Go to “Credenciales”**
+   - Open the bottom tab **Credenciales**
+
+4. **Submit a credential request with a photo**
+   - Create a new request and attach a photo when prompted
+   - Submit the request
+
+5. **Approve the request in the issuer portal**
+   - Open the issuer page: https://main.d1fkse5la21xp8.amplifyapp.com/
+   - Find your pending request and approve it
+
+<details>
+<summary><b>Technical details (architecture, contracts, backend, logs)</b></summary>
 
 ### High-Level Architecture (Apps → Backend → Web5 / Web3 / Web2)
 
@@ -29,8 +62,8 @@ Milestone 1 of our Rootstock SSI integration grant is complete. We migrated DID-
           ┌──────────────────────┼──────────────────────┐
           │                      │                      │
 ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
-│ IDA-Ciudadano App     │  │ IDA-Verificador App  │  │ IDA-Emisor Web        │
-│ (mobile)              │  │ (mobile)             │  │ (web)                 │
+│ IDA-Ciudadano App    │  │ IDA-Verificador App  │  │ IDA-Emisor Web       │
+│ (mobile)             │  │ (mobile)             │  │ (web)                │
 └───────────┬──────────┘  └───────────┬──────────┘  └───────────┬──────────┘
             │                         │                         │
             └───────────────┬─────────┴─────────┬───────────────┘
@@ -46,10 +79,10 @@ Milestone 1 of our Rootstock SSI integration grant is complete. We migrated DID-
                ┌──────────────┘           └───────────────┐
                v                                          v
      ┌───────────────────────┐                 ┌────────────────────────┐
-     │ Web5 DHT Node / Relay  │                 │ Web2 DB (MySQL)         │
-     │ (DID publish/resolve)  │                 │ (did_cids, manifests,   │
-     └───────────────────────┘                 │  outbox, etc.)           │
-                                              └────────────────────────┘
+     │ Web5 DHT Node / Relay │                 │ Web2 DB (MySQL)        │
+     │ (DID publish/resolve) │                 │ (did_cids, manifests   │
+     └───────────────────────┘                 │  outbox, etc.)         │
+                                               └────────────────────────┘
                               ^
                               │ Web3 (ethers)
                               │
@@ -175,9 +208,9 @@ IDA-Ciudadano App
 Display credentials in the app
 ```
 
-### Production Logs
+### Testnet Logs
 
-The following logs demonstrate successful Rootstock integration in production:
+The following logs demonstrate successful Rootstock integration in testnet:
 
 **Initialization:**
 ```
@@ -190,7 +223,7 @@ The following logs demonstrate successful Rootstock integration in production:
   (chainId: 31, contract: 0x657b5B93e07Add7B0d...)
 ```
 
-**Production Transaction:**
+**Testnet Transaction:**
 ```
 [2026-01-18T00:00:38.513Z] [Web3RegistryService] info: 
   Enqueueing Rootstock write: 
@@ -276,15 +309,6 @@ EXPO_PUBLIC_WEB3_CONTRACT_ADDRESS=0x657b5B93e07Add7B0dA58043B68f5Ddc57af467F
 EXPO_PUBLIC_IPFS_GATEWAY_BASE_URL=https://gateway.pinata.cloud
 ```
 
-### Implementation Files
-
-- `services/web3Registry.ts` - Rootstock contract interaction
-- `services/ipfs.ts` - IPFS gateway fetch functions
-- `services/credentialChain.ts` - Backendless discovery orchestration
-- `services/credential.ts` - Updated credential fetching logic
-
----
-
 ## 5. Testing and Verification
 
 ### Smart Contract Tests
@@ -338,7 +362,7 @@ We have created comprehensive documentation for developers and institutions:
 
 ### Technical Documentation
 
-1. **[Contract README](../contracts/README.md)**
+1. **[Contract README](https://github.com/Ikabott-MRM/identity/blob/dev/contracts/README.md)**
    - Contract deployment guide
    - Contract interface documentation
    - Hardhat commands reference
@@ -348,7 +372,7 @@ We have created comprehensive documentation for developers and institutions:
 
 All code is open source and available on GitHub:
 
-**Repository:** [IOV-Foundation/identity](https://github.com/IOV-Foundation/identity)
+**Repository:** [Ikabott-MRM/identity](https://github.com/Ikabott-MRM/identity)
 
 Key commits for Milestone 1:
 - `352206f` - Add Rootstock Web3Registry integration
@@ -409,7 +433,7 @@ For our pilot project with rural producers in Argentina:
 - Batch write function available for large migrations
 - Can write up to 100 mappings in one batch (approximately 8.7M gas)
 - Estimated capacity: Thousands of credentials per day within reasonable gas budget
-- Production confirmed: Credentials written and confirmed in under 17 seconds
+- Testnet confirmed: Credentials written and confirmed in under 17 seconds
 
 ---
 
@@ -423,7 +447,7 @@ WEB3_ENABLED=true
 WEB3_CHAIN_ID=31
 WEB3_RPC_URL=https://public-node.testnet.rsk.co
 WEB3_CONTRACT_ADDRESS=0x657b5B93e07Add7B0dA58043B68f5Ddc57af467F
-WEB3_PRIVATE_KEY=0x[64_character_hex_string]
+WEB3_PRIVATE_KEY=<REDACTED>
 WEB3_CONFIRMATIONS=1
 WEB3_TX_TIMEOUT_MS=60000
 ```
@@ -475,15 +499,7 @@ With Milestone 1 complete, we are ready to proceed to Milestone 2: Security Audi
 
 ### Milestone 1: Complete
 
-We have successfully achieved all deliverables for Milestone 1:
-
-| Deliverable | Status | Evidence |
-|------------|--------|----------|
-| Smart contract deployed to Rootstock testnet | Complete | [Contract on Blockscout](https://rootstock-testnet.blockscout.com/address/0x657b5b93E07aDd7B0DA58043B68f5DDC57aF467f) |
-| CID written/read cycle functional | Complete | Production logs and integration tests |
-| Backend integration complete | Complete | [GitHub commits](https://github.com/IOV-Foundation/identity) |
-| Citizen app backendless discovery | Complete | Implementation and documentation |
-| Comprehensive documentation | Complete | [Documentation files](https://github.com/IOV-Foundation/identity/tree/dev/docs) |
+Milestone 1 is complete (see the **Deliverables + proof links** table at the top of this report).
 
 ### Key Achievements
 
@@ -511,13 +527,15 @@ All code is MIT licensed and available on GitHub. We invite developers, auditors
 - **Smart Contract:** [0x657b5B93e07Add7B0dA58043B68f5Ddc57af467F](https://rootstock-testnet.blockscout.com/address/0x657b5b93E07aDd7B0DA58043B68f5DDC57aF467f)
 - **Example Transaction:** [0x86f469e8ed3e22b33558a36c5fe54cfa99b25c0488692ba079a89f4214d6f6d6](https://rootstock-testnet.blockscout.com/tx/0x86f469e8ed3e22b33558a36c5fe54cfa99b25c0488692ba079a89f4214d6f6d6)
 - **Example Manifest on IPFS:** [QmfMQfrdXLw82GjxJaJZMdkZvttYrwXp6BXD79PJZ5VAB9](https://gateway.pinata.cloud/ipfs/QmfMQfrdXLw82GjxJaJZMdkZvttYrwXp6BXD79PJZ5VAB9)
-- **GitHub Repository:** [IOV-Foundation/identity](https://github.com/IOV-Foundation/identity)
-- **Documentation:** [docs folder](https://github.com/IOV-Foundation/identity/tree/dev/docs)
-- **Issuer Portal:** [ida-emisor.vercel.app](https://ida-emisor.vercel.app)
+- **GitHub Repository:** [Ikabott-MRM/identity](https://github.com/Ikabott-MRM/identity)
+- **Documentation:** [docs folder](https://github.com/Ikabott-MRM/identity/tree/dev/docs)
+- **Issuer Portal:** [main.d1fkse5la21xp8.amplifyapp.com](https://main.d1fkse5la21xp8.amplifyapp.com/)
 
 ---
 
 **Deployed Contract:** `0x657b5B93e07Add7B0dA58043B68f5Ddc57af467F`  
 **Network:** Rootstock Testnet (Chain 31)  
-**Status:** Production Ready  
+**Status:** Testnet Ready  
 **Date:** January 17, 2026
+
+</details>

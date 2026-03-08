@@ -1,0 +1,13 @@
+{
+  # Email used for Let's Encrypt notifications
+  email {$ACME_EMAIL}
+}
+
+# Public HTTPS endpoint for the Identity API
+{$API_DOMAIN} {
+  encode gzip
+
+  # Forward HTTPS traffic to the Nest API container (port 3000)
+  reverse_proxy api:3000
+}
+

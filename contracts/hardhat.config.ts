@@ -18,8 +18,18 @@ const config: HardhatUserConfig = {
   },
   networks: {
     rootstockTestnet: {
-      url: process.env.ROOTSTOCK_TESTNET_RPC_URL || 'https://public-node.testnet.rsk.co',
+      url:
+        process.env.ROOTSTOCK_TESTNET_RPC_URL ||
+        'https://public-node.testnet.rsk.co',
       chainId: 31,
+      accounts: process.env.DEPLOYER_PRIVATE_KEY
+        ? [process.env.DEPLOYER_PRIVATE_KEY]
+        : [],
+    },
+    rootstockMainnet: {
+      url:
+        process.env.ROOTSTOCK_MAINNET_RPC_URL || 'https://public-node.rsk.co',
+      chainId: 30,
       accounts: process.env.DEPLOYER_PRIVATE_KEY
         ? [process.env.DEPLOYER_PRIVATE_KEY]
         : [],
@@ -43,5 +53,3 @@ const config: HardhatUserConfig = {
 };
 
 export default config;
-
-

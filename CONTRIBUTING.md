@@ -17,8 +17,8 @@ Thank you for considering contributing to this project! Here are some guidelines
 
 ## Reporting Bugs
 
-To report a bug, please open an [issue](https://github.com/IOV-Foundation/driver-license-mobile/issues) and follow the provided template.
+To report a bug, please open an [issue](https://github.com/Ikabott-MRM/identity/issues) and follow the provided template.
 
 ## Suggesting Enhancements
 
-To suggest an enhancement, please open an [issue](https://github.com/IOV-Foundation/driver-license-mobile/issues) and share your ideas.
+To suggest an enhancement, please open an [issue](https://github.com/Ikabott-MRM/identity/issues) and share your ideas.

@@ -13,7 +13,7 @@ IOV Foundation's Identity API allows governments to handle Decentralized Identif
 ### Installation
 
 1. Clone the repository:
-   `git clone https://github.com/IOV-Foundation/identity`
+   `git clone https://github.com/Ikabott-MRM/identity`
 
 2. Install dependencies:
    `npm install`
