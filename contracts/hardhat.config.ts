@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from 'hardhat/config';
 import '@nomicfoundation/hardhat-toolbox';
+import 'hardhat-gas-reporter';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -44,11 +45,16 @@ const config: HardhatUserConfig = {
         network: 'rootstockTestnet',
         chainId: 31,
         urls: {
-          apiURL: 'https://rootstock.blockscout.com/api',
-          browserURL: 'https://rootstock.blockscout.com',
+          apiURL: 'https://rootstock-testnet.blockscout.com/api',
+          browserURL: 'https://rootstock-testnet.blockscout.com',
         },
       },
     ],
+  },
+  gasReporter: {
+    enabled: process.env.REPORT_GAS === '1',
+    currency: 'USD',
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
   },
 };
 

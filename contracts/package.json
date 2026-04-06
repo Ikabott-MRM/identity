@@ -6,15 +6,19 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:gas": "cross-env REPORT_GAS=1 hardhat test",
     "deploy:testnet": "hardhat run scripts/deploy.ts --network rootstockTestnet",
-    "verify": "hardhat verify --network rootstockTestnet"
+    "verify": "hardhat verify --network rootstockTestnet",
+    "tenderly:standard-input": "node scripts/generate-tenderly-standard-input.js",
+    "flatten": "hardhat flatten contracts/DidManifestRegistry.sol > DidManifestRegistry.flat.sol",
+    "analyze:myth": "node scripts/run-myth-with-timeout.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "cross-env": "^7.0.3",
     "@openzeppelin/contracts": "^5.0.0",
     "dotenv": "^16.3.1",
-    "hardhat": "^2.19.0"
+    "hardhat": "^2.19.0",
+    "hardhat-gas-reporter": "^1.0.8"
   }
 }
-
-

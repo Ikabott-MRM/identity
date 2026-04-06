@@ -6,16 +6,18 @@ This directory contains the Rootstock smart contract for decentralized DID↔Man
 
 The `DidManifestRegistry` contract enables **backendless credential discovery** for citizens by storing DID→ManifestCID mappings on the Rootstock blockchain.
 
-**Deployed Contract (Testnet):** [`0x657b5B93e07Add7B0dA58043B68f5Ddc57af467F`](https://rootstock-testnet.blockscout.com/address/0x657b5b93E07aDd7B0DA58043B68f5DDC57aF467f)
+**Deployed Contract (Testnet):** [`0x64dB8b2ccD86d4A36b7F9B9F8A3eA2F35fA86c2a`](https://rootstock-testnet.blockscout.com/address/0x64dB8b2ccD86d4A36b7F9B9F8A3eA2F35fA86c2a)
 
 ## Contract Interface
 
 ### Write Functions (Owner Only)
 
 #### `setManifestCid(bytes32 didKey, string calldata manifestCid)`
+
 Stores a single DID→ManifestCID mapping.
 
 **Parameters:**
+
 - `didKey` (bytes32): The keccak256 hash of the DID URI
 - `manifestCid` (string): The IPFS CID of the manifest
 
@@ -24,18 +26,21 @@ Stores a single DID→ManifestCID mapping.
 **Emits:** `ManifestCidSet(didKey, manifestCid, msg.sender)`
 
 **Example:**
+
 ```javascript
-const didUri = "did:dht:abc123xyz";
+const didUri = 'did:dht:abc123xyz';
 const didKey = ethers.keccak256(ethers.toUtf8Bytes(didUri));
-const manifestCid = "QmYwAPJzv5CZsnA6wXE7ZvDcB...";
+const manifestCid = 'QmYwAPJzv5CZsnA6wXE7ZvDcB...';
 
 await contract.setManifestCid(didKey, manifestCid);
 ```
 
 #### `setManifestCidsBatch(bytes32[] calldata didKeys, string[] calldata manifestCids)`
+
 Stores multiple DID→ManifestCID mappings in a single transaction.
 
 **Parameters:**
+
 - `didKeys` (bytes32[]): Array of DID key hashes
 - `manifestCids` (string[]): Array of manifest CIDs (must match length of didKeys)
 
@@ -44,15 +49,13 @@ Stores multiple DID→ManifestCID mappings in a single transaction.
 **Emits:** `ManifestCidSet` for each mapping
 
 **Example:**
+
 ```javascript
 const didKeys = [
-  ethers.keccak256(ethers.toUtf8Bytes("did:dht:user1")),
-  ethers.keccak256(ethers.toUtf8Bytes("did:dht:user2")),
+  ethers.keccak256(ethers.toUtf8Bytes('did:dht:user1')),
+  ethers.keccak256(ethers.toUtf8Bytes('did:dht:user2')),
 ];
-const manifestCids = [
-  "QmManifest1...",
-  "QmManifest2...",
-];
+const manifestCids = ['QmManifest1...', 'QmManifest2...'];
 
 await contract.setManifestCidsBatch(didKeys, manifestCids);
 ```
@@ -60,22 +63,25 @@ await contract.setManifestCidsBatch(didKeys, manifestCids);
 ### Read Functions (Public)
 
 #### `getManifestCid(bytes32 didKey) → string`
+
 Retrieves the manifest CID for a given DID.
 
 **Parameters:**
+
 - `didKey` (bytes32): The keccak256 hash of the DID URI
 
 **Returns:** Manifest CID string (empty if not found)  
 **Gas:** FREE (view function)
 
 **Example:**
+
 ```javascript
-const didUri = "did:dht:abc123xyz";
+const didUri = 'did:dht:abc123xyz';
 const didKey = ethers.keccak256(ethers.toUtf8Bytes(didUri));
 const manifestCid = await contract.getManifestCid(didKey);
 
-if (manifestCid !== "") {
-  console.log("Manifest CID:", manifestCid);
+if (manifestCid !== '') {
+  console.log('Manifest CID:', manifestCid);
   // Fetch from IPFS: https://gateway.pinata.cloud/ipfs/${manifestCid}
 }
 ```
@@ -83,14 +89,17 @@ if (manifestCid !== "") {
 ## Events
 
 ### `ManifestCidSet(bytes32 indexed didKey, string manifestCid, address indexed writer)`
+
 Emitted when a manifest CID is stored or updated.
 
 **Parameters:**
+
 - `didKey` (indexed): The DID key hash for filtering
 - `manifestCid`: The stored manifest CID
 - `writer` (indexed): The address that performed the write
 
 **Use Cases:**
+
 - Off-chain indexing for analytics
 - Real-time notifications
 - Audit trail
@@ -136,6 +145,7 @@ npm run deploy:testnet
 ```
 
 **Expected Output:**
+
 ```
 Deploying DidManifestRegistry to Rootstock testnet...
 ✅ Contract deployed to: 0x657b5B93e07Add7B0dA58043B68f5Ddc57af467F
@@ -153,6 +163,7 @@ npm run deploy:mainnet
 ```
 
 **Before mainnet deployment:**
+
 1. ✅ Security audit complete
 2. ✅ Testnet thoroughly tested
 3. ✅ Sufficient RBTC in deployer wallet
@@ -179,6 +190,7 @@ npm run test:gas
 ```
 
 **Expected Output:**
+
 ```
   DidManifestRegistry
     ✓ Should set and get manifest CID (125ms)
@@ -227,16 +239,39 @@ npx hardhat console --network testnet
 ```
 
 **Example console commands:**
+
 ```javascript
 const contract = await ethers.getContractAt(
-  "DidManifestRegistry",
-  "0x657b5B93e07Add7B0dA58043B68f5Ddc57af467F"
+  'DidManifestRegistry',
+  '0x657b5B93e07Add7B0dA58043B68f5Ddc57af467F',
 );
 
-const didKey = ethers.keccak256(ethers.toUtf8Bytes("did:dht:test"));
+const didKey = ethers.keccak256(ethers.toUtf8Bytes('did:dht:test'));
 const manifestCid = await contract.getManifestCid(didKey);
 console.log(manifestCid);
 ```
+
+## Gas Profiling
+
+Gas usage is measured with [hardhat-gas-reporter](https://github.com/cgewecke/hardhat-gas-reporter). Reports are disabled by default so normal test runs stay fast.
+
+**Run tests with gas report:**
+
+```bash
+npm run test:gas
+```
+
+Or set the env var and run tests:
+
+```bash
+# Linux/macOS
+REPORT_GAS=1 npx hardhat test
+
+# Windows (PowerShell)
+$env:REPORT_GAS="1"; npx hardhat test
+```
+
+The report shows gas per method and deployment. Optional: set `COINMARKETCAP_API_KEY` in `.env` for USD cost estimates (see `gasReporter` in `hardhat.config.ts`).
 
 ## Gas Optimization
 
@@ -249,38 +284,66 @@ The contract uses several gas optimization techniques:
 
 ### Measured Gas Costs
 
-| Operation | Gas Used | USD (testnet) | USD (mainnet est.) |
-|-----------|----------|---------------|-------------------|
-| Deploy contract | 512,847 | ~$0.50 | ~$5.00 |
-| setManifestCid() | 87,000 | ~$0.0002 | ~$0.02 |
-| setManifestCidsBatch() (100) | ~8.7M | ~$0.02 | ~$2.00 |
-| getManifestCid() | 0 | FREE | FREE |
+| Operation                    | Gas Used | USD (testnet) | USD (mainnet est.) |
+| ---------------------------- | -------- | ------------- | ------------------ |
+| Deploy contract              | 512,847  | ~$0.50        | ~$5.00             |
+| setManifestCid()             | 87,000   | ~$0.0002      | ~$0.02             |
+| setManifestCidsBatch() (100) | ~8.7M    | ~$0.02        | ~$2.00             |
+| getManifestCid()             | 0        | FREE          | FREE               |
 
-*Based on RBTC = $100 USD*
+_Based on RBTC = $100 USD_
 
 ## Security Considerations
 
 ### Access Control
+
 - Only the contract **owner** can write mappings
 - Anyone can **read** mappings (public data)
 - Owner is set at deployment and can be transferred
 
 ### Input Validation
+
 - Manifest CID cannot be empty string
 - Array lengths must match in batch operations
 - No length limits enforced (trust the owner)
 
 ### Upgradeability
+
 - Contract is **NOT upgradeable** by design
 - Data immutability ensures trust
 - Ownership can be transferred if needed
 
 ### Best Practices
+
 - ✅ Use OpenZeppelin's `Ownable` for access control
 - ✅ Emit events for all state changes
 - ✅ Use `calldata` for gas efficiency
 - ✅ Validate inputs in modifiers and requires
 - ✅ Follow Checks-Effects-Interactions pattern
+
+## Symbolic execution (Mythril)
+
+Time-boxed symbolic execution is run with [Mythril](https://github.com/ConsenSys/mythril). Analysis is limited by an **external** timeout (Mythril’s `--execution-timeout` is unreliable), so the runner script kills the process after 10 minutes by default.
+
+**Prerequisites (one of):**
+
+- **Docker (recommended):** `docker pull mythril/myth`. The script uses Docker by default.
+- **Local:** `pip install mythril` (Python 3.7–3.10), then set `USE_MYTH_DOCKER=0`.
+
+**Run analysis:**
+
+```bash
+npm run analyze:myth
+```
+
+**Options:**
+
+- `MYTH_TIMEOUT_SEC=300` — external time limit in seconds (default: 600).
+- `USE_MYTH_DOCKER=0` — use local `myth` instead of Docker.
+
+**Config:** Compiler and import remappings for Mythril are in `solc.json` in this directory (Solidity 0.8.20, optimizer, `@openzeppelin` remapped to `node_modules`). The script runs Mythril on `contracts/DidManifestRegistry.sol`.
+
+**Output:** Results are printed to the terminal. On timeout the process exits with code 124.
 
 ## Integration with Backend
 
@@ -293,6 +356,7 @@ The backend (`identity/src/web3Registry/`) automatically writes to this contract
 The citizen app reads from this contract to discover credentials without calling the backend API.
 
 **Flow:**
+
 1. User has DID: `did:dht:abc123xyz`
 2. App calculates didKey: `keccak256(didUri)`
 3. App queries contract: `contract.getManifestCid(didKey)`
@@ -305,17 +369,22 @@ The citizen app reads from this contract to discover credentials without calling
 ## Troubleshooting
 
 ### Deployment Fails: "Insufficient funds"
+
 **Solution:** Fund deployer wallet with tRBTC from [Rootstock Faucet](https://faucet.rootstock.io/)
 
 ### Deployment Fails: "nonce too low"
+
 **Solution:** Reset Hardhat cache:
+
 ```bash
 rm -rf artifacts/ cache/ typechain-types/
 npm run compile
 ```
 
 ### Contract Verification Fails
+
 **Solution:** Ensure exact compiler settings match deployment:
+
 ```javascript
 // hardhat.config.ts
 solidity: {
@@ -330,7 +399,9 @@ solidity: {
 ```
 
 ### "Transaction underpriced"
+
 **Solution:** Increase gas price in `hardhat.config.ts`:
+
 ```javascript
 networks: {
   testnet: {
@@ -351,5 +422,6 @@ networks: {
 MIT License - See [LICENSE](../../LICENSE) file.
 
 ## SupportFor questions or issues:
+
 - GitHub Issues: https://github.com/Ikabott-MRM/identity/issues
 - Email: dev@iovfoundation.org

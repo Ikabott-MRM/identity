@@ -5,4 +5,11 @@ deployments/
 .env
 *.log
 
+# Generated for Tenderly (copies of OpenZeppelin from build; regenerate via npm run tenderly:standard-input)
+tenderly-supplement/
 
+# Flattened single-file contract for verifiers (regenerate via npm run flatten)
+DidManifestRegistry.flat.sol
+
+# Mythril symbolic execution output
+mcore_*

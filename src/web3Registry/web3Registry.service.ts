@@ -17,11 +17,18 @@ import {
 } from './web3Registry.util';
 import { v4 as uuidv4 } from 'uuid';
 
-// Minimal ABI for DidManifestRegistry contract
+// ABI for DidManifestRegistry contract
 const CONTRACT_ABI = [
   'function setManifestCid(bytes32 didKey, string calldata manifestCid)',
+  'function setManifestCidsBatch(bytes32[] calldata didKeys, string[] calldata manifestCids)',
   'function getManifestCid(bytes32 didKey) external view returns (string memory)',
+  'function deleteManifestCid(bytes32 didKey)',
+  'function deleteManifestCidsBatch(bytes32[] calldata didKeys)',
+  'function owner() external view returns (address)',
   'event ManifestCidSet(bytes32 indexed didKey, string manifestCid, address indexed writer)',
+  'event ManifestCidsBatchSet(bytes32[] didKeys, string[] manifestCids, address indexed writer)',
+  'event ManifestCidDeleted(bytes32 indexed didKey, address indexed writer)',
+  'event ManifestCidsBatchDeleted(bytes32[] didKeys, address indexed writer)',
 ] as const;
 
 @Injectable()
@@ -75,7 +82,9 @@ export class Web3RegistryService implements OnModuleInit {
       throw new Error('WEB3_RPC_URL is required when WEB3_ENABLED=true');
     }
     if (!this.config.contractAddress) {
-      throw new Error('WEB3_CONTRACT_ADDRESS is required when WEB3_ENABLED=true');
+      throw new Error(
+        'WEB3_CONTRACT_ADDRESS is required when WEB3_ENABLED=true',
+      );
     }
     if (!this.config.privateKey) {
       throw new Error('WEB3_PRIVATE_KEY is required when WEB3_ENABLED=true');
@@ -240,7 +249,9 @@ export class Web3RegistryService implements OnModuleInit {
    */
   async getManifestCidByDidUri(didUri: string): Promise<string | null> {
     if (!this.contract || !this.provider) {
-      this.logger.warn('Web3Registry not initialized, cannot read from Rootstock');
+      this.logger.warn(
+        'Web3Registry not initialized, cannot read from Rootstock',
+      );
       return null;
     }
 
@@ -335,8 +346,9 @@ export class Web3RegistryService implements OnModuleInit {
    * Gets outbox record by ID.
    */
   async getOutboxRecord(id: string): Promise<any | null> {
-    const record = await this.knex('web3_manifest_outbox').where({ id }).first();
+    const record = await this.knex('web3_manifest_outbox')
+      .where({ id })
+      .first();
     return record || null;
   }
 }
-

@@ -71,6 +71,9 @@ contract DidManifestRegistry is Ownable2Step {
         bytes32 didKey,
         string calldata manifestCid
     ) external onlyOwner {
+        // SWC-101 false positive: Mythril flags the ABI decoder SUB opcode emitted by solc for
+        // `string calldata` length validation. That SUB is guarded by a compiler-inserted REVERT;
+        // no underflow is reachable. See audit/mythril-notes.md for full analysis.
         if (bytes(manifestCid).length == 0) revert InvalidCid();
 
         manifestCidByDidKey[didKey] = manifestCid;
@@ -102,6 +105,7 @@ contract DidManifestRegistry is Ownable2Step {
         if (didKeys.length != manifestCids.length) revert ArrayMismatch();
 
         for (uint256 i = 0; i < didKeys.length; ) {
+            // SWC-101 false positive: same ABI decoder false positive as setManifestCid line 77.
             if (bytes(manifestCids[i]).length == 0) revert InvalidCid();
             manifestCidByDidKey[didKeys[i]] = manifestCids[i];
             unchecked {

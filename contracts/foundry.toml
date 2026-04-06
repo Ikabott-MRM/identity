@@ -1,0 +1,18 @@
+[profile.default]
+src      = "contracts"
+test     = "test/foundry"
+out      = "foundry-out"
+libs     = ["node_modules", "lib"]
+remappings = [
+  "@openzeppelin/=node_modules/@openzeppelin/"
+]
+
+[fuzz]
+runs = 1000
+
+[invariant]
+# These settings give a fast feedback loop (~1-2 min on a typical machine).
+# Before a formal audit or mainnet deploy, increase to runs=500 depth=100
+# for a deeper sweep.
+runs   = 200
+depth  = 50

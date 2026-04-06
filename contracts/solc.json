@@ -1,0 +1,10 @@
+{
+  "remappings": [
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "@openzeppelin/=node_modules/@openzeppelin/"
+  ],
+  "optimizer": {
+    "enabled": true,
+    "runs": 200
+  }
+}
