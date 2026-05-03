@@ -1,9 +1,9 @@
-name: deploy-sbweb3
+name: deploy-sbweb3-prod
 
 on:
   push:
     tags:
-      - 'sbweb3-test*'
+      - 'sbweb3-prod*'
 
 permissions:
   id-token: write
@@ -18,29 +18,24 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: Deploy on EC2 via SSM
+      - name: Deploy on EC2 via SSM (prod)
         run: |
           set -euo pipefail
-          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID_PROD }}"
           TAG="${GITHUB_REF_NAME}"
 
           if [[ -z "${INSTANCE_ID}" || "${INSTANCE_ID}" == "[]" ]]; then
-            echo "EC2_INSTANCE_ID secret is empty."
+            echo "EC2_INSTANCE_ID_PROD secret is empty. Add it under Settings → Secrets and variables → Actions."
             exit 1
           fi
 
-          # Important: the instance may have been cloned from another environment and `origin` might not point
-          # to this GitHub repo. We set it explicitly to ensure the pushed tag exists on the remote we fetch.
-          # Repo access:
-          # - If the instance has a GitHub Deploy Key at /home/ubuntu/.ssh/id_ed25519, use SSH.
-          # - Otherwise, fall back to HTTPS (works if the repo is public).
           PARAMS_JSON="$(jq -n --arg tag "$TAG" --arg repo_ssh "git@github.com:Ikabott-MRM/identity.git" --arg repo_https "https://github.com/Ikabott-MRM/identity.git" \
-            '{commands:["sudo -u ubuntu -H bash -lc \"set -euo pipefail && cd /home/ubuntu/identity && if test -f /home/ubuntu/.ssh/id_ed25519; then git remote set-url origin \($repo_ssh); export GIT_SSH_COMMAND=\\\"ssh -o StrictHostKeyChecking=accept-new\\\"; else git remote set-url origin \($repo_https); fi && git fetch --prune --tags --force origin || (echo FETCH_FAILED_CHECK_REPO_ACCESS; echo If the repo is private: add a GitHub Deploy Key to /home/ubuntu/.ssh/id_ed25519; echo If you made it public: ensure the remote is reachable via HTTPS.; exit 1) && git rev-parse -q --verify refs/tags/\($tag) >/dev/null || (echo TAG_NOT_FOUND:\($tag); git tag -l \\\"sbweb3-test*\\\" | tail -n 50; exit 1) && git checkout -f \($tag) && docker compose up -d --build --no-deps api\""]}')"
+            '{commands:["sudo -u ubuntu -H bash -lc \"set -euo pipefail && cd /home/ubuntu/identity && if test -f /home/ubuntu/.ssh/id_ed25519; then git remote set-url origin \($repo_ssh); export GIT_SSH_COMMAND=\\\"ssh -o StrictHostKeyChecking=accept-new\\\"; else git remote set-url origin \($repo_https); fi && git fetch --prune --tags --force origin || (echo FETCH_FAILED_CHECK_REPO_ACCESS; echo If the repo is private: add a GitHub Deploy Key to /home/ubuntu/.ssh/id_ed25519; echo If you made it public: ensure the remote is reachable via HTTPS.; exit 1) && git rev-parse -q --verify refs/tags/\($tag) >/dev/null || (echo TAG_NOT_FOUND:\($tag); git tag -l \\\"sbweb3-prod*\\\" | tail -n 50; exit 1) && git checkout -f \($tag) && docker compose up -d --build --no-deps api\""]}')"
 
           COMMAND_ID="$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --comment "Deploy tag $TAG" \
+            --comment "Deploy prod tag $TAG" \
             --parameters "$PARAMS_JSON" \
             --query 'Command.CommandId' --output text)"
           echo "SSM CommandId=$COMMAND_ID instance=$INSTANCE_ID"

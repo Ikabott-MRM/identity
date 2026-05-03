@@ -1,0 +1,5 @@
+{
+  "commands": [
+    "sudo -u ubuntu -H bash -lc 'set -euo pipefail && cd /home/ubuntu/identity && cp -a .env .env.bak.ssm && sed -i \"s/^WEB3_CHAIN_ID=.*/WEB3_CHAIN_ID=30/\" .env && sed -i \"s|^WEB3_RPC_URL=.*|WEB3_RPC_URL=https://public-node.rsk.co|\" .env && sed -i \"s/^WEB3_CONTRACT_ADDRESS=.*/WEB3_CONTRACT_ADDRESS=0xCc8dfB72BA18f6cBd626A1e609F8864707d77EdF/\" .env && if grep -q \"^WEB3_CONFIRMATIONS=\" .env; then sed -i \"s/^WEB3_CONFIRMATIONS=.*/WEB3_CONFIRMATIONS=3/\" .env; else echo WEB3_CONFIRMATIONS=3 >> .env; fi && docker compose up -d --force-recreate api && sleep 5 && docker compose logs --tail=50 api'"
+  ]
+}

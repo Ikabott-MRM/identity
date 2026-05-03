@@ -39,6 +39,10 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       rootstockTestnet: process.env.ROOTSTOCK_EXPLORER_API_KEY || '',
+      rootstockMainnet:
+        process.env.ROOTSTOCK_MAINNET_EXPLORER_API_KEY ||
+        process.env.ROOTSTOCK_EXPLORER_API_KEY ||
+        '',
     },
     customChains: [
       {
@@ -47,6 +51,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: 'https://rootstock-testnet.blockscout.com/api',
           browserURL: 'https://rootstock-testnet.blockscout.com',
+        },
+      },
+      {
+        network: 'rootstockMainnet',
+        chainId: 30,
+        urls: {
+          apiURL: 'https://rootstock.blockscout.com/api',
+          browserURL: 'https://rootstock.blockscout.com',
         },
       },
     ],

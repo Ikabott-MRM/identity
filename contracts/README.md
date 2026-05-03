@@ -8,6 +8,8 @@ The `DidManifestRegistry` contract enables **backendless credential discovery** 
 
 **Deployed Contract (Testnet):** [`0x64dB8b2ccD86d4A36b7F9B9F8A3eA2F35fA86c2a`](https://rootstock-testnet.blockscout.com/address/0x64dB8b2ccD86d4A36b7F9B9F8A3eA2F35fA86c2a)
 
+**Deployed Contract (Mainnet):** [`0xCc8dfB72BA18f6cBd626A1e609F8864707d77EdF`](https://rootstock.blockscout.com/address/0xCc8dfB72BA18f6cBd626A1e609F8864707d77EdF#code) (verified on Blockscout)
+
 ## Contract Interface
 
 ### Write Functions (Owner Only)
@@ -160,6 +162,12 @@ Deployment info saved to: deployments/testnet/deployment-info.json
 
 ```bash
 npm run deploy:mainnet
+```
+
+After deploy, verify (uses `ROOTSTOCK_MAINNET_EXPLORER_API_KEY` or falls back to `ROOTSTOCK_EXPLORER_API_KEY` from `identity/.env`):
+
+```bash
+npx hardhat verify --network rootstockMainnet <contract-address>
 ```
 
 **Before mainnet deployment:**
