@@ -35,6 +35,16 @@ const config: HardhatUserConfig = {
         ? [process.env.DEPLOYER_PRIVATE_KEY]
         : [],
     },
+    // Same chain as rootstockMainnet; used only for `hardhat verify` against
+    // Rootstock's official explorer API (explorer.rootstock.io), not Blockscout.
+    rootstockExplorerMainnet: {
+      url:
+        process.env.ROOTSTOCK_MAINNET_RPC_URL || 'https://public-node.rsk.co',
+      chainId: 30,
+      accounts: process.env.DEPLOYER_PRIVATE_KEY
+        ? [process.env.DEPLOYER_PRIVATE_KEY]
+        : [],
+    },
   },
   etherscan: {
     apiKey: {
@@ -43,6 +53,10 @@ const config: HardhatUserConfig = {
         process.env.ROOTSTOCK_MAINNET_EXPLORER_API_KEY ||
         process.env.ROOTSTOCK_EXPLORER_API_KEY ||
         '',
+      // Official Rootstock explorer API accepts any non-empty placeholder; see
+      // https://developers.rsk.co/developers/smart-contracts/hardhat/verify-smart-contracts/
+      rootstockExplorerMainnet:
+        process.env.ROOTSTOCK_OFFICIAL_EXPLORER_API_KEY || 'rootstock',
     },
     customChains: [
       {
@@ -59,6 +73,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: 'https://rootstock.blockscout.com/api',
           browserURL: 'https://rootstock.blockscout.com',
+        },
+      },
+      {
+        network: 'rootstockExplorerMainnet',
+        chainId: 30,
+        urls: {
+          apiURL: 'https://be.explorer.rootstock.io/api/v3/etherscan',
+          browserURL: 'https://explorer.rootstock.io/',
         },
       },
     ],

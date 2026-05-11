@@ -8,7 +8,10 @@ The `DidManifestRegistry` contract enables **backendless credential discovery** 
 
 **Deployed Contract (Testnet):** [`0x64dB8b2ccD86d4A36b7F9B9F8A3eA2F35fA86c2a`](https://rootstock-testnet.blockscout.com/address/0x64dB8b2ccD86d4A36b7F9B9F8A3eA2F35fA86c2a)
 
-**Deployed Contract (Mainnet):** [`0xCc8dfB72BA18f6cBd626A1e609F8864707d77EdF`](https://rootstock.blockscout.com/address/0xCc8dfB72BA18f6cBd626A1e609F8864707d77EdF#code) (verified on Blockscout)
+**Deployed Contract (Mainnet):** `0xCc8dfB72BA18f6cBd626A1e609F8864707d77EdF` — verified on **both** explorers (they use separate backends; verify each independently):
+
+- [Rootstock Blockscout](https://rootstock.blockscout.com/address/0xCc8dfB72BA18f6cBd626A1e609F8864707d77EdF#code) — `npm run verify:mainnet`
+- [Rootstock official explorer](https://explorer.rootstock.io/address/0xCc8dfB72BA18f6cBd626A1e609F8864707d77EdF#code) — `npm run verify:explorer:mainnet` ([Hardhat + official API](https://developers.rsk.co/developers/smart-contracts/hardhat/verify-smart-contracts/))
 
 ## Contract Interface
 
@@ -164,11 +167,19 @@ Deployment info saved to: deployments/testnet/deployment-info.json
 npm run deploy:mainnet
 ```
 
-After deploy, verify (uses `ROOTSTOCK_MAINNET_EXPLORER_API_KEY` or falls back to `ROOTSTOCK_EXPLORER_API_KEY` from `identity/.env`):
+After deploy, verify on **Blockscout** (uses `ROOTSTOCK_MAINNET_EXPLORER_API_KEY` or falls back to `ROOTSTOCK_EXPLORER_API_KEY` from `identity/.env`):
 
 ```bash
-npx hardhat verify --network rootstockMainnet <contract-address>
+npm run verify:mainnet -- <contract-address>
 ```
+
+Verify on **[explorer.rootstock.io](https://explorer.rootstock.io/)** (separate API; Blockscout verification does not copy over):
+
+```bash
+npm run verify:explorer:mainnet -- <contract-address>
+```
+
+The official explorer API key can be the literal string `rootstock` (configured as default in `hardhat.config.ts`); override with `ROOTSTOCK_OFFICIAL_EXPLORER_API_KEY` if needed.
 
 **Before mainnet deployment:**
 

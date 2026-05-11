@@ -128,7 +128,7 @@ They allow continuous management of API keys (creation, listing, revocation) wit
 
 ### create-api-key.ts
 
-Use this script to create a new API key, which will be accepted for accessing protected endpoints.
+Use this script to create a new API key, which will be accepted for accessing protected endpoints. After a successful insert, the script **prints the plaintext key once** so you can copy it into **Amplify** (`NEXT_PUBLIC_API_KEY` on the issuer web branch) or another secrets store. Never commit that value.
 
 - API keys are **encrypted** before being stored in the database using the `crypto` module from Node.js.
 - The encryption uses **AES-256-CTR**, and each stored key includes its IV, salt, and ciphertext in a single `encrypted_key` field.
@@ -145,10 +145,16 @@ Use this script to create a new API key, which will be accepted for accessing pr
 1. `description`: a short description of the API key (e.g., client name or purpose).
 2. `password`: encryption password (used to derive the key for encryption).
 
-Example
+Example (from `identity/` with `DB_*` set in `.env` or `.env.production`; use `NODE_ENV=production` when targeting the prod database):
 
 ```bash
-npx ts-node src/auth/api-key-scripts/create-api-key.ts "client1" "your-password"
+npx ts-node src/auth/api-key-scripts/create-api-key.ts "IDA Emisor Web prod" "your-encryption-password"
+```
+
+Optional npm wrapper:
+
+```bash
+npm run api-key:create -- "IDA Emisor Web prod" "your-encryption-password"
 ```
 
 ### delete-api-key.ts

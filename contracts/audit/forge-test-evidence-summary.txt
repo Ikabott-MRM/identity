@@ -1,0 +1,58 @@
+DidManifestRegistry Foundry verification (ASCII summary)
+========================================================
+
+Tool
+----
+forge Version: 1.5.1-stable
+Commit SHA: b0a9dd9ceda36f63e2326ce530c10e6916f4b8a2
+
+Command (from repository root)
+--------------------------------
+cd identity/contracts
+forge test
+
+Configuration (identity/contracts/foundry.toml)
+------------------------------------------------
+[fuzz] runs = 1000
+[invariant] runs = 500, depth = 100
+
+Exit code: 0
+
+Fuzz suite: DidManifestRegistryFuzzTest
+---------------------------------------
+Suite result: ok. 9 passed; 0 failed; 0 skipped
+
+[PASS] testFuzz_batchArrayMismatch (runs: 1000)
+[PASS] testFuzz_batchSetAndGet (runs: 1001)
+[PASS] testFuzz_bytes32ZeroKeyIsValid (runs: 1000)
+[PASS] testFuzz_deleteAfterSet (runs: 1000)
+[PASS] testFuzz_emptyStringAlwaysReverts (runs: 1000)
+[PASS] testFuzz_nonExistentKeyReturnsEmpty (runs: 1000)
+[PASS] testFuzz_nonOwnerCannotSet (runs: 1000)
+[PASS] testFuzz_setAndGet (runs: 1000)
+[PASS] testFuzz_setOverwritesValue (runs: 1000)
+
+Invariant suite: DidManifestRegistryInvariantTest
+-------------------------------------------------
+Suite result: ok. 5 passed; 0 failed; 0 skipped
+
+Each invariant reported: runs: 500, calls: 50000, reverts: 0
+
+[PASS] invariant_deletedKeyReturnsEmpty()
+[PASS] invariant_ghostMirrorConsistency()
+[PASS] invariant_nonOwnerCannotMutate()
+[PASS] invariant_ownerIsAlwaysHandler()
+[PASS] invariant_storedCidIsNeverEmpty()
+
+Aggregate
+---------
+Ran 2 test suites: 14 tests passed, 0 failed, 0 skipped (14 total tests)
+
+Timing (representative machine)
+-------------------------------
+Fuzz suite finished in approximately 3-4s wall time.
+Invariant suite finished in approximately 230-450s wall time depending on CPU.
+
+Note: Re-run `forge test` in identity/contracts to regenerate full console output
+(including Foundry handler call-distribution tables). This file is an ASCII
+evidence summary for grant or audit attachments.

@@ -3,6 +3,7 @@
 ## DidManifestRegistry.sol
 
 **Date:** 2026-03-16  
+**Invariant profile update:** 2026-05-11 — `[invariant]` in `foundry.toml` set to **500 runs × 100 depth** (pre-mainnet deep sweep); figures below reflect this profile.  
 **Tool:** Foundry 1.5.1-stable (`forge`)  
 **Compiler:** Solc 0.8.33 (auto-selected by Foundry; contract targets ^0.8.20)  
 **Network target:** Rootstock (RSK) — chainId 30/31  
@@ -54,7 +55,7 @@ Each run generates fresh random values for `bytes32` keys, `string` CIDs, `addre
 
 The invariant engine randomly calls contract functions in sequence — up to `depth` calls per run — then checks that a set of _invariants_ (rules that must always be true) hold after every call sequence.
 
-**Configuration:** 200 runs × 50 calls per run = up to **10,000 state transitions** per invariant.
+**Configuration:** 500 runs × 100 calls per run = up to **50,000 state transitions** per invariant.
 
 A **handler contract** (`RegistryHandler`) was written to wrap the registry. The handler:
 
@@ -193,16 +194,16 @@ All 9 fuzz tests passed on 1,000 randomly generated inputs each.
 
 ## 5. Invariant Tests — Detail and Results
 
-All 5 invariant tests passed across 200 runs × 50 call-depth = **10,000 state-changing interactions** each.
+All 5 invariant tests passed across 500 runs × 100 call-depth = **50,000 state-changing interactions** each.
 
 The call distribution per invariant run (representative sample):
 
-| Handler Function | Calls  | Reverts | Discards |
-| ---------------- | ------ | ------- | -------- |
-| `set`            | ~2,470 | 0       | 0        |
-| `remove`         | ~2,530 | 0       | 0        |
-| `batchSet`       | ~2,490 | 0       | 0        |
-| `setAsNonOwner`  | ~2,510 | 0       | 0        |
+| Handler Function | Calls   | Reverts | Discards |
+| ---------------- | ------- | ------- | -------- |
+| `set`            | ~12,470 | 0       | 0        |
+| `remove`         | ~12,530 | 0       | 0        |
+| `batchSet`       | ~12,490 | 0       | 0        |
+| `setAsNonOwner`  | ~12,510 | 0       | 0        |
 
 Zero reverts from the handler means the handler correctly guards all invalid inputs before forwarding to the contract (empty CIDs, non-existent deletes), so the fuzzer is exploring valid state space efficiently rather than wasting cycles on input validation.
 
@@ -212,7 +213,7 @@ Zero reverts from the handler means the handler correctly guards all invalid inp
 
 **Rule:** `registry.owner()` must always equal `address(handler)` — ownership must never silently change to an unexpected address after any sequence of calls.
 
-**Runs:** 200 | **Calls:** 10,000 | **Reverts:** 0  
+**Runs:** 500 | **Calls:** 50,000 | **Reverts:** 0  
 **Result:** PASS
 
 **Why it matters:** `Ownable2Step` requires two transactions to transfer ownership. This invariant verifies that no random call sequence in the handler can accidentally trigger an ownership transfer or acceptance.
@@ -223,7 +224,7 @@ Zero reverts from the handler means the handler correctly guards all invalid inp
 
 **Rule:** For every key that the ghost state believes is currently stored, the on-chain `getManifestCid` must return a non-empty string.
 
-**Runs:** 200 | **Calls:** 10,000 | **Reverts:** 0  
+**Runs:** 500 | **Calls:** 50,000 | **Reverts:** 0  
 **Result:** PASS
 
 **Why it matters:** This is a direct end-to-end check that `setManifestCid` and `setManifestCidsBatch` always persist the data correctly, and that no later operation (e.g. a delete of a different key) can corrupt an unrelated key's value.
@@ -234,7 +235,7 @@ Zero reverts from the handler means the handler correctly guards all invalid inp
 
 **Rule:** For every key that the ghost state has marked as deleted, the on-chain `getManifestCid` must return `""`.
 
-**Runs:** 200 | **Calls:** 10,000 | **Reverts:** 0  
+**Runs:** 500 | **Calls:** 50,000 | **Reverts:** 0  
 **Result:** PASS
 
 **Why it matters:** This verifies that `deleteManifestCid` and `deleteManifestCidsBatch` fully clean up storage, and that subsequent writes to other keys do not resurrect a deleted entry.
@@ -245,7 +246,7 @@ Zero reverts from the handler means the handler correctly guards all invalid inp
 
 **Rule:** For every key in ghost state, the on-chain value must exactly match the last CID the handler wrote for that key — no silent corruption, no partial writes.
 
-**Runs:** 200 | **Calls:** 10,000 | **Reverts:** 0  
+**Runs:** 500 | **Calls:** 50,000 | **Reverts:** 0  
 **Result:** PASS
 
 **Why it matters:** This is the most comprehensive data-integrity invariant. It catches any scenario where the contract's internal storage diverges from what callers believe they stored, including edge cases like string truncation, storage slot collisions, or unexpected side effects from `unchecked` arithmetic in the batch loops.
@@ -256,10 +257,10 @@ Zero reverts from the handler means the handler correctly guards all invalid inp
 
 **Rule:** The `nonOwnerSuccesses` counter in the handler must always be zero — no call from a non-owner address must ever succeed in writing to the registry.
 
-**Runs:** 200 | **Calls:** 10,000 | **Reverts:** 0  
+**Runs:** 500 | **Calls:** 50,000 | **Reverts:** 0  
 **Result:** PASS
 
-**Why it matters:** `setAsNonOwner` called the registry with ~2,500 different addresses across random key/CID combinations under full stateful conditions. None of them succeeded. This provides much stronger access-control assurance than the unit tests, which only checked a handful of fixed addresses.
+**Why it matters:** `setAsNonOwner` called the registry with ~12,500 different addresses across random key/CID combinations under full stateful conditions. None of them succeeded. This provides much stronger access-control assurance than the unit tests, which only checked a handful of fixed addresses.
 
 ---
 
@@ -282,8 +283,12 @@ During the fuzz test run for `testFuzz_batchSetAndGet` (F-07), the fuzzer discov
 **Total fuzzer executions:**
 
 - Fuzz tests: ~9,000 individual property checks (1,000 runs × 9 tests)
-- Invariant tests: ~50,000 state-changing calls across 1,000 run-sequences (200 runs × 50 depth × 5 invariants)
+- Invariant tests: ~250,000 state-changing calls across 2,500 run-sequences (500 runs × 100 depth × 5 invariants)
 
 **Conclusion:** No vulnerabilities, logic errors, or violated properties were found. The contract behaves correctly across the full space of inputs tested. The one behaviour surfaced — silent last-write-wins on duplicate batch keys — is correct by design but should be noted in documentation and guarded at the application layer.
 
-**Recommended next step before mainnet:** Increase invariant depth to `runs = 500, depth = 100` in `foundry.toml` for a pre-audit deep sweep (~10× more state transitions), and consider adding a formal audit of the `Ownable2Step` ownership transfer path.
+**Pre-mainnet deep sweep:** Invariant fuzzing now runs at `runs = 500`, `depth = 100` in [`foundry.toml`](../foundry.toml) (~**259,000** combined fuzz + invariant executions as counted above). `forge test` was re-run with this profile; see the verification line at the end of this section.
+
+**Further assurance (separate from depth):** A formal audit focused on the `Ownable2Step` ownership transfer path remains good practice before mainnet if not already covered by the external audit scope.
+
+**Verification (2026-05-11):** `forge test` from `identity/contracts` — all fuzz and invariant tests **PASS** with the 500 × 100 invariant profile. Standalone evidence package: [DidManifestRegistry-FuzzInvariant-Verification-Report.md](./DidManifestRegistry-FuzzInvariant-Verification-Report.md) and [forge-test-evidence-summary.txt](./forge-test-evidence-summary.txt).

@@ -20,8 +20,23 @@ const run = async () => {
       );
       throw new Error(`Incorrect password.`);
     }
-    const apiKey = generateApiKey();
-    await saveApiKey(description, password, apiKey, knex);
+    const plainKey = await saveApiKey(
+      description,
+      password,
+      generateApiKey(),
+      knex,
+    );
+    console.info('');
+    console.info(
+      '--- Plaintext API key (use as x-api-key / NEXT_PUBLIC_API_KEY) ---',
+    );
+    console.info(
+      'Set this in AWS Amplify → ida-emisor-web-prod → Hosting → Environment variables → NEXT_PUBLIC_API_KEY, then redeploy.',
+    );
+    console.info('Do not commit this value to git.');
+    console.info('');
+    console.info(plainKey);
+    console.info('');
   } catch (error) {
     console.error(`Error:`, error.message);
   } finally {

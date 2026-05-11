@@ -17,7 +17,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "api-key:create": "ts-node src/auth/api-key-scripts/create-api-key.ts",
+    "api-key:list": "ts-node src/auth/api-key-scripts/list-api-keys.ts",
+    "api-key:delete": "ts-node src/auth/api-key-scripts/delete-api-key.ts"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",

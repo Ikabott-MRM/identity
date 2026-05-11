@@ -10,7 +10,7 @@ import "./RegistryHandler.sol";
  * @dev Invariant (stateful fuzz) tests for DidManifestRegistry.
  *
  *      The Foundry invariant engine will:
- *        1. Randomly call functions on RegistryHandler (depth = 100 calls per run)
+ *        1. Randomly call functions on RegistryHandler (call depth per sequence: `[invariant].depth` in foundry.toml)
  *        2. After each call sequence, execute every function prefixed `invariant_`
  *        3. Fail the test if any invariant ever returns false / reverts
  *

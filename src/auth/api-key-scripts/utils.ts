@@ -76,7 +76,7 @@ export const saveApiKey = async (
   password: string,
   apiKey: string,
   knex: Knex.Knex<any, unknown[]>,
-) => {
+): Promise<string> => {
   try {
     const { iv, salt, encryptedApiKey } = await encryptApiKey(password, apiKey);
     const encrypted_key = `${iv}-${salt}-${encryptedApiKey}`;
@@ -85,8 +85,8 @@ export const saveApiKey = async (
       .first();
 
     if (apikeyAlreadyExists) {
-      const apiKey = generateApiKey();
-      return saveApiKey(description, password, apiKey, knex);
+      const nextKey = generateApiKey();
+      return saveApiKey(description, password, nextKey, knex);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -102,6 +102,7 @@ export const saveApiKey = async (
 
     await knex('api_keys').insert(newApiKey);
     console.info(`API Key saved successfully with description:`, description);
+    return apiKey;
   } catch (error) {
     console.error(`An error occurred while trying to save an api-key`, error);
     throw error;

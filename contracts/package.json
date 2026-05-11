@@ -6,12 +6,14 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:foundry": "forge test",
     "test:gas": "cross-env REPORT_GAS=1 hardhat test",
     "deploy:testnet": "hardhat run scripts/deploy.ts --network rootstockTestnet",
     "deploy:mainnet": "hardhat run scripts/deploy.ts --network rootstockMainnet",
     "print:deployer": "hardhat run scripts/printDeployerInfo.ts",
     "verify": "hardhat verify --network rootstockTestnet",
     "verify:mainnet": "hardhat verify --network rootstockMainnet",
+    "verify:explorer:mainnet": "hardhat verify --network rootstockExplorerMainnet",
     "tenderly:standard-input": "node scripts/generate-tenderly-standard-input.js",
     "flatten": "hardhat flatten contracts/DidManifestRegistry.sol > DidManifestRegistry.flat.sol",
     "analyze:myth": "node scripts/run-myth-with-timeout.js"
