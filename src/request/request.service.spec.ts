@@ -12,6 +12,7 @@ import { NotFoundException } from '@nestjs/common';
 describe('RequestService - Integration Tests', () => {
   let service: RequestService;
   let knex: Knex;
+  let issuerService: IssuerAgentService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -42,6 +43,7 @@ describe('RequestService - Integration Tests', () => {
 
     service = module.get<RequestService>(RequestService);
     knex = module.get<Knex>('KnexConnection');
+    issuerService = module.get<IssuerAgentService>(IssuerAgentService);
 
     // Create the request table
     await knex.schema.createTable('request', table => {
@@ -122,7 +124,7 @@ describe('RequestService - Integration Tests', () => {
 
   it('should approve a pending request', async () => {
     const requestData: VerificationRequest = {
-      schema_id: 'schema123',
+      schema_id: 'drivers_license',
       subject_did: 'did:example:123',
       document_url: 'https://example.com/document',
     };
@@ -150,6 +152,32 @@ describe('RequestService - Integration Tests', () => {
     expect(savedRequest.status).toBe(RequestStatus.APPROVED);
   });
 
+  it('should approve a production registry request with ProductionRegistry schema', async () => {
+    const requestData: VerificationRequest = {
+      schema_id: 'production_registry',
+      subject_did: 'did:example:prod',
+      document_url: 'https://example.com/document',
+    };
+
+    const createdRequest = await service.createRequest(requestData);
+
+    const identifiableData = {
+      tipo: 'Cobre',
+      cantidad: '1500',
+      precio: '7900',
+      fecha_entrega: '2026-06-15',
+    };
+
+    await service.approveRequest(createdRequest.id, identifiableData, '2027-06-15');
+
+    expect(issuerService.issueCredential).toHaveBeenCalledWith(
+      identifiableData,
+      '2027-06-15',
+      'ProductionRegistry',
+      'did:example:prod',
+    );
+  });
+
   it('should throw an error if the request does not exist', async () => {
     await expect(
       service.approveRequest(
@@ -162,7 +190,7 @@ describe('RequestService - Integration Tests', () => {
 
   it('should throw an error if the request is already processed', async () => {
     const requestData: VerificationRequest = {
-      schema_id: 'schema123',
+      schema_id: 'drivers_license',
       subject_did: 'did:example:123',
       document_url: 'https://example.com/document',
     };

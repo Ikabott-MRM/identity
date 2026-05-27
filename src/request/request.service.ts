@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Knex } from 'knex';
 import { IssuerAgentService } from '../ssi/issuerAgent.service';
+import { getCredentialTypeByRequestSchemaId } from '../ssi/credentialTypes.registry';
 
 export interface RequestFilter {
   status?: RequestStatus;
@@ -17,9 +18,7 @@ export interface VerificationRequest {
 }
 
 export interface IdentifiableData {
-  name: string;
-  lastname: string;
-  category: string;
+  [key: string]: string;
 }
 
 export class RequestAlreadyProcessedError extends Error {
@@ -98,6 +97,10 @@ export class RequestService {
     return this.knex.select('*').from('request').where({ subject_did });
   }
 
+  async getRequestById(id: string) {
+    return this.knex('request').where({ id }).first();
+  }
+
   async getRequestAndValidate(tx: Knex.Transaction, id: string): Promise<any> {
     const request = await tx('request').where({ id }).first();
     if (!request) {
@@ -126,12 +129,16 @@ export class RequestService {
 
     try {
       const { request } = await this.getRequestAndValidate(tx, id);
+      const credentialType = getCredentialTypeByRequestSchemaId(request.schema_id);
+      if (!credentialType) {
+        throw new Error(`Unsupported schema_id "${request.schema_id}"`);
+      }
 
       const subject_did = request.subject_did;
       const issuance = await this.issuerService.issueCredential(
         identifiable_data,
         expDate,
-        'DriversLicense',
+        credentialType.issuanceSchemaId,
         subject_did,
       );
       if (!issuance.success) {

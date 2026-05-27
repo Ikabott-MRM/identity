@@ -13,6 +13,11 @@ describe('RequestController', () => {
   ];
 
   const mockRequestService = {
+    getRequestById: jest.fn().mockResolvedValue({
+      id: '12345',
+      schema_id: 'drivers_license',
+      status: 'pending',
+    }),
     approveRequest: jest.fn().mockResolvedValue({ status: 'approved' }),
     rejectRequest: jest.fn().mockResolvedValue({ status: 'rejected' }),
     createRequest: jest
@@ -58,6 +63,7 @@ describe('RequestController', () => {
         '12345',
       );
 
+      expect(service.getRequestById).toHaveBeenCalledWith('12345');
       expect(result).toEqual(
         sendResponse(
           { status: 'approved' },
@@ -115,7 +121,7 @@ describe('RequestController', () => {
         path: 'documents/test.pdf',
         size: 500000,
       } as Express.Multer.File;
-      const result = await controller.upload(mockFile, 'test-did');
+      const result = await controller.upload(mockFile, 'test-did', undefined);
       expect(service.createRequest).toHaveBeenCalledWith({
         schema_id: 'drivers_license',
         subject_did: 'test-did',
@@ -138,11 +144,24 @@ describe('RequestController', () => {
         path: 'documents/test.pdf',
       } as Express.Multer.File;
       try {
-        await controller.upload(mockFile, 'test-did');
+        await controller.upload(mockFile, 'test-did', undefined);
       } catch (error) {
         expect(error.getStatus()).toEqual(400);
         expect(error.message).toEqual('File too large');
       }
+    });
+
+    it('should create a production registry request when schema_id is provided', async () => {
+      const mockFile = {
+        path: 'documents/test.png',
+        size: 500000,
+      } as Express.Multer.File;
+      await controller.upload(mockFile, 'test-did', 'production_registry');
+      expect(service.createRequest).toHaveBeenCalledWith({
+        schema_id: 'production_registry',
+        subject_did: 'test-did',
+        document_url: mockFile.path,
+      });
     });
   });
 

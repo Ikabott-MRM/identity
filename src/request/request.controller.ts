@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   MaxFileSizeValidator,
   Param,
@@ -36,6 +37,11 @@ import {
 } from '@nestjs/swagger';
 
 import { RequestError } from '../helpers/errors';
+import {
+  DEFAULT_REQUEST_SCHEMA_ID,
+  getCredentialTypeByRequestSchemaId,
+  isSupportedRequestSchemaId,
+} from '../ssi/credentialTypes.registry';
 
 @ApiTags('requests')
 // @ApiSecurity('api-key')
@@ -88,6 +94,26 @@ export class RequestController {
     let request;
     try {
       if (actionPayloadDto.action === 'approve') {
+        const currentRequest = await this.requestService.getRequestById(id);
+        if (!currentRequest) {
+          return sendErrorResponse(
+            RequestError.REQUEST_NOT_FOUND,
+            404,
+            'Request not found.',
+          );
+        }
+
+        const credentialType = getCredentialTypeByRequestSchemaId(
+          currentRequest.schema_id,
+        );
+        if (!credentialType) {
+          return sendErrorResponse(
+            RequestError.SCHEMA_ID_INVALID,
+            400,
+            `Unsupported schema_id "${currentRequest.schema_id}".`,
+          );
+        }
+
         if (!actionPayloadDto.identifiable_data) {
           return sendErrorResponse(
             RequestError.IDENTIFIABLE_DATA_MISSING,
@@ -100,11 +126,11 @@ export class RequestController {
           return sendErrorResponse(
             RequestError.EXPIRATION_DATE_REQUIRED,
             400,
-            `Expiration date is required for approving a drivers license.`,
+            'Expiration date is required for approving a request.',
           );
         }
 
-        const requiredFields = ['name', 'lastname', 'category'];
+        const requiredFields = credentialType.requiredFields;
 
         for (const field of requiredFields) {
           if (!actionPayloadDto.identifiable_data[field]) {
@@ -312,6 +338,12 @@ export class RequestController {
           format: 'binary',
           description: 'File to upload',
         },
+        schema_id: {
+          type: 'string',
+          description:
+            'Credential type identifier. Defaults to drivers_license when omitted.',
+          example: 'production_registry',
+        },
       },
       required: ['file'],
     },
@@ -352,9 +384,17 @@ export class RequestController {
     )
     file: Express.Multer.File,
     @Param('did') did: string,
+    @Body('schema_id') schema_id?: string,
   ) {
+    const selectedSchemaId = schema_id ?? DEFAULT_REQUEST_SCHEMA_ID;
+    if (!isSupportedRequestSchemaId(selectedSchemaId)) {
+      throw new BadRequestException(
+        `Invalid schema_id. Supported values are drivers_license, production_registry.`,
+      );
+    }
+
     const data = {
-      schema_id: 'drivers_license',
+      schema_id: selectedSchemaId,
       subject_did: did,
       document_url: file.path,
     };

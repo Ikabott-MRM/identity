@@ -17,6 +17,17 @@ export class CredentialsSchemasInMemoryRepository {
         licenseCategory: 'category',
       },
     },
+    {
+      id: 'ProductionRegistry',
+      type: ['https://identity-iovf.xyz/schemas/productionRegistry'],
+      contexts: ['https://www.w3.org/2018/credentials/v1'],
+      mappingRulesDescriptor: {
+        tipo: 'tipo',
+        cantidad: 'cantidad',
+        precio: 'precio',
+        fechaEntrega: 'fecha_entrega',
+      },
+    },
   ];
 
   async get(schemaId: any): Promise<Schema> {

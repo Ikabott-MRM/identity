@@ -487,6 +487,75 @@ describe('IssuerAgentService', () => {
       );
     });
 
+    it('should issue a production registry credential using mapped fields', async () => {
+      const mockSchema = {
+        id: 'ProductionRegistry',
+        type: ['https://identity-iovf.xyz/schemas/productionRegistry'],
+        contexts: ['https://www.w3.org/2018/credentials/v1'],
+        mappingRulesDescriptor: {
+          tipo: 'tipo',
+          cantidad: 'cantidad',
+          precio: 'precio',
+          fechaEntrega: 'fecha_entrega',
+        },
+      };
+
+      jest
+        .spyOn((service as any).credentialsRepository, 'get')
+        .mockResolvedValueOnce(mockSchema);
+
+      const mockVc = await VerifiableCredential.create({
+        type: mockSchema.type,
+        issuer: operationalDID.uri,
+        subject: 'did:example:prod',
+        data: {
+          tipo: 'Cobre',
+          cantidad: '1000',
+          precio: '8100',
+          fechaEntrega: '2026-08-01',
+        },
+        expirationDate: '2027-08-01T00:00:00.000Z',
+      });
+      const mockedSignedVcJwt = await mockVc.sign({ did: operationalDID });
+
+      jest.spyOn(VerifiableCredential, 'create').mockResolvedValueOnce(mockVc);
+      jest.spyOn(mockVc, 'sign').mockResolvedValueOnce(mockedSignedVcJwt);
+      jest
+        .spyOn(persistenceService, 'encryptCredential')
+        .mockResolvedValueOnce('encrypted');
+      jest.spyOn(ipfsService, 'uploadContent').mockResolvedValueOnce('cid-prod');
+      jest
+        .spyOn(didCidsAssociationService, 'addCidToDid')
+        .mockResolvedValueOnce(undefined);
+      jest
+        .spyOn(credentialManifestService, 'getCurrentManifest')
+        .mockResolvedValueOnce(null);
+      jest
+        .spyOn(credentialManifestService, 'createManifest')
+        .mockResolvedValueOnce({
+          issuerDid: 'did:example:issuer',
+          issuedCredentials: [],
+        });
+      jest
+        .spyOn(credentialManifestService, 'addManifestToDatabase')
+        .mockResolvedValueOnce(undefined);
+
+      const result = await service.issueCredential(
+        {
+          tipo: 'Cobre',
+          cantidad: '1000',
+          precio: '8100',
+          fecha_entrega: '2026-08-01',
+        },
+        '2027-08-01',
+        'ProductionRegistry',
+        'did:example:prod',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.result).toBe(mockedSignedVcJwt);
+    });
+
     it('should handle errors gracefully', async () => {
       const mockError = new Error('Failed to issue credential');
 
