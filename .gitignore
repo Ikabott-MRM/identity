@@ -67,5 +67,3 @@ documents/*
 
 #encrypted portable did
 /src/ssi/persistence/encryptedPortableDid.txt
-
-/docs

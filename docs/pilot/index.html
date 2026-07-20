@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Piloto SSI — Empiece aquí</title>
+  <style>
+    :root {
+      --bg: #f7f4ef;
+      --surface: #fffdf9;
+      --ink: #1c2430;
+      --muted: #5c6b7a;
+      --line: #d9d0c3;
+      --accent: #0f6e56;
+      --accent-soft: #e4f3ee;
+      --warm: #c45c26;
+      --card: #ffffff;
+      --shadow: 0 12px 40px rgba(28, 36, 48, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      background:
+        radial-gradient(ellipse at top left, #efe7d8 0%, transparent 50%),
+        linear-gradient(180deg, #f7f4ef 0%, #efeae2 100%);
+      color: var(--ink);
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent); }
+    a:hover { text-decoration: underline; }
+
+    .wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--warm);
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-size: clamp(1.9rem, 4vw, 2.6rem);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.85rem;
+      max-width: 16ch;
+    }
+
+    .lead {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 42rem;
+    }
+
+    .start-card {
+      background: var(--accent-soft);
+      border: 1px solid #b7d9cc;
+      border-radius: 16px;
+      padding: 1.5rem 1.6rem;
+      margin: 2rem 0;
+      box-shadow: var(--shadow);
+    }
+
+    .start-card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent);
+    }
+
+    .start-card ol {
+      margin: 0.75rem 0 0 1.2rem;
+      color: var(--ink);
+    }
+
+    .start-card li { margin: 0.35rem 0; }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+    }
+
+    .badge {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.28rem 0.75rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .badge strong { color: var(--ink); }
+
+    section {
+      margin: 2.25rem 0;
+    }
+
+    section h2 {
+      font-size: 1.35rem;
+      margin-bottom: 0.65rem;
+      letter-spacing: -0.02em;
+    }
+
+    section p {
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .components {
+      display: grid;
+      gap: 1rem;
+    }
+
+    @media (min-width: 700px) {
+      .components { grid-template-columns: 1fr 1fr; }
+    }
+
+    .comp {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1.2rem 1.25rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .comp .num {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--warm);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .comp h3 {
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+    }
+
+    .comp p {
+      font-size: 0.95rem;
+      margin: 0;
+      flex: 1;
+    }
+
+    .comp a.btn {
+      display: inline-block;
+      margin-top: 0.35rem;
+      align-self: flex-start;
+      background: var(--ink);
+      color: #fff;
+      text-decoration: none;
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .comp a.btn:hover {
+      background: var(--accent);
+      text-decoration: none;
+    }
+
+    .comp .meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: ui-monospace, Consolas, monospace;
+    }
+
+    .note {
+      background: var(--surface);
+      border-left: 4px solid var(--warm);
+      padding: 1rem 1.15rem;
+      border-radius: 0 10px 10px 0;
+      color: var(--ink);
+    }
+
+    .note strong { display: block; margin-bottom: 0.25rem; }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .secondary-links {
+      margin-top: 0.75rem;
+      font-size: 0.92rem;
+    }
+
+    .secondary-links a { margin-right: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Piloto SSI · SELF-HOST</p>
+      <h1>Empiece aquí</h1>
+      <p class="lead">
+        Esta página es el punto de entrada para instalar el sistema de identidad soberana
+        en su propia infraestructura. No necesita una API compartida nuestra: usted genera
+        los secretos y levanta los cuatro componentes.
+      </p>
+      <div class="badge-row">
+        <span class="badge"><strong>Modo:</strong> SELF-HOST</span>
+        <span class="badge"><strong>Componentes:</strong> 4</span>
+        <span class="badge"><strong>Contacto:</strong> manuel.rico.tech@gmail.com</span>
+      </div>
+    </header>
+
+    <div class="start-card">
+      <h2>Recomendado: instalar con un agente de IA</h2>
+      <p style="color:var(--ink); margin:0;">
+        La forma más rápida y menos propensa a error es preparar AWS (o su máquina) una vez
+        y pedirle a un agente (por ejemplo Cursor) que siga las guías paso a paso.
+        Usted aporta credenciales y secretos; el agente ejecuta la instalación.
+      </p>
+      <ol>
+        <li>Lea esta página (ya está aquí).</li>
+        <li>Abra el runbook
+          <a href="./pilot-onboarding-e2e.md"><strong>pilot-onboarding-e2e.md</strong></a>
+          — sección <em>Requisitos para instalar con agente en AWS</em>.</li>
+        <li>Prepare AWS CLI + SSM (o decida instalar Identity en local).</li>
+        <li>Pase al agente el prompt del runbook y las guías de la carpeta
+          <code>guias/</code> en orden: Identity → Emisor → Citizen → Verifier.</li>
+        <li>Haga el smoke test del runbook: solicitar → aprobar → presentar → verificar.</li>
+      </ol>
+      <p class="secondary-links" style="margin-top:1rem;">
+        Índice técnico para agentes:
+        <a href="./AGENTE.md">AGENTE.md</a>
+      </p>
+    </div>
+
+    <section>
+      <h2>Los cuatro componentes</h2>
+      <p>
+        El piloto son cuatro repositorios que trabajan juntos. Instálelos en este orden.
+        Cada tarjeta abre la guía Markdown detallada.
+      </p>
+      <div class="components">
+        <article class="comp">
+          <span class="num">1 · Backend</span>
+          <h3>Identity</h3>
+          <p>
+            API NestJS que crea DIDs, recibe solicitudes, firma credenciales,
+            guarda en IPFS y opcionalmente registra en Rootstock. Base del resto.
+          </p>
+          <span class="meta">Puerto 3000 · github.com/Ikabott-MRM/identity</span>
+          <a class="btn" href="./guias/identity-arquitectura-instalacion.md">Abrir guía Identity</a>
+        </article>
+
+        <article class="comp">
+          <span class="num">2 · Portal web</span>
+          <h3>IDA Emisor</h3>
+          <p>
+            Back-office Next.js para que un operador revise solicitudes,
+            apruebe o rechace, e inicie la emisión. Login con Cognito propio.
+          </p>
+          <span class="meta">Puerto 3001 · github.com/Ikabott-MRM/IDA-Emisor-Web</span>
+          <a class="btn" href="./guias/emisor-arquitectura-instalacion.md">Abrir guía Emisor</a>
+        </article>
+
+        <article class="comp">
+          <span class="num">3 · App móvil</span>
+          <h3>Citizen (ciudadano)</h3>
+          <p>
+            Wallet Expo: el ciudadano crea su DID, solicita una credencial,
+            la recibe y la presenta como QR.
+          </p>
+          <span class="meta">Expo · github.com/Ikabott-MRM/SSI-Citizen-App</span>
+          <a class="btn" href="./guias/citizen-arquitectura-instalacion.md">Abrir guía Citizen</a>
+        </article>
+
+        <article class="comp">
+          <span class="num">4 · App móvil</span>
+          <h3>Verifier (verificador)</h3>
+          <p>
+            Importa la clave pública del emisor, escanea el QR del ciudadano
+            y valida la firma de la credencial.
+          </p>
+          <span class="meta">Expo · github.com/Ikabott-MRM/SSI-Verifier-App</span>
+          <a class="btn" href="./guias/verifier-arquitectura-instalacion.md">Abrir guía Verifier</a>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Si prefiere instalar a mano</h2>
+      <div class="note">
+        <strong>También es válido</strong>
+        Siga el mismo orden (Identity → Emisor → Citizen → Verifier) usando las guías de
+        <code>guias/</code>. El runbook
+        <a href="./pilot-onboarding-e2e.md">pilot-onboarding-e2e.md</a>
+        tiene el checklist de secretos (ustedes los generan) y el smoke test final.
+        La instalación con agente sigue siendo la opción recomendada.
+      </div>
+    </section>
+
+    <footer>
+      <p>
+        Preguntas del piloto:
+        <a href="mailto:manuel.rico.tech@gmail.com">manuel.rico.tech@gmail.com</a>
+      </p>
+      <p style="margin-top:0.4rem;">
+        Organización:
+        <a href="https://github.com/Ikabott-MRM" target="_blank" rel="noopener">github.com/Ikabott-MRM</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
