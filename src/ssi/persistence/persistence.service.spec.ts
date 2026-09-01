@@ -436,6 +436,40 @@ let configService: ConfigService;
     expect(decryptedData).toBe(mockData);
   });
 
+  it('should decrypt credential content with urn:uuid id format', async () => {
+    const mockData = 'mockCredentialJwt';
+    const mockHolderUri = 'did:example:123';
+    const mockCredentialId =
+      'urn:uuid:a37312bc-df7b-459d-b17f-45f62c051e4f';
+    const mockSalt = 'mockSalt';
+    const mockEncryptedData =
+      '8ebf9e0d202e99b3d6a41b70c3c384f11a08599af95baa7f71f5d7e8775c24a767';
+    const mockIv = Buffer.from('mockIv');
+
+    (service as any).encryptionKeyIssuerCredentials = Buffer.alloc(32);
+
+    jest
+      .spyOn(didSaltAssociationService, 'getDidSalt')
+      .mockResolvedValueOnce(mockSalt);
+    jest
+      .spyOn(encryptionService, 'generateDeterministicIV')
+      .mockReturnValue(mockIv);
+    jest
+      .spyOn(encryptionService, 'decryptContent')
+      .mockResolvedValueOnce(mockData);
+
+    const decryptedData = await service.decryptCredential(
+      `${mockCredentialId}-${mockEncryptedData}`,
+      mockHolderUri,
+    );
+
+    expect(encryptionService.generateDeterministicIV).toHaveBeenCalledWith(
+      mockCredentialId,
+      mockSalt,
+    );
+    expect(decryptedData).toBe(mockData);
+  });
+
   it('should throw an error when decrypting without an associated salt', async () => {
     const mockData = 'mockCredentialData';
     const mockHolderUri = 'did:example:123';

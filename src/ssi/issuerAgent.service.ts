@@ -412,29 +412,31 @@ fs.writeFileSync(filePath, Buffer.from(body));
           error: null,
         };
 
-      let results: CredentialQueryResultObject[];
-      results = await Promise.all(
-        holderDidCids.map(async holderDidCid => {
-          // Fetch  content from IPFS
+      const results: CredentialQueryResultObject[] = [];
+      for (const holderDidCid of holderDidCids) {
+        try {
           const content = (await this.ipfsService.getContent(
             holderDidCid,
           )) as string;
-          // Decrypt the credential
           const vcJwt = await this.persistenceService.decryptCredential(
             content,
             holderDid,
           );
           const parsedCredential = await this.parseCredential(vcJwt);
-          return {
+          results.push({
             vcJwt,
             verifiableCredential: parsedCredential,
-          };
-        }),
-      );
+          });
+        } catch (error) {
+          this.logger.warn(
+            `Skipping credential CID ${holderDidCid} for holder ${holderDid}: ${error.message}`,
+          );
+        }
+      }
 
       return {
         success: true,
-        result: results,
+        result: results.length > 0 ? results : null,
         error: null,
       };
     } catch (error) {

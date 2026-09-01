@@ -194,6 +194,33 @@ export class PersistenceService {
     }
   }
 
+  private getCredentialsEncryptionKey(): Buffer {
+    if (this.encryptionKeyIssuerCredentials) {
+      return this.encryptionKeyIssuerCredentials;
+    }
+
+    const password = this.configService.get<string>(
+      'issuerPersistenceAndRecovery.secretPwd',
+    );
+    const credentialsSalt = this.configService.get<string>(
+      'issuerPersistenceAndRecovery.credentialsSalt',
+    );
+
+    if (!password || !credentialsSalt) {
+      throw new Error(
+        'SECRET_PWD and SALT_ISSUER_CREDENTIALS must be configured before encrypting or decrypting credentials.',
+      );
+    }
+
+    this.encryptionKeyIssuerCredentials =
+      this.encryptionService.deriveSymmmetricKeyFromPassword(
+        password,
+        credentialsSalt,
+      );
+
+    return this.encryptionKeyIssuerCredentials;
+  }
+
   async encryptCredential(
     data: string,
     holderidUri: string,
@@ -217,7 +244,7 @@ export class PersistenceService {
 
       const fileContent = await this.encryptionService.encryptContent(
         data,
-        this.encryptionKeyIssuerCredentials,
+        this.getCredentialsEncryptionKey(),
         iv,
       );
 
@@ -231,6 +258,28 @@ export class PersistenceService {
     }
   }
 
+  private parseEncryptedCredentialContent(data: string): {
+    credentialId: string;
+    encryptedCredential: string;
+  } {
+    const urnUuidMatch = data.match(
+      /^(urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-([0-9a-f]+)$/i,
+    );
+    if (urnUuidMatch) {
+      return {
+        credentialId: urnUuidMatch[1],
+        encryptedCredential: urnUuidMatch[2],
+      };
+    }
+
+    // Legacy format used in tests: credential-123-456-789-101112-<hex>
+    const ipfsContent = data.split('-');
+    return {
+      credentialId: ipfsContent.slice(0, 5).join('-'),
+      encryptedCredential: ipfsContent.slice(5).join('-'),
+    };
+  }
+
   async decryptCredential(data: string, holderidUri: string): Promise<string> {
     try {
       let didSalt =
@@ -239,10 +288,9 @@ export class PersistenceService {
         throw new Error(
           'There is no salt associated to DID. Initialization vector cannot be determined.',
         );
-      //Split the string using '-' as the separator and extract the first part as the credential ID /
-      const ipfsContent = data.split('-');
-      const encryptedCredential = ipfsContent.slice(5).join('-');
-      let credentialId = ipfsContent.slice(0, 5).join('-');
+
+      const { credentialId, encryptedCredential } =
+        this.parseEncryptedCredentialContent(data);
 
       const iv = this.encryptionService.generateDeterministicIV(
         credentialId,
@@ -252,7 +300,7 @@ export class PersistenceService {
       const decryptedCredential = await this.encryptionService.decryptContent(
         iv.toString('hex'),
         encryptedCredential,
-        this.encryptionKeyIssuerCredentials,
+        this.getCredentialsEncryptionKey(),
       );
 
 
