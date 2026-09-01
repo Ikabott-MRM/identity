@@ -98,14 +98,19 @@ export class PersistenceService {
       attempts++;
 
       if (isValidEmailAddress) {
-        const saltIssuerDid = this.encryptionService.generateSalt();
+        const saltIssuerDid =
+          this.configService.get('issuerPersistenceAndRecovery.issuerDidSalt') ??
+          this.encryptionService.generateSalt();
         this.encryptionKeyIssuerDid =
           this.encryptionService.deriveSymmmetricKeyFromPassword(
             password,
             saltIssuerDid,
           );
 
-        const saltIssuerCredentials = this.encryptionService.generateSalt();
+        const saltIssuerCredentials =
+          this.configService.get(
+            'issuerPersistenceAndRecovery.credentialsSalt',
+          ) ?? this.encryptionService.generateSalt();
         this.encryptionKeyIssuerCredentials =
           this.encryptionService.deriveSymmmetricKeyFromPassword(
             password,
