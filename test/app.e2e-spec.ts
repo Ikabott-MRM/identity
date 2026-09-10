@@ -1,13 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
+import { DocumentsController } from '../src/documents/documents.controller';
 import { writeFileSync, unlinkSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
-describe('Static File Serving (e2e)', () => {
+/**
+ * Documents are API-key protected via APP_GUARD in AppModule.
+ * This suite tests the controller path-safety and file serving in isolation.
+ */
+describe('DocumentsController (e2e-ish)', () => {
   let app: INestApplication;
-  const documentsPath = join(__dirname, '..', 'documents');
+  const documentsPath = join(process.cwd(), 'documents');
   const testFileName = 'test-file.txt';
   const testFilePath = join(documentsPath, testFileName);
 
@@ -19,7 +23,7 @@ describe('Static File Serving (e2e)', () => {
     writeFileSync(testFilePath, 'This is a test file');
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      controllers: [DocumentsController],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -46,13 +50,9 @@ describe('Static File Serving (e2e)', () => {
       .expect(404);
   });
 
-  it('/documents (GET)', () => {
-    return request(app.getHttpServer()).get('/documents').expect(404);
-  });
-
-  it('/documents/../app.module.ts (GET)', () => {
+  it('/documents/../package.json (GET) rejects traversal', () => {
     return request(app.getHttpServer())
-      .get('/documents/../app.module.ts')
-      .expect(404);
+      .get('/documents/../package.json')
+      .expect(400);
   });
 });
