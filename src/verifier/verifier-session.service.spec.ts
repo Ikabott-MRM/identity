@@ -37,6 +37,7 @@ describe('VerifierSessionService', () => {
           'verifierSession.jwtTtlSec': 3600,
           'verifierSession.audience': 'ssi-verifier',
           publicApiBaseUrl: 'https://example.test',
+          'documents.urlSigningSecret': 'test-document-url-signing-secret',
         };
         return map[key];
       },
@@ -78,12 +79,34 @@ describe('VerifierSessionService', () => {
     expect(user.scope).toContain('documents:read');
   });
 
-  it('setCompanyCode stores hash only and status hides plaintext', async () => {
+  it('setCompanyCode stores hash + encrypted blob; getStatus returns code', async () => {
     await service.setCompanyCode('pilot-secret');
     expect(rows[0].hashed_code).toBeTruthy();
     expect(rows[0].hashed_code).not.toContain('pilot-secret');
+    expect(rows[0].encrypted_code).toMatch(/^v1:/);
+    expect(rows[0].encrypted_code).not.toContain('pilot-secret');
+
     const status = await service.getStatus();
     expect(status.configured).toBe(true);
     expect(status.updatedAt).toBeTruthy();
+    expect(status.code).toBe('pilot-secret');
+  });
+
+  it('getStatus returns code null for legacy hash-only rows', async () => {
+    rows.push({
+      id: 1,
+      hashed_code: await bcrypt.hash('legacy-only', 4),
+      encrypted_code: null,
+      updated_at: new Date(),
+    });
+    const status = await service.getStatus();
+    expect(status.configured).toBe(true);
+    expect(status.code).toBeNull();
+  });
+
+  it('encrypt/decrypt round-trips', () => {
+    const blob = service.encryptCompanyCode('round-trip-code');
+    expect(blob.startsWith('v1:')).toBe(true);
+    expect(service.decryptCompanyCode(blob)).toBe('round-trip-code');
   });
 });

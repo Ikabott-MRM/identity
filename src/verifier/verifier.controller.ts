@@ -37,9 +37,10 @@ export class VerifierController {
 
   @Get('company-code')
   @ApiOperation({
-    summary: 'Status of company code configuration (never reveals the code)',
+    summary:
+      'Company code status for Emisor (returns decrypted code when encrypted_code present)',
   })
-  @ApiOkResponse({ description: 'Configuration status' })
+  @ApiOkResponse({ description: 'Configuration status and optional code' })
   async getCompanyCodeStatus() {
     return this.verifierSessionService.getStatus();
   }
