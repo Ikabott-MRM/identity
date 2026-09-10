@@ -7,6 +7,7 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
+  UseGuards,
   Body,
   Get,
   Query,
@@ -15,6 +16,7 @@ import {
   HttpCode,
   Delete,
 } from '@nestjs/common';
+import { DidJwtAuthGuard } from '../auth/guards/did-jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { sendErrorResponse, sendResponse } from '../helpers/functions';
 import {
@@ -144,7 +146,7 @@ export class RequestController {
 
         request = await this.requestService.approveRequest(
           id,
-          actionPayloadDto.identifiable_data,
+          actionPayloadDto.identifiable_data as unknown as Record<string, string>,
           actionPayloadDto.exp_date,
         );
       } else if (actionPayloadDto.action === 'reject') {
@@ -205,6 +207,7 @@ export class RequestController {
     description: 'Internal server error',
   })
   @HttpCode(200)
+  @UseGuards(DidJwtAuthGuard)
   async deletePendingRequestsForDid(@Param('did') did: string) {
     try {
       const requests = await this.requestService.getRequestsForSubject(did);
@@ -317,6 +320,7 @@ export class RequestController {
     status: 200,
     description: 'Requests retrieved successfully.',
   })
+  @UseGuards(DidJwtAuthGuard)
   async getRequestsForDid(@Param('did') did: string) {
     const requests = await this.requestService.getRequestsForSubject(did);
     return sendResponse(requests, 200, 'Requests retrieved successfully.');
@@ -369,6 +373,7 @@ export class RequestController {
       dest: 'documents/',
     }),
   )
+  @UseGuards(DidJwtAuthGuard)
   async upload(
     @UploadedFile(
       new ParseFilePipe({

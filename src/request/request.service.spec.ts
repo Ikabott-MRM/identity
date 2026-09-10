@@ -8,6 +8,7 @@ import {
 import { Knex } from 'knex';
 import { IssuerAgentService } from '../ssi/issuerAgent.service';
 import { NotFoundException } from '@nestjs/common';
+import { DocumentUrlService } from '../documents/document-url.service';
 
 describe('RequestService - Integration Tests', () => {
   let service: RequestService;
@@ -38,6 +39,22 @@ describe('RequestService - Integration Tests', () => {
             }),
           },
         },
+        {
+          provide: DocumentUrlService,
+          useValue: {
+            createAccessUrl: jest
+              .fn()
+              .mockImplementation(
+                (documentId: string, didOrRole: string) =>
+                  `http://localhost:3000/documents/${documentId}?exp=1&did=${encodeURIComponent(didOrRole)}&sig=test`,
+              ),
+            toFilenameOnly: jest
+              .fn()
+              .mockImplementation((url: string) =>
+                url ? url.split('/').pop() : null,
+              ),
+          },
+        },
       ],
     }).compile();
 
@@ -52,6 +69,7 @@ describe('RequestService - Integration Tests', () => {
       table.string('schema_id');
       table.string('subject_did');
       table.string('document_url');
+      table.string('document_id').unique();
       table.string('status').defaultTo('pending');
     });
   });
@@ -79,14 +97,17 @@ describe('RequestService - Integration Tests', () => {
     expect(createdRequest.code).toBeDefined();
     expect(createdRequest.schema_id).toBe(requestData.schema_id);
     expect(createdRequest.subject_did).toBe(requestData.subject_did);
-    expect(createdRequest.document_url).toBe(requestData.document_url);
+    expect(createdRequest.document_id).toBeDefined();
+    expect(createdRequest.document_access_url).toContain(createdRequest.document_id);
+    expect(createdRequest.document_url).toBeNull();
 
     // Verify the request was actually saved to the database
     const savedRequest = await knex('request')
       .where({ id: createdRequest.id })
       .first();
     expect(savedRequest).toBeDefined();
-    expect(savedRequest).toEqual(createdRequest);
+    expect(savedRequest.document_url).toBe(requestData.document_url);
+    expect(savedRequest.document_id).toBe(createdRequest.document_id);
   });
 
   it('should create a new request with provided id', async () => {
