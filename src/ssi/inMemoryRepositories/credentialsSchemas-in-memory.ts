@@ -7,6 +7,7 @@ class Schema {
 
 export class CredentialsSchemasInMemoryRepository {
   private credentialsSchemas: Schema[] = [
+    // Legacy — kept for backward compatibility with existing credentials/requests.
     {
       id: 'DriversLicense',
       type: ['https://identity-iovf.xyz/schemas/driversLicense'],
@@ -15,6 +16,10 @@ export class CredentialsSchemasInMemoryRepository {
         firstname: 'name',
         lastname: 'lastname',
         licenseCategory: 'category',
+        // Photo integrity claims — Identity embeds these; Emisor must not supply.
+        photoHash: 'photoHash',
+        photoHashAlg: 'photoHashAlg',
+        document_id: 'document_id',
       },
     },
     {
@@ -26,6 +31,50 @@ export class CredentialsSchemasInMemoryRepository {
         cantidad: 'cantidad',
         precio: 'precio',
         fechaEntrega: 'fecha_entrega',
+        photoHash: 'photoHash',
+        photoHashAlg: 'photoHashAlg',
+        document_id: 'document_id',
+      },
+    },
+    // Geyser: Donor / Donante
+    {
+      id: 'donor',
+      type: ['https://identity-iovf.xyz/schemas/donor'],
+      contexts: ['https://www.w3.org/2018/credentials/v1'],
+      mappingRulesDescriptor: {
+        firstname: 'name',
+        lastname: 'lastname',
+        photoHash: 'photoHash',
+        photoHashAlg: 'photoHashAlg',
+        document_id: 'document_id',
+      },
+    },
+    // Geyser: Fundraiser
+    {
+      id: 'fundraiser',
+      type: ['https://identity-iovf.xyz/schemas/fundraiser'],
+      contexts: ['https://www.w3.org/2018/credentials/v1'],
+      mappingRulesDescriptor: {
+        firstname: 'name',
+        lastname: 'lastname',
+        projectName: 'projectName',
+        role: 'role',
+        photoHash: 'photoHash',
+        photoHashAlg: 'photoHashAlg',
+        document_id: 'document_id',
+      },
+    },
+    // Stack pilot default: Socio / Associate
+    {
+      id: 'associate',
+      type: ['https://identity-iovf.xyz/schemas/associate'],
+      contexts: ['https://www.w3.org/2018/credentials/v1'],
+      mappingRulesDescriptor: {
+        firstname: 'name',
+        lastname: 'lastname',
+        photoHash: 'photoHash',
+        photoHashAlg: 'photoHashAlg',
+        document_id: 'document_id',
       },
     },
   ];

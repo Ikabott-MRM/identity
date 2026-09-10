@@ -3,6 +3,10 @@ import { randomUUID } from 'crypto';
 import { Knex } from 'knex';
 import { IssuerAgentService } from '../ssi/issuerAgent.service';
 import { getCredentialTypeByRequestSchemaId } from '../ssi/credentialTypes.registry';
+import {
+  DocumentUrlService,
+  EMISOR_ROLE,
+} from '../documents/document-url.service';
 
 export interface RequestFilter {
   status?: RequestStatus;
@@ -15,6 +19,7 @@ export interface VerificationRequest {
   schema_id: string;
   subject_did: string;
   document_url: string;
+  document_id?: string;
 }
 
 export interface IdentifiableData {
@@ -38,6 +43,7 @@ export class RequestService {
   constructor(
     @Inject('KnexConnection') private readonly knex: Knex,
     private readonly issuerService: IssuerAgentService,
+    private readonly documentUrlService: DocumentUrlService,
   ) {}
 
   private readonly logger = new Logger(RequestService.name);
@@ -49,6 +55,7 @@ export class RequestService {
       return this.createRequest(request);
     }
     const uuid = randomUUID();
+    const documentId = request.document_id ?? randomUUID();
 
     const data = {
       id: request.id ?? uuid,
@@ -56,6 +63,7 @@ export class RequestService {
       schema_id: request.schema_id,
       subject_did: request.subject_did,
       document_url: request.document_url,
+      document_id: documentId,
     };
 
     await this.knex.insert(data).into('request');
@@ -68,7 +76,7 @@ export class RequestService {
       `Request with id ${uuid} has been successfully created and saved to db.`,
     );
 
-    return createdRequest;
+    return this.mapRequestForSubject(createdRequest);
   }
 
   async getRequests(filter: RequestFilter = {}) {
@@ -86,7 +94,8 @@ export class RequestService {
       query = query.where('subject_did', filter.subject_did);
     }
 
-    return query;
+    const rows = await query;
+    return rows.map((row) => this.mapRequestForEmisor(row));
   }
 
   async getRequestsWithStatus(status: RequestStatus) {
@@ -94,11 +103,19 @@ export class RequestService {
   }
 
   async getRequestsForSubject(subject_did: string) {
-    return this.knex.select('*').from('request').where({ subject_did });
+    const rows = await this.knex
+      .select('*')
+      .from('request')
+      .where({ subject_did });
+    return rows.map((row) => this.mapRequestForSubject(row));
   }
 
   async getRequestById(id: string) {
     return this.knex('request').where({ id }).first();
+  }
+
+  async getRequestByDocumentId(documentId: string) {
+    return this.knex('request').where({ document_id: documentId }).first();
   }
 
   async getRequestAndValidate(tx: Knex.Transaction, id: string): Promise<any> {
@@ -129,7 +146,9 @@ export class RequestService {
 
     try {
       const { request } = await this.getRequestAndValidate(tx, id);
-      const credentialType = getCredentialTypeByRequestSchemaId(request.schema_id);
+      const credentialType = getCredentialTypeByRequestSchemaId(
+        request.schema_id,
+      );
       if (!credentialType) {
         throw new Error(`Unsupported schema_id "${request.schema_id}"`);
       }
@@ -140,6 +159,10 @@ export class RequestService {
         expDate,
         credentialType.issuanceSchemaId,
         subject_did,
+        {
+          documentId: request.document_id,
+          documentUrl: request.document_url,
+        },
       );
       if (!issuance.success) {
         this.logger.error(
@@ -191,5 +214,38 @@ export class RequestService {
       await tx.rollback();
       throw error;
     }
+  }
+
+  /** Citizen-facing: signed URL for subject DID; hide filesystem path. */
+  mapRequestForSubject(row: any) {
+    if (!row) return row;
+    const documentId = row.document_id;
+    const document_access_url = documentId
+      ? this.documentUrlService.createAccessUrl(documentId, row.subject_did)
+      : null;
+    return {
+      ...row,
+      document_id: documentId ?? null,
+      document_access_url,
+      document_url: null,
+    };
+  }
+
+  /**
+   * Emisor-facing: signed role URL + filename-only document_url for proxy migration.
+   */
+  mapRequestForEmisor(row: any) {
+    if (!row) return row;
+    const documentId = row.document_id;
+    const document_access_url = documentId
+      ? this.documentUrlService.createAccessUrl(documentId, EMISOR_ROLE)
+      : null;
+    const filename = this.documentUrlService.toFilenameOnly(row.document_url);
+    return {
+      ...row,
+      document_id: documentId ?? null,
+      document_access_url,
+      document_url: filename,
+    };
   }
 }

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "2.2",
+  "description": "Run SSI tenant-post-deploy.sh on a golden Identity instance",
+  "parameters": {
+    "AmplifyAppId": { "type": "String", "default": "", "description": "Amplify app id" },
+    "AmplifyBranch": { "type": "String", "default": "main" },
+    "CognitoClientId": { "type": "String", "default": "" },
+    "EnvFile": { "type": "String", "default": "/etc/ssi-tenant.env" }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "TenantPostDeploy",
+      "inputs": {
+        "timeoutSeconds": "3600",
+        "runCommand": [
+          "#!/bin/bash",
+          "set -euxo pipefail",
+          "export AMPLIFY_APP_ID={{ AmplifyAppId }}",
+          "export AMPLIFY_BRANCH={{ AmplifyBranch }}",
+          "export COGNITO_CLIENT_ID={{ CognitoClientId }}",
+          "export AWS_REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region || echo us-east-1)",
+          "sudo -u ubuntu -E bash /home/ubuntu/identity/scripts/tenant-post-deploy.sh --from-env-file {{ EnvFile }}"
+        ]
+      }
+    }
+  ]
+}

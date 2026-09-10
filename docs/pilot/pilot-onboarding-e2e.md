@@ -75,6 +75,16 @@ Contacto: manuel.rico.tech@gmail.com
 4. SSI-Verifier-App — misma base URL + API key + import `issuerPubK`.
 5. Smoke test E2E.
 
+## Ruta alternativa: AWS tenant stack
+
+Para un cliente nuevo en AWS (1 stack aislado, AMI golden + Cognito + Amplify), use:
+
+- [docs/tenant-stack-onboarding.md](../../../docs/tenant-stack-onboarding.md)
+- Plantilla: `infra/tenant-stack/template.yaml`
+- Post-deploy: `identity/scripts/tenant-post-deploy.sh`
+
+No clone AMI de un entorno con datos; use la AMI golden ([docs/GOLDEN_AMI_IDENTITY.md](../../../docs/GOLDEN_AMI_IDENTITY.md)).
+
 ## Checklist de secretos (sin valores)
 
 | Componente | Ítem | Cómo generar |

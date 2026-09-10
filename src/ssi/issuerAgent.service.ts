@@ -26,6 +26,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Web3RegistryService } from '../web3Registry/web3Registry.service';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  applyPhotoHashClaims,
+  buildPhotoHashClaims,
+} from '../helpers/photo-hash';
 
 export interface CredentialQueryResultObject {
   verifiableCredential: VerifiableCredential;
@@ -227,6 +231,7 @@ fs.writeFileSync(filePath, Buffer.from(body));
     expDate: string,
     schemaId: string,
     subjectDid: string,
+    documentMeta?: { documentId?: string | null; documentUrl?: string | null },
   ): Promise<{
     success: boolean;
     result: string | null;
@@ -238,7 +243,18 @@ fs.writeFileSync(filePath, Buffer.from(body));
     );
     try {
       const schema = await this.credentialsRepository.get(schemaId);
-      const mappedData = mapDataWithRules(data, schema.mappingRulesDescriptor);
+      let mappedData = mapDataWithRules(data, schema.mappingRulesDescriptor);
+      // Identity computes photoHash from stored file bytes; never trust Emisor input.
+      const photoClaims = buildPhotoHashClaims(
+        documentMeta?.documentId,
+        documentMeta?.documentUrl,
+      );
+      mappedData = applyPhotoHashClaims(mappedData, photoClaims);
+      if (photoClaims) {
+        this.logger.debug(
+          `[${correlationId}] Embedded photoHash for document_id=${photoClaims.document_id}`,
+        );
+      }
       let expirationISOString: string;
       let credentialData: {
         type: string[];

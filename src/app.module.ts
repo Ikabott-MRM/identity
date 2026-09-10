@@ -4,8 +4,6 @@ import configuration from './config/configuration';
 import { HttpModule } from '@nestjs/axios';
 import { IssuerAgentModule } from './ssi/issuerAgent.module';
 import { RequestModule } from './request/request.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 import * as Joi from 'joi';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ApiKeyAuthGuard } from './auth/guards/api-key-auth.guard';
@@ -15,6 +13,8 @@ import { AuthModule } from './auth/auth.module';
 import { IpfsModule } from './ipfs/ipfs.module';
 import { EmailModule } from './ssi/persistence/email/email.module';
 import { Web3RegistryModule } from './web3Registry/web3Registry.module';
+import { DocumentsModule } from './documents/documents.module';
+import { VerifierModule } from './verifier/verifier.module';
 
 const ENV = process.env.NODE_ENV;
 const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
@@ -66,13 +66,8 @@ const envFilePath = [!ENV ? '.env' : `.env.${ENV}`];
     RequestModule,
     AuthModule,
     Web3RegistryModule,
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', 'documents'),
-      serveRoot: '/documents',
-      serveStaticOptions: {
-        index: false,
-      },
-    }),
+    DocumentsModule,
+    VerifierModule,
   ],
   providers: [
     Logger,

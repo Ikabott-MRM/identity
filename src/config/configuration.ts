@@ -33,4 +33,32 @@ export default () => ({
     confirmations: parseInt(process.env.WEB3_CONFIRMATIONS || '1', 10),
     txTimeoutMs: parseInt(process.env.WEB3_TX_TIMEOUT_MS || '60000', 10),
   },
+  didAuth: {
+    jwtSecret:
+      process.env.DID_AUTH_JWT_SECRET ||
+      'dev-only-did-auth-jwt-secret-change-me',
+    jwtTtlSec: parseInt(process.env.DID_AUTH_JWT_TTL_SEC || '1800', 10),
+    challengeTtlSec: parseInt(process.env.DID_AUTH_CHALLENGE_TTL_SEC || '300', 10),
+    audience: 'ssi-citizen',
+    // Dev-only default: require DID JWT on subject routes.
+    required: process.env.DID_AUTH_REQUIRED !== 'false',
+  },
+  verifierSession: {
+    jwtSecret:
+      process.env.VERIFIER_SESSION_JWT_SECRET ||
+      process.env.DID_AUTH_JWT_SECRET ||
+      'dev-only-verifier-session-jwt-secret-change-me',
+    // Pilot default: 12 hours
+    jwtTtlSec: parseInt(process.env.VERIFIER_SESSION_TTL_SEC || '43200', 10),
+    audience: 'ssi-verifier',
+  },
+  documents: {
+    urlSigningSecret:
+      process.env.DOCUMENT_URL_SIGNING_SECRET ||
+      'dev-only-document-url-signing-secret-change-me',
+    urlTtlSec: parseInt(process.env.DOCUMENT_URL_TTL_SEC || '600', 10),
+  },
+  publicApiBaseUrl: (
+    process.env.PUBLIC_API_BASE_URL || 'http://localhost:3000'
+  ).replace(/\/$/, ''),
 });
