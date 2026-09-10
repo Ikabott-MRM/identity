@@ -1,4 +1,9 @@
-export type RequestSchemaId = 'drivers_license' | 'production_registry';
+export type RequestSchemaId =
+  | 'drivers_license'
+  | 'production_registry'
+  | 'donor'
+  | 'fundraiser'
+  | 'associate';
 
 export type CredentialTypeConfig = {
   requestSchemaId: RequestSchemaId;
@@ -17,9 +22,25 @@ export const CREDENTIAL_TYPES: Record<RequestSchemaId, CredentialTypeConfig> = {
     issuanceSchemaId: 'ProductionRegistry',
     requiredFields: ['tipo', 'cantidad', 'precio', 'fecha_entrega'],
   },
+  donor: {
+    requestSchemaId: 'donor',
+    issuanceSchemaId: 'donor',
+    requiredFields: ['name', 'lastname'],
+  },
+  fundraiser: {
+    requestSchemaId: 'fundraiser',
+    issuanceSchemaId: 'fundraiser',
+    requiredFields: ['name', 'lastname', 'projectName'],
+  },
+  associate: {
+    requestSchemaId: 'associate',
+    issuanceSchemaId: 'associate',
+    requiredFields: ['name', 'lastname'],
+  },
 };
 
-export const DEFAULT_REQUEST_SCHEMA_ID: RequestSchemaId = 'drivers_license';
+/** Stack / new-tenant default (non-Geyser pilot). */
+export const DEFAULT_REQUEST_SCHEMA_ID: RequestSchemaId = 'associate';
 
 export function isSupportedRequestSchemaId(
   schemaId: string,
