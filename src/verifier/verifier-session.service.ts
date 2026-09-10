@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import { Knex } from 'knex';
 import { VERIFIER_ROLE } from '../documents/document-url.service';
@@ -26,6 +27,18 @@ export interface VerifierJwtUser {
   sub: string;
 }
 
+export interface VerifierCompanyCodeStatus {
+  configured: boolean;
+  updatedAt: string | null;
+  /** Decrypted plaintext when encrypted_code is present; null if only legacy hash. */
+  code: string | null;
+}
+
+/**
+ * Encrypts/decrypts the viewable company code.
+ * Secret source: DOCUMENT_URL_SIGNING_SECRET → config documents.urlSigningSecret
+ * (SHA-256 derived to 32-byte AES key). Format: v1:iv:tag:ciphertext (base64 parts).
+ */
 @Injectable()
 export class VerifierSessionService {
   private readonly logger = new Logger(VerifierSessionService.name);
@@ -34,6 +47,7 @@ export class VerifierSessionService {
   private readonly audience: string;
   private readonly issuer: string;
   private readonly bcryptRounds = 10;
+  private readonly codeEncryptionKey: Buffer;
 
   constructor(
     @Inject('KnexConnection') private readonly knex: Knex,
@@ -50,19 +64,74 @@ export class VerifierSessionService {
     this.issuer =
       this.configService.get<string>('publicApiBaseUrl') ??
       'http://localhost:3000';
+
+    const encSecret =
+      this.configService.get<string>('documents.urlSigningSecret') ||
+      'dev-only-document-url-signing-secret-change-me';
+    this.codeEncryptionKey = createHash('sha256').update(encSecret).digest();
   }
 
-  async getStatus(): Promise<{ configured: boolean; updatedAt: string | null }> {
+  /** AES-256-GCM → `v1:<iv_b64>:<tag_b64>:<ct_b64>` */
+  encryptCompanyCode(plain: string): string {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', this.codeEncryptionKey, iv);
+    const ciphertext = Buffer.concat([
+      cipher.update(plain, 'utf8'),
+      cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag();
+    return [
+      'v1',
+      iv.toString('base64'),
+      tag.toString('base64'),
+      ciphertext.toString('base64'),
+    ].join(':');
+  }
+
+  decryptCompanyCode(payload: string | null | undefined): string | null {
+    if (!payload || typeof payload !== 'string') {
+      return null;
+    }
+    try {
+      const parts = payload.split(':');
+      if (parts.length !== 4 || parts[0] !== 'v1') {
+        return null;
+      }
+      const [, ivB64, tagB64, ctB64] = parts;
+      const iv = Buffer.from(ivB64, 'base64');
+      const tag = Buffer.from(tagB64, 'base64');
+      const ciphertext = Buffer.from(ctB64, 'base64');
+      const decipher = createDecipheriv(
+        'aes-256-gcm',
+        this.codeEncryptionKey,
+        iv,
+      );
+      decipher.setAuthTag(tag);
+      const plain = Buffer.concat([
+        decipher.update(ciphertext),
+        decipher.final(),
+      ]);
+      return plain.toString('utf8');
+    } catch (err) {
+      this.logger.warn(
+        `Failed to decrypt company code blob: ${(err as Error).message}`,
+      );
+      return null;
+    }
+  }
+
+  async getStatus(): Promise<VerifierCompanyCodeStatus> {
     const row = await this.knex('verifier_company_settings')
       .orderBy('id', 'asc')
       .first();
     if (!row?.hashed_code) {
-      return { configured: false, updatedAt: null };
+      return { configured: false, updatedAt: null, code: null };
     }
     const updatedAt = row.updated_at
       ? new Date(row.updated_at).toISOString()
       : null;
-    return { configured: true, updatedAt };
+    const code = this.decryptCompanyCode(row.encrypted_code);
+    return { configured: true, updatedAt, code };
   }
 
   async setCompanyCode(plainCode: string): Promise<{ updatedAt: string }> {
@@ -74,6 +143,7 @@ export class VerifierSessionService {
     }
 
     const hashed = await bcrypt.hash(trimmed, this.bcryptRounds);
+    const encrypted = this.encryptCompanyCode(trimmed);
     const existing = await this.knex('verifier_company_settings')
       .orderBy('id', 'asc')
       .first();
@@ -83,11 +153,13 @@ export class VerifierSessionService {
         .where({ id: existing.id })
         .update({
           hashed_code: hashed,
+          encrypted_code: encrypted,
           updated_at: this.knex.fn.now(),
         });
     } else {
       await this.knex('verifier_company_settings').insert({
         hashed_code: hashed,
+        encrypted_code: encrypted,
       });
     }
 
