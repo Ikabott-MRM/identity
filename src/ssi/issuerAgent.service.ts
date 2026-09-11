@@ -283,15 +283,24 @@ fs.writeFileSync(filePath, Buffer.from(body));
       const signedVcJwt = await vc.sign({ did: this.operationalDID });
       this.logger.debug(`credential has been successfully signed`);
 
-      //frist: get credential manifest of issuer
-      let currentManifest: CredentialManifest;
+      // first: get credential manifest of issuer
+      let currentManifest: CredentialManifest | undefined;
       let newManifest: CredentialManifest;
       const currentManifestCid =
         await this.credentialManifestService.getCurrentManifest();
-      if (currentManifestCid)
-        currentManifest = (await this.ipfsService.getContent(
-          currentManifestCid,
-        )) as CredentialManifest;
+      if (currentManifestCid) {
+        try {
+          currentManifest = (await this.ipfsService.getContent(
+            currentManifestCid,
+          )) as CredentialManifest;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.warn(
+            `[${correlationId}] Current manifest CID ${currentManifestCid} could not be fetched (${msg}). Creating a new manifest.`,
+          );
+          currentManifest = undefined;
+        }
+      }
 
       //encrypt the signedVcJWT
       const encryptedCredential =
